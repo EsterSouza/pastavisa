@@ -500,11 +500,17 @@ export interface LegislacoesTexto {
   municipal: string;
 }
 
+export interface DocumentoGuiaItem {
+  nome: string;
+  tipo?: string | null;
+}
+
 export interface GeneratorOptions {
   processingType?: ProcessingType;
   logoPath?: string | null;
   criadaEm?: Date;
   documentosListados?: string;
+  documentosDaPasta?: DocumentoGuiaItem[];
   docElaborador?: string;
   docMesExtenso?: string;
   docAno?: string;
@@ -591,6 +597,58 @@ export function createOutputDocxFileName(
   }
 
   return candidate;
+}
+
+function normalizeForMatch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+}
+
+function isGuiaDocumentInventoryInstruction(instruction: string): boolean {
+  const normalized = normalizeForMatch(instruction);
+  return (
+    normalized.includes("INVENTARIO DE DOCUMENTOS") &&
+    (normalized.includes("POPS E TCLES") ||
+      normalized.includes("POP") ||
+      normalized.includes("TCLE") ||
+      normalized.includes("INDICES E TABELAS")) &&
+    (normalized.includes("GUIA") ||
+      normalized.includes("INDICES E TABELAS") ||
+      normalized.includes("DOCUMENTOS"))
+  );
+}
+
+function buildSimpleTableOoxml(
+  headers: string[],
+  rows: string[][],
+  origPara: string
+): string {
+  return tableJsonToOoxml(JSON.stringify({ headers, rows }), origPara);
+}
+
+function buildGuiaDocumentInventoryOoxml(
+  documentos: DocumentoGuiaItem[] | undefined,
+  origPara: string
+): string {
+  const usedNames = new Set<string>();
+  const rows = (documentos || [])
+    .map((doc, index) => {
+      const nomeArquivo = createOutputDocxFileName(doc.nome || "DOCUMENTO", usedNames);
+      usedNames.add(nomeArquivo.toLocaleUpperCase("pt-BR"));
+      const nome = nomeArquivo.replace(/\.DOCX$/i, "");
+      return [String(index + 1), nome, "OK (   )"];
+    });
+
+  const tableRows = rows.length > 0
+    ? rows
+    : [["-", "Nenhum documento planejado para esta pasta", "OK (   )"]];
+
+  return (
+    textToOoxmlParagraphs("### 3. INVENTARIO DE DOCUMENTOS", origPara) +
+    buildSimpleTableOoxml(["N", "Documento", "Status OK (   )"], tableRows, origPara)
+  );
 }
 
 export async function gerarDocumento(
@@ -722,7 +780,8 @@ export async function gerarDocumento(
           continue;
         }
 
-        const blockType = detectBlockType(instruction);
+        const guiaInventoryBlock = isGuiaDocumentInventoryInstruction(instruction);
+        const blockType = guiaInventoryBlock ? "instruction" : detectBlockType(instruction);
         const blockLabel =
           blockType === "instruction" ? "instrução"
           : blockType === "table" ? "tabela"
@@ -730,6 +789,19 @@ export async function gerarDocumento(
         onProgress?.(`Bloco IA ${safetyCounter} — ${blockLabel}…`);
 
         try {
+          if (guiaInventoryBlock) {
+            const probe = replaceFirstAdaptBlockWithOoxml(xmlContent, "");
+            const guiaOoxml = buildGuiaDocumentInventoryOoxml(
+              options.documentosDaPasta,
+              probe.originalParaXml
+            );
+            zip.file(
+              docXmlFile,
+              replaceFirstAdaptBlockWithOoxml(xmlContent, guiaOoxml).xml
+            );
+            continue;
+          }
+
           const { texto, tokensUsados } = await processAdaptBlock(
             instruction,
             clienteData,

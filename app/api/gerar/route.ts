@@ -3,6 +3,7 @@ import path from "path";
 import { prisma } from "@/lib/prisma";
 import {
   createOutputDocxFileName,
+  DocumentoGuiaItem,
   EquipamentoDocumento,
   gerarDocumento,
   hasRtInBody,
@@ -125,9 +126,17 @@ export async function POST(req: NextRequest) {
   await prisma.pasta.update({ where: { id: pastaId }, data: { status: "processando" } });
   const usedOutputNames = new Set<string>();
 
-  // Build documentos listados string for {documentos_a_gerar}
-  const documentosListados = pasta.documentos
-    .map((d: { nomeArquivo: string }) => `• ${d.nomeArquivo}`)
+  // Build the full planned document list for guide/index generation.
+  // This intentionally uses every document in the folder, not only the checked batch.
+  const documentosDaPasta: DocumentoGuiaItem[] = pasta.documentos.map(
+    (d: { nomeArquivo: string; template?: { tipo?: string | null } | null }) => ({
+      nome: d.nomeArquivo,
+      tipo: d.template?.tipo,
+    })
+  );
+
+  const documentosListados = documentosDaPasta
+    .map((d) => `- ${d.nome}`)
     .join("\n");
 
   for (const doc of docsToProcess) {
@@ -159,6 +168,7 @@ export async function POST(req: NextRequest) {
           logoPath: pasta.clienteLogoPath,
           criadaEm: pasta.criadaEm,
           documentosListados,
+          documentosDaPasta,
           docElaborador: pasta.docElaborador || undefined,
           docMesExtenso: pasta.docMesExtenso || undefined,
           docAno: pasta.docAno || undefined,
