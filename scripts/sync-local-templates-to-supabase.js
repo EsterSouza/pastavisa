@@ -39,6 +39,11 @@ function safeStorageFileName(fileName) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
+function storageBaseName(ref) {
+  if (!ref) return "";
+  return String(ref).split("/").pop() || "";
+}
+
 function inferMeta(filename) {
   const n = filename.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_\-]/g, " ");
   let tipo = "OUTROS";
@@ -79,20 +84,67 @@ async function main() {
   const pool = new Pool({ connectionString: databaseUrl, ssl: databaseUrl.includes("localhost") ? false : { rejectUnauthorized: false } });
 
   const files = fs.readdirSync(sourceDir).filter((file) => file.toLowerCase().endsWith(".docx")).sort();
-  const existingRows = await pool.query('select "nome" from "Template"');
-  const existing = new Set(existingRows.rows.map((row) => normalizeName(row.nome)));
+  const existingRows = await pool.query('select "id", "nome", "arquivoPath" from "Template"');
+  const existingRowsList = existingRows.rows;
+  const existing = new Set(existingRowsList.map((row) => normalizeName(row.nome)));
   const synced = [];
   const skipped = [];
+  const repaired = [];
 
   for (const file of files) {
     const nome = displayName(file);
     const key = normalizeName(nome);
+    const safeFile = safeStorageFileName(file);
+    const matchingRows = existingRowsList.filter((row) =>
+      normalizeName(row.nome) === key || storageBaseName(row.arquivoPath).endsWith(safeFile)
+    );
+
+    if (matchingRows.length > 0) {
+      const exactRow = matchingRows.find((row) => row.nome === nome);
+      const { tipo, padraoHeader } = inferMeta(file);
+      const processingType = detectProcessingType(file);
+
+      if (exactRow) {
+        for (const row of matchingRows) {
+          if (row.id === exactRow.id) continue;
+          const refs = await pool.query('select count(*)::int as count from "DocumentoGerado" where "templateId"=$1', [row.id]);
+          if (refs.rows[0].count === 0) {
+            await pool.query('delete from "Template" where "id"=$1', [row.id]);
+          } else {
+            await pool.query('update "Template" set "nome"=$1, "ativo"=false where "id"=$2', [`${nome} (duplicado antigo)`, row.id]);
+          }
+          repaired.push(`${row.nome} -> removido/ocultado`);
+        }
+      } else {
+        const [primary, ...duplicates] = matchingRows;
+        await pool.query(
+          'update "Template" set "nome"=$1, "tipo"=$2, "padraoHeader"=$3, "processingType"=$4 where "id"=$5',
+          [nome, tipo, padraoHeader, processingType, primary.id]
+        );
+        repaired.push(`${primary.nome} -> ${nome}`);
+
+        for (const row of duplicates) {
+          const refs = await pool.query('select count(*)::int as count from "DocumentoGerado" where "templateId"=$1', [row.id]);
+          if (refs.rows[0].count === 0) {
+            await pool.query('delete from "Template" where "id"=$1', [row.id]);
+          } else {
+            await pool.query('update "Template" set "nome"=$1, "ativo"=false where "id"=$2', [`${nome} (duplicado antigo)`, row.id]);
+          }
+          repaired.push(`${row.nome} -> removido/ocultado`);
+        }
+      }
+
+      existing.add(key);
+      skipped.push(nome);
+      continue;
+    }
+
     if (existing.has(key)) {
       skipped.push(nome);
       continue;
     }
 
-    const storageName = `bulk_${Date.now()}_${safeStorageFileName(file)}`;
+    const storageName = `bulk_${Date.now()}_${safeFile}`;
     const storagePath = `${templatePrefix}/${storageName}`;
     const buffer = fs.readFileSync(path.join(sourceDir, file));
     const upload = await supabase.storage.from(bucket).upload(storagePath, buffer, {
@@ -113,7 +165,7 @@ async function main() {
 
   const count = await pool.query('select count(*)::int as count from "Template"');
   await pool.end();
-  console.log(JSON.stringify({ local: files.length, skipped: skipped.length, synced, remote: count.rows[0].count }, null, 2));
+  console.log(JSON.stringify({ local: files.length, skipped: skipped.length, repaired, synced, remote: count.rows[0].count }, null, 2));
 }
 
 main().catch((error) => {
