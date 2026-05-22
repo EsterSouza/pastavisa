@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
 /.pnp
@@ -20,16 +18,35 @@
 .DS_Store
 *.pem
 
-# debug
+# debug/logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
+.next-dev*.log
 
 # local env files
+.env
+.env.local
 .env*.local
+!.env.example
 
-# vercel
-.vercel
+# local templates/source assets
+/TODOS_OS_TEMPLATES_PastaVISA/
+
+# local app data and backups
+/backups/
+/dev.db
+/prisma/dev.db
+/prisma/*.db
+/storage/
+
+# local tool/cache state
+/.claude/
+/.npm-cache/
+/.vercel/
+/app/generated/prisma/
+/supabase/.temp/
 
 # typescript
 *.tsbuildinfo

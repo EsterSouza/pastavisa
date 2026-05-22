@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+backups/
+storage/
+.next/
+node_modules/
+*.log
+.npm-cache/
+TODOS_OS_TEMPLATES_PastaVISA/
