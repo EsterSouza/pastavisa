@@ -54,6 +54,7 @@ export interface ClienteData {
   clienteServicos?: Array<string>;
   clienteFuncionarios?: Array<{ nome: string; funcao: string; conselho: string }>;
   clienteEquipamentos?: Array<{ nome: string; marca: string; modelo: string; registro_anvisa: string }>;
+  clienteProdutosInsumos?: Array<{ nome: string; categoria: string; fabricante: string; registro_anvisa: string; uso: string }>;
   clienteTerceirizados?: Array<{ servico: string; razao_social: string; cnpj: string }>;
   clienteColetaRazao?: string;
   clienteColetaCnpj?: string;
@@ -116,6 +117,7 @@ Retorne APENAS um JSON válido com a estrutura abaixo. Use null para campos não
   "cliente_estrutura_fisica": "",
   "cliente_servicos": [],
   "cliente_equipamentos": [{"nome": "", "marca": "", "modelo": "", "registro_anvisa": ""}],
+  "cliente_produtos_insumos": [{"nome": "", "categoria": "", "fabricante": "", "registro_anvisa": "", "uso": ""}],
   "cliente_terceirizados": [{"servico": "", "razao_social": "", "cnpj": ""}],
   "cliente_coleta_razao_social": "",
   "cliente_coleta_cnpj": "",
@@ -187,6 +189,9 @@ Retorne APENAS um JSON válido com a estrutura abaixo. Use null para campos não
     clienteEquipamentos: Array.isArray(raw.cliente_equipamentos)
       ? (raw.cliente_equipamentos as ClienteData["clienteEquipamentos"])
       : [],
+    clienteProdutosInsumos: Array.isArray(raw.cliente_produtos_insumos)
+      ? (raw.cliente_produtos_insumos as ClienteData["clienteProdutosInsumos"])
+      : [],
     clienteTerceirizados: Array.isArray(raw.cliente_terceirizados)
       ? (raw.cliente_terceirizados as ClienteData["clienteTerceirizados"])
       : [],
@@ -213,7 +218,11 @@ export async function adaptTrecho(
       ?.map((e) => `${e.nome} ${e.marca} ${e.modelo} (ANVISA: ${e.registro_anvisa})`)
       .join(", ") || "Não informado";
 
-  const servicosList = clienteData.clienteServicos?.join(", ") || "Não informado";
+  const servicosList = clienteData.clienteServicos?.join(", ") || "Nao informado";
+  const produtosInsumosList =
+    clienteData.clienteProdutosInsumos
+      ?.map((p) => [p.nome, p.categoria, p.fabricante, p.registro_anvisa ? `ANVISA ${p.registro_anvisa}` : "", p.uso].filter(Boolean).join(" | "))
+      .join("\n") || "Nao informado";
   const funcionariosList =
     clienteData.clienteFuncionarios
       ?.map((f) => `${f.nome} | ${f.funcao}${f.conselho ? ` | ${f.conselho}` : ""}`)
@@ -229,6 +238,8 @@ DADOS DO NOVO CLIENTE:
 - Conselho: ${clienteData.clienteRtConselho || ""}
 - Cidade/Estado: ${clienteData.clienteCidade || ""}/${clienteData.clienteEstado || ""}
 - Equipamentos: ${equipamentosList}
+- Produtos, insumos, medicamentos, cosmeticos e ativos:
+${produtosInsumosList}
 - Funcionários:
 ${funcionariosList}
 - Serviços: ${servicosList}
@@ -632,7 +643,11 @@ export async function processAdaptBlock(
       ?.map((e) => `${e.nome} | ${e.marca} | ${e.modelo} | ANVISA ${e.registro_anvisa}`)
       .join("\n") || "Não informado";
 
-  const servicosList = clienteData.clienteServicos?.join(", ") || "Não informado";
+  const servicosList = clienteData.clienteServicos?.join(", ") || "Nao informado";
+  const produtosInsumosList =
+    clienteData.clienteProdutosInsumos
+      ?.map((p) => [p.nome, p.categoria, p.fabricante, p.registro_anvisa ? `ANVISA ${p.registro_anvisa}` : "", p.uso].filter(Boolean).join(" | "))
+      .join("\n") || "Nao informado";
   const funcionariosList =
     clienteData.clienteFuncionarios
       ?.map((f) => `${f.nome} | ${f.funcao}${f.conselho ? ` | ${f.conselho}` : ""}`)
@@ -651,7 +666,8 @@ export async function processAdaptBlock(
     `Memorial descritivo do MBP: ${clienteData.clienteMemorialDescritivoMbp || ""}`,
     `Funcionários:\n${funcionariosList}`,
     `Equipamentos:\n${equipamentosList}`,
-    `Serviços: ${servicosList}`,
+    `Produtos, insumos, medicamentos, cosmeticos e ativos:\n${produtosInsumosList}`,
+    `Servicos: ${servicosList}`,
   ].join("\n");
 
   let userPrompt: string;

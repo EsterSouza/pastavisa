@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
     clienteServicos: pasta.clienteServicos ? JSON.parse(pasta.clienteServicos) : [],
     clienteFuncionarios: pasta.clienteFuncionarios ? JSON.parse(pasta.clienteFuncionarios) : [],
     clienteEquipamentos: pasta.clienteEquipamentos ? JSON.parse(pasta.clienteEquipamentos) : [],
+    clienteProdutosInsumos: pasta.clienteProdutosInsumos ? JSON.parse(pasta.clienteProdutosInsumos) : [],
     clienteTerceirizados: pasta.clienteTerceirizados ? JSON.parse(pasta.clienteTerceirizados) : [],
     clienteColetaRazao: pasta.clienteColetaRazao || undefined,
     clienteColetaCnpj: pasta.clienteColetaCnpj || undefined,

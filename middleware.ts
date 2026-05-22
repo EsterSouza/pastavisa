@@ -1,43 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authCredentialsConfigured, sessionCookieName, validateCredentials, verifySessionToken } from "./lib/session-auth";
 
-function isBasicAuthEnabled(): boolean {
-  return !!process.env.APP_BASIC_AUTH_USER && !!process.env.APP_BASIC_AUTH_PASSWORD;
-}
-
-function unauthorized() {
-  return new NextResponse("Authentication required", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="PastaVISA"',
-    },
-  });
-}
-
-export function middleware(req: NextRequest) {
-  if (!isBasicAuthEnabled()) return NextResponse.next();
-
-  const auth = req.headers.get("authorization");
-  if (!auth?.startsWith("Basic ")) return unauthorized();
-
+function decodeBasicAuth(auth?: string | null): { user: string; password: string } | null {
+  if (!auth?.startsWith("Basic ")) return null;
   const [, encoded] = auth.split(" ");
-  let decoded = "";
   try {
-    decoded = atob(encoded || "");
+    const decoded = atob(encoded || "");
+    const separator = decoded.indexOf(":");
+    return {
+      user: separator >= 0 ? decoded.slice(0, separator) : "",
+      password: separator >= 0 ? decoded.slice(separator + 1) : "",
+    };
   } catch {
-    return unauthorized();
+    return null;
   }
-  const separator = decoded.indexOf(":");
-  const user = separator >= 0 ? decoded.slice(0, separator) : "";
-  const password = separator >= 0 ? decoded.slice(separator + 1) : "";
+}
 
-  if (
-    user === process.env.APP_BASIC_AUTH_USER &&
-    password === process.env.APP_BASIC_AUTH_PASSWORD
-  ) {
+function unauthorized(req: NextRequest) {
+  if (req.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  }
+
+  const loginUrl = req.nextUrl.clone();
+  loginUrl.pathname = "/login";
+  loginUrl.searchParams.set("next", req.nextUrl.pathname + req.nextUrl.search);
+  return NextResponse.redirect(loginUrl);
+}
+
+export async function middleware(req: NextRequest) {
+  if (!authCredentialsConfigured()) return NextResponse.next();
+
+  const path = req.nextUrl.pathname;
+  if (path === "/login" || path.startsWith("/api/auth/")) {
     return NextResponse.next();
   }
 
-  return unauthorized();
+  const cookieToken = req.cookies.get(sessionCookieName())?.value;
+  if (await verifySessionToken(cookieToken)) {
+    return NextResponse.next();
+  }
+
+  const basic = decodeBasicAuth(req.headers.get("authorization"));
+  if (basic && validateCredentials(basic.user, basic.password)) {
+    return NextResponse.next();
+  }
+
+  return unauthorized(req);
 }
 
 export const config = {

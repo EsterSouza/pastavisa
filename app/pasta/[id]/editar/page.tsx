@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 interface Equipamento { nome: string; marca: string; modelo: string; registro_anvisa: string }
+interface ProdutoInsumo { nome: string; categoria: string; fabricante: string; registro_anvisa: string; uso: string }
 interface Funcionario { nome: string; funcao: string; conselho: string }
 interface Terceirizado { servico: string; razao_social: string; cnpj: string }
 
@@ -26,6 +27,7 @@ interface FormData {
   clienteServicos: string[];
   clienteFuncionarios: Funcionario[];
   clienteEquipamentos: Equipamento[];
+  clienteProdutosInsumos: ProdutoInsumo[];
   clienteTerceirizados: Terceirizado[];
   clienteColetaRazao: string;
   clienteColetaCnpj: string;
@@ -85,6 +87,7 @@ export default function EditarPasta() {
           clienteServicos: pasta.clienteServicos ? JSON.parse(pasta.clienteServicos) : [],
           clienteFuncionarios: pasta.clienteFuncionarios ? JSON.parse(pasta.clienteFuncionarios) : [],
           clienteEquipamentos: pasta.clienteEquipamentos ? JSON.parse(pasta.clienteEquipamentos) : [],
+          clienteProdutosInsumos: pasta.clienteProdutosInsumos ? JSON.parse(pasta.clienteProdutosInsumos) : [],
           clienteTerceirizados: pasta.clienteTerceirizados ? JSON.parse(pasta.clienteTerceirizados) : [],
           clienteColetaRazao: pasta.clienteColetaRazao || "",
           clienteColetaCnpj: pasta.clienteColetaCnpj || "",
@@ -121,6 +124,7 @@ export default function EditarPasta() {
         clienteServicos: JSON.stringify(form.clienteServicos),
         clienteFuncionarios: JSON.stringify(form.clienteFuncionarios),
         clienteEquipamentos: JSON.stringify(form.clienteEquipamentos),
+        clienteProdutosInsumos: JSON.stringify(form.clienteProdutosInsumos),
         clienteTerceirizados: JSON.stringify(form.clienteTerceirizados),
       }),
     });
@@ -312,6 +316,47 @@ export default function EditarPasta() {
           </div>
           <button onClick={() => set("clienteEquipamentos", [...form.clienteEquipamentos, { nome: "", marca: "", modelo: "", registro_anvisa: "" }])}
             className="mt-2 text-xs text-blue-600 hover:underline">+ Adicionar equipamento</button>
+        </section>
+
+        {/* Produtos, insumos e ativos */}
+        <section className="bg-white border border-gray-200 rounded-xl p-5">
+          <h2 className="font-semibold text-gray-800 mb-3">Produtos, insumos, medicamentos e cosm?ticos</h2>
+          <p className="text-xs text-gray-500 mb-3">Cadastre itens relevantes para POPs, MBP, PGRSS, protocolos e rela??o de servi?os.</p>
+          <div className="space-y-2">
+            {form.clienteProdutosInsumos.map((item, i) => (
+              <div key={i} className="grid grid-cols-5 gap-2">
+                {(["nome", "categoria", "fabricante", "registro_anvisa", "uso"] as const).map((field) => (
+                  <input
+                    key={field}
+                    type="text"
+                    placeholder={{ nome: "Nome", categoria: "Tipo", fabricante: "Fabricante", registro_anvisa: "ANVISA", uso: "Uso/procedimento" }[field]}
+                    value={item[field]}
+                    onChange={(e) => {
+                      const updated = [...form.clienteProdutosInsumos];
+                      updated[i] = { ...updated[i], [field]: e.target.value };
+                      set("clienteProdutosInsumos", updated);
+                    }}
+                    className="border border-gray-300 rounded-lg px-2 py-2 text-xs text-gray-900 bg-white"
+                  />
+                ))}
+                <button
+                  onClick={() => set("clienteProdutosInsumos", form.clienteProdutosInsumos.filter((_, j) => j !== i))}
+                  className="col-span-5 text-left text-xs text-red-500 hover:text-red-600"
+                >
+                  Remover item
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => set("clienteProdutosInsumos", [...form.clienteProdutosInsumos, { nome: "", categoria: "", fabricante: "", registro_anvisa: "", uso: "" }])}
+            className="mt-3 text-xs text-blue-600 hover:underline"
+          >
+            + Adicionar produto/insumo
+          </button>
+          <p className="text-xs text-gray-500 mt-2">
+            Vari?vel para usar no template: {"{cliente_produtos_insumos_lista}"}
+          </p>
         </section>
 
         {/* Terceirizados */}

@@ -81,6 +81,24 @@ function buildEquipamentosList(
   return equips.map((e) => `${e.nome} — ${e.marca} ${e.modelo} (ANVISA: ${e.registro_anvisa})`).join("\n");
 }
 
+function buildProdutosInsumosList(
+  itens?: Array<{ nome: string; categoria: string; fabricante: string; registro_anvisa: string; uso: string }>
+): string {
+  if (!itens || itens.length === 0) return "Nao informado";
+  return itens
+    .filter((item) => item.nome?.trim() || item.categoria?.trim() || item.fabricante?.trim() || item.registro_anvisa?.trim() || item.uso?.trim())
+    .map((item, index) => {
+      const detalhes = [
+        item.categoria?.trim(),
+        item.fabricante?.trim() ? `fabricante ${item.fabricante.trim()}` : "",
+        item.registro_anvisa?.trim() ? `registro ANVISA ${item.registro_anvisa.trim()}` : "",
+        item.uso?.trim() ? `uso: ${item.uso.trim()}` : "",
+      ].filter(Boolean);
+      return `${index + 1}. ${item.nome?.trim() || "Item"}${detalhes.length ? ` | ${detalhes.join(" | ")}` : ""}`;
+    })
+    .join("\n");
+}
+
 export interface EquipamentoDocumento {
   nome?: string | null;
   marca?: string | null;
@@ -614,6 +632,7 @@ export async function gerarDocumento(
     cliente_servicos_lista: buildServicosList(clienteData.clienteServicos),
     cliente_funcionarios_lista: buildFuncionariosList(clienteData.clienteFuncionarios),
     cliente_equipamentos_lista: buildEquipamentosList(clienteData.clienteEquipamentos),
+    cliente_produtos_insumos_lista: buildProdutosInsumosList(clienteData.clienteProdutosInsumos),
     cliente_terceirizados: buildTerceirizadosList(clienteData.clienteTerceirizados),
     cliente_coleta_razao_social: clienteData.clienteColetaRazao || "",
     cliente_coleta_cnpj: clienteData.clienteColetaCnpj || "",

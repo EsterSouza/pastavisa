@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
         clienteEstrutura: data.clienteEstrutura,
         clienteServicos: JSON.stringify(data.clienteServicos || []),
         clienteEquipamentos: JSON.stringify(data.clienteEquipamentos || []),
+        clienteProdutosInsumos: JSON.stringify(data.clienteProdutosInsumos || []),
         clienteTerceirizados: JSON.stringify(data.clienteTerceirizados || []),
         clienteColetaRazao: data.clienteColetaRazao,
         clienteColetaCnpj: data.clienteColetaCnpj,

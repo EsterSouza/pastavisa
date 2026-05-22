@@ -24,6 +24,7 @@ const PASTA_EDIT_FIELDS = [
   "clienteServicos",
   "clienteFuncionarios",
   "clienteEquipamentos",
+  "clienteProdutosInsumos",
   "clienteTerceirizados",
   "clienteColetaRazao",
   "clienteColetaCnpj",
