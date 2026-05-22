@@ -8,7 +8,15 @@ type StorageFolder = "uploads" | "templates" | "logos" | "output";
 type StorageDriver = "local" | "supabase";
 
 export function storageDriver(): StorageDriver {
-  if (process.env.FILE_STORAGE_DRIVER === "supabase") return "supabase";
+  const configured = (process.env.FILE_STORAGE_DRIVER || "").toLowerCase();
+  if (configured === "supabase") return "supabase";
+
+  const hasSupabaseStorage =
+    !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+    !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (process.env.VERCEL && hasSupabaseStorage) return "supabase";
+
   return "local";
 }
 

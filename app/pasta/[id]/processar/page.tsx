@@ -99,11 +99,45 @@ function parseEquipamentos(value?: string | null): Equipamento[] {
   }
 }
 
+function getTemplateAtual(doc: Documento, assignments: Record<string, string>, templates: Template[]): Template | null {
+  return templates.find((t) => t.id === assignments[doc.id]) || doc.template || null;
+}
+
 function isPopDocumento(doc: Documento, assignments: Record<string, string>, templates: Template[]): boolean {
-  const template = templates.find((t) => t.id === assignments[doc.id]) || doc.template || null;
+  const template = getTemplateAtual(doc, assignments, templates);
   const tipo = normalizeForMatch(template?.tipo || "");
   const nome = normalizeForMatch(`${doc.nomeArquivo} ${template?.nome || ""}`);
   return tipo === "pop" || nome.startsWith("pop ") || nome.includes(" pop ");
+}
+
+function isPopTecnicoProcedimento(doc: Documento, assignments: Record<string, string>, templates: Template[]): boolean {
+  if (!isPopDocumento(doc, assignments, templates)) return false;
+
+  const template = getTemplateAtual(doc, assignments, templates);
+  const alvo = normalizeForMatch(`${doc.nomeArquivo} ${template?.nome || ""}`);
+  const geraisOuBiosseguranca = [
+    "biossegur",
+    "higieniz",
+    "limpeza",
+    "desinfec",
+    "esteriliz",
+    "processamento",
+    "residuo",
+    "residuos",
+    "pgrss",
+    "epi",
+    "lavagem",
+    "maos",
+    "acidente",
+    "emergencia",
+    "prontuario",
+    "recepcao",
+    "agenda",
+    "manutencao",
+    "controle de qualidade",
+  ];
+
+  return !geraisOuBiosseguranca.some((termo) => alvo.includes(termo));
 }
 
 function sugerirEquipamentosParaPop(doc: Documento, template: Template | null, equipamentos: Equipamento[]): Equipamento[] {
@@ -149,6 +183,7 @@ export default function ProcessarPasta() {
   const [selectedLeg,setSelectedLeg]= useState<string[]>([]);
   const [assignments,setAssignments]= useState<Record<string, string>>({});
   const [equipmentAssignments,setEquipmentAssignments]= useState<Record<string, Equipamento[]>>({});
+  const [equipmentOptionsOpen,setEquipmentOptionsOpen]= useState<Record<string, boolean>>({});
   const [selectedDocs,setSelectedDocs] = useState<Set<string>>(new Set());
   const [processing,  setProcessing]  = useState(false);
   const [done,        setDone]        = useState(false);
@@ -204,10 +239,14 @@ export default function ProcessarPasta() {
         setAssignments(init);
 
         const equipmentInit: Record<string, Equipamento[]> = {};
+        const equipmentOpenInit: Record<string, boolean> = {};
         normalized.forEach((d) => {
-          equipmentInit[d.id] = parseEquipamentos(d.equipamentosSelecionados);
+          const equipamentos = parseEquipamentos(d.equipamentosSelecionados);
+          equipmentInit[d.id] = equipamentos;
+          equipmentOpenInit[d.id] = equipamentos.length > 0;
         });
         setEquipmentAssignments(equipmentInit);
+        setEquipmentOptionsOpen(equipmentOpenInit);
 
         // Default: select all pending docs
         setSelectedDocs(new Set(normalized.filter((d) => d.status === "pendente").map((d) => d.id)));
@@ -313,6 +352,11 @@ export default function ProcessarPasta() {
     salvarEquipamentosDoDoc(docId, []);
   }
 
+  function toggleEquipamentosPop(doc: Documento, enabled: boolean) {
+    setEquipmentOptionsOpen((prev) => ({ ...prev, [doc.id]: enabled }));
+    if (!enabled) limparEquipamentosDoc(doc.id);
+  }
+
   // â”€â”€ Generation â€” one document at a time for real-time progress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function autoPreencherTemplates() {
     setAutoFilling(true);
@@ -344,10 +388,14 @@ export default function ProcessarPasta() {
       });
       setAssignments(next);
       const nextEquipment: Record<string, Equipamento[]> = {};
+      const nextEquipmentOpen: Record<string, boolean> = {};
       normalized.forEach((doc) => {
-        nextEquipment[doc.id] = parseEquipamentos(doc.equipamentosSelecionados);
+        const equipamentos = parseEquipamentos(doc.equipamentosSelecionados);
+        nextEquipment[doc.id] = equipamentos;
+        nextEquipmentOpen[doc.id] = equipamentos.length > 0;
       });
       setEquipmentAssignments(nextEquipment);
+      setEquipmentOptionsOpen(nextEquipmentOpen);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Erro ao preencher templates");
     } finally {
@@ -385,7 +433,7 @@ export default function ProcessarPasta() {
           body: JSON.stringify({
             docId: doc.id,
             templateId: assignments[doc.id],
-            equipamentosSelecionados: JSON.stringify(equipmentAssignments[doc.id] || []),
+            equipamentosSelecionados: JSON.stringify(equipmentOptionsOpen[doc.id] ? (equipmentAssignments[doc.id] || []) : []),
           }),
         });
 
@@ -497,10 +545,11 @@ export default function ProcessarPasta() {
           {docs.map((doc) => {
             const isSelecionado = selectedDocs.has(doc.id);
             const jaGerado      = doc.status === "gerado";
-            const templateAtual = templates.find((t) => t.id === assignments[doc.id]) || doc.template || null;
-            const isPop = isPopDocumento(doc, assignments, templates);
+            const templateAtual = getTemplateAtual(doc, assignments, templates);
+            const isPopTecnico = isPopTecnicoProcedimento(doc, assignments, templates);
             const equipamentosDoc = equipmentAssignments[doc.id] || [];
             const equipamentosDocKeys = new Set(equipamentosDoc.map(equipamentoKey));
+            const equipamentosAbertos = !!equipmentOptionsOpen[doc.id];
 
             return (
               <li key={doc.id} className="px-5 py-3 flex flex-col gap-2">
@@ -590,51 +639,64 @@ export default function ProcessarPasta() {
                   </div>
                 )}
 
-                {isPop && clienteEquipamentos.length > 0 && (
-                  <div className="ml-11 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-semibold text-slate-700">Equipamentos na seção de materiais</p>
-                        <p className="text-[11px] text-slate-500">
-                          {equipamentosDoc.length} selecionado{equipamentosDoc.length !== 1 ? "s" : ""} para este POP
-                        </p>
+                {isPopTecnico && clienteEquipamentos.length > 0 && (
+                  <div className="ml-11">
+                    <label className="inline-flex items-center gap-2 text-xs text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={equipamentosAbertos}
+                        disabled={processing}
+                        onChange={(e) => toggleEquipamentosPop(doc, e.target.checked)}
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 disabled:opacity-50"
+                      />
+                      <span>Especificar equipamentos neste POP</span>
+                      {equipamentosDoc.length > 0 && (
+                        <span className="text-slate-400">({equipamentosDoc.length})</span>
+                      )}
+                    </label>
+
+                    {equipamentosAbertos && (
+                      <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <p className="text-xs font-semibold text-slate-700">Equipamentos na secao de materiais</p>
+                          <div className="flex gap-2 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => aplicarSugestaoEquipamentos(doc)}
+                              disabled={processing || !templateAtual}
+                              className="text-blue-600 hover:underline disabled:text-gray-400 disabled:no-underline"
+                            >
+                              Sugerir
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => limparEquipamentosDoc(doc.id)}
+                              disabled={processing || equipamentosDoc.length === 0}
+                              className="text-gray-500 hover:underline disabled:text-gray-400 disabled:no-underline"
+                            >
+                              Limpar
+                            </button>
+                          </div>
+                        </div>
+                        <div className="grid gap-1.5 sm:grid-cols-2">
+                          {clienteEquipamentos.map((eq) => {
+                            const key = equipamentoKey(eq);
+                            return (
+                              <label key={key} className="flex items-start gap-2 text-xs text-slate-700">
+                                <input
+                                  type="checkbox"
+                                  checked={equipamentosDocKeys.has(key)}
+                                  disabled={processing}
+                                  onChange={() => toggleEquipamentoDoc(doc.id, eq)}
+                                  className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-blue-600 disabled:opacity-50"
+                                />
+                                <span>{equipamentoLabel(eq)}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="flex gap-2 text-xs">
-                        <button
-                          type="button"
-                          onClick={() => aplicarSugestaoEquipamentos(doc)}
-                          disabled={processing || !templateAtual}
-                          className="text-blue-600 hover:underline disabled:text-gray-400 disabled:no-underline"
-                        >
-                          Sugerir
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => limparEquipamentosDoc(doc.id)}
-                          disabled={processing || equipamentosDoc.length === 0}
-                          className="text-gray-500 hover:underline disabled:text-gray-400 disabled:no-underline"
-                        >
-                          Limpar
-                        </button>
-                      </div>
-                    </div>
-                    <div className="grid gap-1.5 sm:grid-cols-2">
-                      {clienteEquipamentos.map((eq) => {
-                        const key = equipamentoKey(eq);
-                        return (
-                          <label key={key} className="flex items-start gap-2 text-xs text-slate-700">
-                            <input
-                              type="checkbox"
-                              checked={equipamentosDocKeys.has(key)}
-                              disabled={processing}
-                              onChange={() => toggleEquipamentoDoc(doc.id, eq)}
-                              className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-blue-600 disabled:opacity-50"
-                            />
-                            <span>{equipamentoLabel(eq)}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
+                    )}
                   </div>
                 )}
               </li>
