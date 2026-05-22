@@ -193,6 +193,7 @@ export default function ProcessarPasta() {
   const [estadoCliente,  setEstadoCliente]  = useState("");
   const [autoFilling, setAutoFilling] = useState(false);
   const [currentDocName, setCurrentDocName] = useState("");
+  const [documentSearch, setDocumentSearch] = useState("");
   const [generationStartedAt, setGenerationStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
 
@@ -496,6 +497,20 @@ export default function ProcessarPasta() {
   const total        = docs.length;
   const concluidos   = gerados + erros;
   const progress     = total > 0 ? Math.round((concluidos / total) * 100) : 0;
+  const normalizedDocumentSearch = normalizeForMatch(documentSearch.trim());
+  const visibleDocs = normalizedDocumentSearch
+    ? docs.filter((doc) => {
+        const templateAtual = getTemplateAtual(doc, assignments, templates);
+        const searchable = normalizeForMatch([
+          doc.nomeArquivo,
+          doc.status,
+          doc.mensagemErro || "",
+          templateAtual?.nome || "",
+          templateAtual?.tipo || "",
+        ].join(" "));
+        return searchable.includes(normalizedDocumentSearch);
+      })
+    : docs;
   const prontoParaGerar = docs.filter((d) => selectedDocs.has(d.id) && assignments[d.id]).length;
   const totalTokens  = docs.reduce((s, d) => s + (d.tokensUsados ?? 0), 0);
   const custo        = formatCost(totalTokens);
@@ -537,12 +552,36 @@ export default function ProcessarPasta() {
           </div>
         </div>
 
+        {docs.length > 0 && (
+          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/60">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <label className="sr-only" htmlFor="document-search">Pesquisar documentos</label>
+              <input
+                id="document-search"
+                type="search"
+                value={documentSearch}
+                onChange={(e) => setDocumentSearch(e.target.value)}
+                disabled={processing}
+                placeholder="Pesquisar documentos..."
+                className="w-full sm:max-w-md rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
+              />
+              <span className="text-xs text-gray-500">
+                {visibleDocs.length} de {docs.length} documentos
+              </span>
+            </div>
+          </div>
+        )}
+
         {docs.length === 0 && (
           <p className="px-5 py-6 text-gray-600 text-sm">Nenhum documento extraído.</p>
         )}
 
+        {docs.length > 0 && visibleDocs.length === 0 && (
+          <p className="px-5 py-6 text-gray-600 text-sm">Nenhum documento encontrado.</p>
+        )}
+
         <ul className="divide-y divide-gray-100">
-          {docs.map((doc) => {
+          {visibleDocs.map((doc) => {
             const isSelecionado = selectedDocs.has(doc.id);
             const jaGerado      = doc.status === "gerado";
             const templateAtual = getTemplateAtual(doc, assignments, templates);
