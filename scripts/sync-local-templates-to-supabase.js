@@ -1,0 +1,122 @@
+const fs = require("fs");
+const path = require("path");
+const { Pool } = require("pg");
+const { createClient } = require("@supabase/supabase-js");
+require("dotenv").config({ path: ".env" });
+require("dotenv").config({ path: ".env.local", override: true });
+
+const root = process.cwd();
+const sourceDir = path.join(root, "TODOS_OS_TEMPLATES_PastaVISA");
+const bucket = process.env.SUPABASE_STORAGE_BUCKET || "pasta-visa";
+const templatePrefix = "storage/templates";
+
+function required(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`Variavel ausente: ${name}`);
+  return value;
+}
+
+function normalizeName(value) {
+  return value
+    .replace(/^bulk_\d+_/i, "")
+    .replace(/^TEMPLATE_/i, "")
+    .replace(/_/g, " ")
+    .replace(/\.docx$/i, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .trim();
+}
+
+function displayName(file) {
+  return file
+    .replace(/^TEMPLATE_/i, "")
+    .replace(/_/g, " ")
+    .replace(/\.docx$/i, "");
+}
+
+function safeStorageFileName(fileName) {
+  return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+function inferMeta(filename) {
+  const n = filename.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_\-]/g, " ");
+  let tipo = "OUTROS";
+  if (n.includes("MBP") || n.includes("MANUAL DE BOAS PRATICAS")) tipo = "MBP";
+  else if (n.includes("POP") || n.includes("PROCEDIMENTO OPERACIONAL")) tipo = "POP";
+  else if (n.includes("TCLE")) tipo = "TCLE";
+  else if (n.includes("PGRSS")) tipo = "PGRSS";
+  else if (n.includes("FICHA")) tipo = "FICHA";
+  else if (n.includes("PLANILHA") || n.includes("CONTROLE")) tipo = "PLANILHA";
+  else if (n.includes("GUIA")) tipo = "GUIA";
+  else if (n.includes("TERMO") || n.includes("RENUNCIA") || n.includes("RECUSA")) tipo = "TERMO";
+  else if (n.includes("RECEITUARIO") || n.includes("ORIENTACOES")) tipo = "RECEITUARIO";
+
+  let padraoHeader = "A";
+  if (tipo === "POP") padraoHeader = "B";
+  else if (["TCLE", "FICHA", "TERMO", "RECEITUARIO", "PLANILHA"].includes(tipo)) padraoHeader = "C";
+  return { tipo, padraoHeader };
+}
+
+function detectProcessingType(filename) {
+  const n = filename.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_\-.]/g, " ");
+  const headerOnly = ["PLANILHA", "CONTROLE DE ENTREGA", "CONTROLE DE TEMPERATURA", "CONTROLE DE LIMPEZA", "REGISTRO DE ESTERILIZACAO", "RASTREABILIDADE", "FICHA DE ANAMNESE", "FICHA ANAMNESE", "TERMO DE AUTORIZACAO", "TERMO DE RENUNCIA", "TERMO DE RECUSA", "ENCAMINHAMENTO", "FORMULARIO DE NOTIFICACAO"];
+  if (headerOnly.some((k) => n.includes(k))) return "HEADER_ONLY";
+  const sonnet = ["IMPLEMENTACAO DO PROCESSO DE ENFERMAGEM", "SAE", "INTERCORRENCIAS EMERGENCIAS", "INTERCORRENCIAS E EMERGENCIAS", "PGRSS", "PLANO DE GERENCIAMENTO", "PLANO DE SEGURANCA DO PACIENTE", "PSP", "MANUAL DE BOAS PRATICAS", "MBP", "RELACAO DE SERVICOS"];
+  if (sonnet.some((k) => n.includes(k))) return "SONNET_REQUIRED";
+  const heavy = ["RELACAO DE EQUIPAMENTOS E SERVICOS", "GUIA DE UTILIZACAO", "GUIA UTILIZACAO", "ORIENTACOES POS", "ORIENTACOES DE USO"];
+  if (heavy.some((k) => n.includes(k))) return "HEAVY_HAIKU";
+  return "LIGHT_HAIKU";
+}
+
+async function main() {
+  if (!fs.existsSync(sourceDir)) throw new Error(`Pasta local nao encontrada: ${sourceDir}`);
+
+  const databaseUrl = required("DATABASE_URL");
+  const supabaseUrl = process.env.SUPABASE_URL || required("NEXT_PUBLIC_SUPABASE_URL");
+  const serviceRoleKey = required("SUPABASE_SERVICE_ROLE_KEY");
+  const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const pool = new Pool({ connectionString: databaseUrl, ssl: databaseUrl.includes("localhost") ? false : { rejectUnauthorized: false } });
+
+  const files = fs.readdirSync(sourceDir).filter((file) => file.toLowerCase().endsWith(".docx")).sort();
+  const existingRows = await pool.query('select "nome" from "Template"');
+  const existing = new Set(existingRows.rows.map((row) => normalizeName(row.nome)));
+  const synced = [];
+  const skipped = [];
+
+  for (const file of files) {
+    const nome = displayName(file);
+    const key = normalizeName(nome);
+    if (existing.has(key)) {
+      skipped.push(nome);
+      continue;
+    }
+
+    const storageName = `bulk_${Date.now()}_${safeStorageFileName(file)}`;
+    const storagePath = `${templatePrefix}/${storageName}`;
+    const buffer = fs.readFileSync(path.join(sourceDir, file));
+    const upload = await supabase.storage.from(bucket).upload(storagePath, buffer, {
+      contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      upsert: true,
+    });
+    if (upload.error) throw new Error(`Falha ao subir ${file}: ${upload.error.message}`);
+
+    const { tipo, padraoHeader } = inferMeta(file);
+    const processingType = detectProcessingType(file);
+    await pool.query(
+      'insert into "Template" ("id", "nome", "tipo", "padraoHeader", "processingType", "arquivoPath", "ativo", "criadoEm") values ($1,$2,$3,$4,$5,$6,true,now())',
+      [crypto.randomUUID(), nome, tipo, padraoHeader, processingType, `supabase://${bucket}/${storagePath}`]
+    );
+    existing.add(key);
+    synced.push(nome);
+  }
+
+  const count = await pool.query('select count(*)::int as count from "Template"');
+  await pool.end();
+  console.log(JSON.stringify({ local: files.length, skipped: skipped.length, synced, remote: count.rows[0].count }, null, 2));
+}
+
+main().catch((error) => {
+  console.error(error.message);
+  process.exit(1);
+});
