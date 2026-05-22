@@ -44,6 +44,13 @@ function storageBaseName(ref) {
   return String(ref).split("/").pop() || "";
 }
 
+function storagePathFromRef(ref) {
+  if (!ref || !String(ref).startsWith("supabase://")) return "";
+  const withoutProtocol = String(ref).replace(/^supabase:\/\//, "");
+  const slash = withoutProtocol.indexOf("/");
+  return slash === -1 ? "" : withoutProtocol.slice(slash + 1);
+}
+
 function inferMeta(filename) {
   const n = filename.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_\-]/g, " ");
   let tipo = "OUTROS";
@@ -90,6 +97,28 @@ async function main() {
   const synced = [];
   const skipped = [];
   const repaired = [];
+  const updated = [];
+
+  async function uploadTemplateFile(row, file) {
+    const sourcePath = path.join(sourceDir, file);
+    const buffer = fs.readFileSync(sourcePath);
+    let storagePath = storagePathFromRef(row.arquivoPath);
+
+    if (!storagePath) {
+      storagePath = `${templatePrefix}/bulk_${Date.now()}_${safeStorageFileName(file)}`;
+      await pool.query(
+        'update "Template" set "arquivoPath"=$1 where "id"=$2',
+        [`supabase://${bucket}/${storagePath}`, row.id]
+      );
+    }
+
+    const upload = await supabase.storage.from(bucket).upload(storagePath, buffer, {
+      contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      upsert: true,
+    });
+    if (upload.error) throw new Error(`Falha ao atualizar ${file}: ${upload.error.message}`);
+    updated.push(row.nome);
+  }
 
   for (const file of files) {
     const nome = displayName(file);
@@ -105,6 +134,12 @@ async function main() {
       const processingType = detectProcessingType(file);
 
       if (exactRow) {
+        await uploadTemplateFile(exactRow, file);
+        await pool.query(
+          'update "Template" set "tipo"=$1, "padraoHeader"=$2, "processingType"=$3, "ativo"=true where "id"=$4',
+          [tipo, padraoHeader, processingType, exactRow.id]
+        );
+
         for (const row of matchingRows) {
           if (row.id === exactRow.id) continue;
           const refs = await pool.query('select count(*)::int as count from "DocumentoGerado" where "templateId"=$1', [row.id]);
@@ -117,6 +152,7 @@ async function main() {
         }
       } else {
         const [primary, ...duplicates] = matchingRows;
+        await uploadTemplateFile(primary, file);
         await pool.query(
           'update "Template" set "nome"=$1, "tipo"=$2, "padraoHeader"=$3, "processingType"=$4 where "id"=$5',
           [nome, tipo, padraoHeader, processingType, primary.id]
@@ -165,7 +201,7 @@ async function main() {
 
   const count = await pool.query('select count(*)::int as count from "Template"');
   await pool.end();
-  console.log(JSON.stringify({ local: files.length, skipped: skipped.length, repaired, synced, remote: count.rows[0].count }, null, 2));
+  console.log(JSON.stringify({ local: files.length, skipped: skipped.length, updated: updated.length, repaired, synced, remote: count.rows[0].count }, null, 2));
 }
 
 main().catch((error) => {
