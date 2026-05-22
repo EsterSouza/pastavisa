@@ -40,6 +40,9 @@ yarn-error.log*
 /prisma/dev.db
 /prisma/*.db
 /storage/
+/storage/logos/
+/storage/output/
+/storage/uploads/
 
 # local tool/cache state
 /.claude/
