@@ -606,11 +606,17 @@ function normalizeForMatch(value: string): string {
     .toUpperCase();
 }
 
-function isGuiaDocumentInventoryInstruction(instruction: string): boolean {
+function isGuiaDocumento(nome?: string): boolean {
+  const normalized = normalizeForMatch(nome || "");
+  return normalized.includes("GUIA") && normalized.includes("PASTA SANITARIA");
+}
+
+function isGuiaDocumentInventoryInstruction(instruction: string, documentoNome?: string): boolean {
   const normalized = normalizeForMatch(instruction);
   return (
-    normalized.includes("INVENTARIO DE DOCUMENTOS") &&
-    (normalized.includes("POPS E TCLES") ||
+    (isGuiaDocumento(documentoNome) || normalized.includes("INVENTARIO DE DOCUMENTOS")) &&
+    (normalized.includes("INVENTARIO DE DOCUMENTOS") ||
+      normalized.includes("POPS E TCLES") ||
       normalized.includes("POP") ||
       normalized.includes("TCLE") ||
       normalized.includes("INDICES E TABELAS")) &&
@@ -739,9 +745,11 @@ export async function gerarDocumento(
 
   let tokensTotal = 0;
   const processingType = options.processingType || "LIGHT_HAIKU";
+  const shouldProcessAdaptBlocks =
+    processingType !== "HEADER_ONLY" || isGuiaDocumento(options.documentoNome);
 
   // ── AI adaptation (skip for HEADER_ONLY) ─────────────────────────────────
-  if (processingType !== "HEADER_ONLY") {
+  if (shouldProcessAdaptBlocks) {
     const docXmlFile = "word/document.xml";
     try {
       const modelo = modelForType(processingType);
@@ -780,7 +788,10 @@ export async function gerarDocumento(
           continue;
         }
 
-        const guiaInventoryBlock = isGuiaDocumentInventoryInstruction(instruction);
+        const guiaInventoryBlock = isGuiaDocumentInventoryInstruction(
+          instruction,
+          options.documentoNome
+        );
         const blockType = guiaInventoryBlock ? "instruction" : detectBlockType(instruction);
         const blockLabel =
           blockType === "instruction" ? "instrução"
@@ -789,6 +800,11 @@ export async function gerarDocumento(
         onProgress?.(`Bloco IA ${safetyCounter} — ${blockLabel}…`);
 
         try {
+          if (processingType === "HEADER_ONLY" && !guiaInventoryBlock) {
+            zip.file(docXmlFile, replaceFirstAdaptBlockInXml(xmlContent, ""));
+            continue;
+          }
+
           if (guiaInventoryBlock) {
             const probe = replaceFirstAdaptBlockWithOoxml(xmlContent, "");
             const guiaOoxml = buildGuiaDocumentInventoryOoxml(
