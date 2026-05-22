@@ -235,7 +235,7 @@ export default function Templates() {
           disabled={importing}
           className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
         >
-          {importing ? "Importando..." : "⬆ Importar todos os templates"}
+          {importing ? "Reindexando..." : "Reindexar templates do Storage"}
         </button>
       </div>
 

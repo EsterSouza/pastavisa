@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import archiver from "archiver";
 import { prisma } from "@/lib/prisma";
-import { fileNameFromStorageRef, readStorageBuffer, storageFileExists } from "@/lib/file-storage";
+import { readStorageBuffer, storageFileExists } from "@/lib/file-storage";
+import { createOutputDocxFileName } from "@/lib/generator";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,10 +40,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     archive.on("error", reject);
   });
 
+  const usedZipNames = new Set<string>();
+
   for (const doc of docs) {
     if (await storageFileExists(doc.outputPath)) {
       const buffer = await readStorageBuffer(doc.outputPath);
-      archive.append(buffer, { name: fileNameFromStorageRef(doc.outputPath || doc.nomeArquivo) });
+      const prettyName = createOutputDocxFileName(doc.nomeArquivo, usedZipNames);
+      usedZipNames.add(prettyName.toLocaleUpperCase("pt-BR"));
+      archive.append(buffer, { name: prettyName });
     }
   }
 
