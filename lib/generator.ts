@@ -745,11 +745,9 @@ export async function gerarDocumento(
 
   let tokensTotal = 0;
   const processingType = options.processingType || "LIGHT_HAIKU";
-  const shouldProcessAdaptBlocks =
-    processingType !== "HEADER_ONLY" || isGuiaDocumento(options.documentoNome);
 
   // ── AI adaptation (skip for HEADER_ONLY) ─────────────────────────────────
-  if (shouldProcessAdaptBlocks) {
+  if (true) {
     const docXmlFile = "word/document.xml";
     try {
       const modelo = modelForType(processingType);
