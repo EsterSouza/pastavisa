@@ -7,6 +7,13 @@ import { resolveProjectPath } from "./storage-paths";
 type StorageFolder = "uploads" | "templates" | "logos" | "output";
 type StorageDriver = "local" | "supabase";
 
+export interface SignedStorageUpload {
+  bucket: string;
+  path: string;
+  token: string;
+  ref: string;
+}
+
 export function storageDriver(): StorageDriver {
   const configured = (process.env.FILE_STORAGE_DRIVER || "").toLowerCase();
   if (configured === "supabase") return "supabase";
@@ -69,6 +76,20 @@ function parseSupabaseRef(ref: string): { bucket: string; filePath: string } {
   };
 }
 
+export function isManagedStorageReference(
+  ref: string | null | undefined,
+  folder: StorageFolder
+): boolean {
+  if (!ref || !isSupabaseReference(ref)) return false;
+
+  try {
+    const { bucket, filePath } = parseSupabaseRef(ref);
+    return bucket === supabaseBucket() && filePath.startsWith(storagePath(folder, ""));
+  } catch {
+    return false;
+  }
+}
+
 function supabaseAdminClient() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -118,6 +139,32 @@ export async function saveStorageBuffer(
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, buffer);
   return filePath;
+}
+
+export async function createSignedStorageUpload(
+  folder: StorageFolder,
+  fileName: string
+): Promise<SignedStorageUpload> {
+  if (storageDriver() !== "supabase") {
+    throw new Error("Upload direto disponivel apenas com Supabase Storage");
+  }
+
+  const cleanFileName = safeStoragePathName(fileName);
+  const bucket = supabaseBucket();
+  const filePath = supabasePath(folder, cleanFileName);
+  const supabase = supabaseAdminClient();
+  const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(filePath);
+
+  if (error || !data?.token) {
+    throw new Error(`Falha ao preparar upload no Supabase Storage: ${error?.message || "token ausente"}`);
+  }
+
+  return {
+    bucket,
+    path: filePath,
+    token: data.token,
+    ref: supabaseRef(bucket, filePath),
+  };
 }
 
 export async function readStorageBuffer(ref?: string | null): Promise<Buffer> {
