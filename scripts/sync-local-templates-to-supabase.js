@@ -3,7 +3,8 @@ const path = require("path");
 const { Pool } = require("pg");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config({ path: ".env" });
-require("dotenv").config({ path: ".env.local", override: true });
+// Keep the pooler DATABASE_URL from .env when present; direct database hosts may be IPv6-only.
+require("dotenv").config({ path: ".env.local" });
 
 const root = process.cwd();
 const sourceDir = path.join(root, "TODOS_OS_TEMPLATES_PastaVISA");
