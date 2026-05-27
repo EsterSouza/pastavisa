@@ -1,6 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  findTemplateVariable,
+  TEMPLATE_SPECIAL_SYNTAX,
+  TEMPLATE_VARIABLE_CATEGORIES,
+  TEMPLATE_VARIABLES,
+  TemplateVariableDefinition,
+} from "@/lib/template-variables";
 
 interface Template {
   id: string;
@@ -10,6 +17,21 @@ interface Template {
   processingType: string;
   ativo: boolean;
   criadoEm: string;
+}
+
+interface TemplateValidationIssue {
+  level: "error" | "warning" | "info";
+  message: string;
+}
+
+interface TemplateValidationReport {
+  variaveis: string[];
+  variaveisReconhecidas: string[];
+  variaveisDesconhecidas: string[];
+  condicionais: Array<{ key: string; valid: boolean }>;
+  blocosIa: number;
+  issues: TemplateValidationIssue[];
+  valid: boolean;
 }
 
 const TIPOS = ["MBP", "POP", "TCLE", "PGRSS", "FICHA", "PLANILHA", "GUIA", "TERMO", "RECEITUARIO", "OUTROS"];
@@ -58,9 +80,13 @@ export default function Templates() {
   const [editando, setEditando] = useState<Template | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Variables modal
-  const [variavelModal, setVariavelModal] = useState<{ nome: string; vars: string[] } | null>(null);
+  // Variables and validation
+  const [variavelModal, setVariavelModal] = useState<{ nome: string; report: TemplateValidationReport } | null>(null);
   const [loadingVars, setLoadingVars] = useState<string | null>(null);
+  const [catalogOpen, setCatalogOpen] = useState(true);
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogCategory, setCatalogCategory] = useState("");
+  const [copiedTag, setCopiedTag] = useState("");
 
   // Duplicate
   const [duplicando, setDuplicando] = useState<string | null>(null);
@@ -214,8 +240,22 @@ export default function Templates() {
     setLoadingVars(t.id);
     const res = await fetch(`/api/templates/${t.id}/variaveis`);
     const json = await res.json();
-    setVariavelModal({ nome: t.nome, vars: json.variaveis || [] });
+    if (res.ok) {
+      setVariavelModal({ nome: t.nome, report: json as TemplateValidationReport });
+    } else {
+      setError(json.error || "Erro ao analisar template.");
+    }
     setLoadingVars(null);
+  }
+
+  async function copyTag(tag: string) {
+    try {
+      await navigator.clipboard.writeText(tag);
+      setCopiedTag(tag);
+      window.setTimeout(() => setCopiedTag(""), 1500);
+    } catch {
+      setCopiedTag("");
+    }
   }
 
   const templatesFiltrados = templates.filter((t) => {
@@ -225,6 +265,30 @@ export default function Templates() {
     const matchPT = !filtroPT || t.processingType === filtroPT;
     return matchBusca && matchTipo && matchPT;
   });
+  const catalogVariables = TEMPLATE_VARIABLES.filter((variable) => {
+    const q = catalogSearch.trim().toLowerCase();
+    const text = `${variable.key} ${variable.description} ${variable.use}`.toLowerCase();
+    return (!q || text.includes(q)) && (!catalogCategory || variable.category === catalogCategory);
+  });
+
+  function variableCard(variable: TemplateVariableDefinition, used = false) {
+    return (
+      <div key={variable.key} className={`rounded-lg border p-3 ${used ? "border-green-200 bg-green-50/40" : "border-gray-200 bg-white"}`}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <code className="text-xs font-semibold text-blue-800">{variable.tag}</code>
+            {variable.legacy && <span className="ml-2 text-[10px] text-amber-700">legado</span>}
+          </div>
+          <button type="button" onClick={() => { void copyTag(variable.tag); }} className="text-xs text-blue-600 hover:underline shrink-0">
+            {copiedTag === variable.tag ? "Copiado" : "Copiar"}
+          </button>
+        </div>
+        <p className="text-xs text-gray-700 mt-1">{variable.description}</p>
+        <p className="text-[11px] text-gray-500 mt-1">Exemplo: {variable.example || "(vazio até ser informado)"}</p>
+        <p className="text-[11px] text-gray-400 mt-1">{variable.use}</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -296,6 +360,71 @@ export default function Templates() {
           {uploading ? "Enviando..." : "Adicionar template"}
         </button>
       </form>
+
+      <section className="bg-white border border-gray-200 rounded-xl mb-6">
+        <div className="px-5 py-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-gray-800">Biblioteca de variáveis</h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Tags disponíveis para qualquer template. Copie e cole no DOCX onde o preenchimento deve aparecer.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCatalogOpen((open) => !open)}
+            className="text-sm text-blue-600 hover:underline shrink-0"
+          >
+            {catalogOpen ? "Ocultar" : "Abrir biblioteca"}
+          </button>
+        </div>
+        {catalogOpen && (
+          <div className="border-t border-gray-100 p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="search"
+                value={catalogSearch}
+                onChange={(e) => setCatalogSearch(e.target.value)}
+                placeholder="Buscar variável ou finalidade..."
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+              />
+              <select
+                value={catalogCategory}
+                onChange={(e) => setCatalogCategory(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+              >
+                <option value="">Todas as categorias</option>
+                {TEMPLATE_VARIABLE_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {catalogVariables.map((variable) => variableCard(variable))}
+            </div>
+            {catalogVariables.length === 0 && (
+              <p className="text-sm text-gray-500">Nenhuma variável encontrada com estes filtros.</p>
+            )}
+            <div className="rounded-lg border border-violet-200 bg-violet-50/50 p-4">
+              <h3 className="text-sm font-semibold text-violet-900 mb-3">Recursos de preenchimento avançado</h3>
+              <div className="space-y-3">
+                {TEMPLATE_SPECIAL_SYNTAX.map((syntax) => (
+                  <div key={syntax.label}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-medium text-violet-800">{syntax.label}</span>
+                      <code className="text-xs bg-white border border-violet-200 rounded px-2 py-1 text-violet-900">{syntax.syntax}</code>
+                      <button type="button" onClick={() => { void copyTag(syntax.syntax); }} className="text-xs text-blue-600 hover:underline">
+                        {copiedTag === syntax.syntax ? "Copiado" : "Copiar"}
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">{syntax.description}</p>
+                    <p className="text-[11px] text-gray-500 mt-1">Exemplo: {syntax.example}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Templates list */}
       <div className="bg-white border border-gray-200 rounded-xl">
@@ -453,10 +582,10 @@ export default function Templates() {
                   <button
                     onClick={() => handleVerVariaveis(t)}
                     disabled={loadingVars === t.id}
-                    title="Ver variáveis do template"
+                    title="Validar variáveis do template"
                     className="text-xs px-2.5 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
                   >
-                    {loadingVars === t.id ? "..." : "{x}"}
+                    {loadingVars === t.id ? "..." : "Validar"}
                   </button>
                   <button
                     onClick={() => setEditando({ ...t })}
@@ -544,29 +673,92 @@ export default function Templates() {
       {/* ── Variables modal ─────────────────────────────────────────── */}
       {variavelModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="font-semibold text-gray-900">Variáveis detectadas</h2>
+                <h2 className="font-semibold text-gray-900">Diagnóstico do template</h2>
                 <p className="text-xs text-gray-500 mt-0.5 truncate max-w-xs">{variavelModal.nome}</p>
               </div>
               <button onClick={() => setVariavelModal(null)}
                 className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
             </div>
-            {variavelModal.vars.length === 0 ? (
-              <p className="text-sm text-gray-500">Nenhuma variável <code className="bg-gray-100 px-1 rounded">{"{}"}</code> encontrada no arquivo.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {variavelModal.vars.map((v) => (
-                  <code key={v} className="text-xs bg-blue-50 text-blue-800 border border-blue-200 rounded px-2 py-1">
-                    {`{${v}}`}
-                  </code>
+            <div className={`rounded-lg border px-4 py-3 text-sm mb-4 ${
+              variavelModal.report.valid
+                ? "bg-green-50 border-green-200 text-green-800"
+                : "bg-red-50 border-red-200 text-red-800"
+            }`}>
+              {variavelModal.report.valid
+                ? "Template válido: nenhuma tag desconhecida ou marcador quebrado foi detectado."
+                : "Este template precisa de correção antes de ser usado com segurança."}
+            </div>
+
+            {variavelModal.report.issues.length > 0 && (
+              <div className="space-y-2 mb-5">
+                {variavelModal.report.issues.map((issue, index) => (
+                  <p key={`${issue.level}-${index}`} className={`text-sm rounded-lg border px-3 py-2 ${
+                    issue.level === "error"
+                      ? "bg-red-50 border-red-200 text-red-700"
+                      : issue.level === "warning"
+                      ? "bg-amber-50 border-amber-200 text-amber-700"
+                      : "bg-blue-50 border-blue-200 text-blue-700"
+                  }`}>
+                    {issue.message}
+                  </p>
                 ))}
               </div>
             )}
-            <p className="text-xs text-gray-400 mt-4">
-              Essas variáveis são substituídas automaticamente durante a geração do documento.
-            </p>
+
+            <div className="grid gap-5 lg:grid-cols-2">
+              <section>
+                <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                  Tags utilizadas ({variavelModal.report.variaveis.length})
+                </h3>
+                {variavelModal.report.variaveis.length === 0 ? (
+                  <p className="text-sm text-gray-500">Nenhuma tag encontrada neste arquivo.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {variavelModal.report.variaveis.map((key) => {
+                      const variable = findTemplateVariable(key);
+                      return variable ? variableCard(variable, true) : (
+                        <div key={key} className="rounded-lg border border-red-200 bg-red-50 p-3 flex justify-between gap-2">
+                          <div>
+                            <code className="text-xs font-semibold text-red-800">{`{${key}}`}</code>
+                            <p className="text-xs text-red-700 mt-1">Esta tag não existe no preenchimento atual.</p>
+                          </div>
+                          <button type="button" onClick={() => { void copyTag(`{${key}}`); }} className="text-xs text-blue-600 hover:underline">
+                            Copiar
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+              <section className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-2">Automações detectadas</h3>
+                  <p className="text-xs text-gray-600">
+                    Blocos de IA: <span className="font-medium">{variavelModal.report.blocosIa}</span>
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Condicionais: <span className="font-medium">{variavelModal.report.condicionais.length}</span>
+                  </p>
+                  {variavelModal.report.condicionais.map((condition) => (
+                    <code key={condition.key} className={`block text-xs mt-2 rounded px-2 py-1 ${
+                      condition.valid ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
+                    }`}>
+                      {`{#${condition.key}}...{/${condition.key}}`}
+                    </code>
+                  ))}
+                </div>
+                <div className="rounded-lg bg-gray-50 border border-gray-200 p-3">
+                  <p className="text-xs font-medium text-gray-700">Como adicionar outra variável</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use a Biblioteca de variáveis acima para copiar a tag exata e inserir no DOCX. Depois reabra este diagnóstico para conferir.
+                  </p>
+                </div>
+              </section>
+            </div>
             <div className="flex justify-end mt-4">
               <button onClick={() => setVariavelModal(null)}
                 className="px-4 py-2 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200">
