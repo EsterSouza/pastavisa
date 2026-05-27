@@ -9,6 +9,7 @@ import path from "path";
 import { randomBytes } from "crypto";
 import Database from "better-sqlite3";
 import legislacoes from "./legislacoes";
+import { criarChaveReferencia } from "../lib/reference-deduplication";
 
 const DB_PATH = path.join(process.cwd(), "prisma", "dev.db");
 
@@ -29,17 +30,27 @@ db.exec(`
     "tipo"           TEXT NOT NULL,
     "titulo"         TEXT NOT NULL,
     "referenciaAbnt" TEXT NOT NULL,
-    "ativo"          INTEGER NOT NULL DEFAULT 1
+    "ativo"          INTEGER NOT NULL DEFAULT 1,
+    "chaveReferencia" TEXT
   )
 `);
+try {
+  db.exec(`ALTER TABLE "Legislacao" ADD COLUMN "chaveReferencia" TEXT`);
+} catch {
+  // Column already exists.
+}
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS "Legislacao_chaveReferencia_key" ON "Legislacao"("chaveReferencia")`);
 
 const insert = db.prepare(`
-  INSERT INTO "Legislacao" ("id","estadoUf","municipio","tipo","titulo","referenciaAbnt","ativo")
-  VALUES (@id, @estadoUf, @municipio, @tipo, @titulo, @referenciaAbnt, 1)
+  INSERT INTO "Legislacao" ("id","estadoUf","municipio","tipo","titulo","referenciaAbnt","chaveReferencia","ativo")
+  VALUES (@id, @estadoUf, @municipio, @tipo, @titulo, @referenciaAbnt, @chaveReferencia, 1)
 `);
 
 const checkExists = db.prepare(
   `SELECT id FROM "Legislacao" WHERE titulo = @titulo`
+);
+const updateKey = db.prepare(
+  `UPDATE "Legislacao" SET "chaveReferencia" = @chaveReferencia WHERE id = @id AND "chaveReferencia" IS NULL`
 );
 
 let inseridos = 0;
@@ -49,6 +60,10 @@ const runAll = db.transaction(() => {
   for (const leg of legislacoes) {
     const existing = checkExists.get({ titulo: leg.titulo });
     if (existing) {
+      updateKey.run({
+        id: (existing as { id: string }).id,
+        chaveReferencia: criarChaveReferencia(leg),
+      });
       jaExistiam++;
       continue;
     }
@@ -59,6 +74,7 @@ const runAll = db.transaction(() => {
       tipo: leg.tipo,
       titulo: leg.titulo,
       referenciaAbnt: leg.referenciaAbnt,
+      chaveReferencia: criarChaveReferencia(leg),
     });
     inseridos++;
   }

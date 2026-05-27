@@ -10,6 +10,7 @@ interface Legislacao {
   titulo: string;
   referenciaAbnt: string;
   destaqueAbnt: string | null;
+  chaveReferencia?: string | null;
   ativo: boolean;
 }
 
@@ -65,6 +66,8 @@ export default function Legislacoes() {
   const [saving, setSaving] = useState(false);
   const [editando, setEditando] = useState<Legislacao | null>(null);
   const [deletandoId, setDeletandoId] = useState<string | null>(null);
+  const [formError, setFormError] = useState("");
+  const [editError, setEditError] = useState("");
 
   async function load() {
     const res = await fetch("/api/legislacoes");
@@ -88,39 +91,55 @@ export default function Legislacoes() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await fetch("/api/legislacoes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        municipio: form.municipio.trim() || null,
-        destaqueAbnt: form.destaqueAbnt.trim() || null,
-      }),
-    });
-    setForm({ ...BLANK_FORM });
-    await load();
-    setSaving(false);
+    setFormError("");
+    try {
+      const response = await fetch("/api/legislacoes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          municipio: form.municipio.trim() || null,
+          destaqueAbnt: form.destaqueAbnt.trim() || null,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao salvar referência.");
+      setForm({ ...BLANK_FORM });
+      await load();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Erro ao salvar referência.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editando) return;
     setSaving(true);
-    await fetch(`/api/legislacoes/${editando.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        estadoUf: editando.estadoUf,
-        municipio: editando.municipio || null,
-        tipo: editando.tipo,
-        titulo: editando.titulo,
-        referenciaAbnt: editando.referenciaAbnt,
-        destaqueAbnt: editando.destaqueAbnt?.trim() || null,
-      }),
-    });
-    setEditando(null);
-    await load();
-    setSaving(false);
+    setEditError("");
+    try {
+      const response = await fetch(`/api/legislacoes/${editando.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          estadoUf: editando.estadoUf,
+          municipio: editando.municipio || null,
+          tipo: editando.tipo,
+          titulo: editando.titulo,
+          referenciaAbnt: editando.referenciaAbnt,
+          destaqueAbnt: editando.destaqueAbnt?.trim() || null,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao atualizar referência.");
+      setEditando(null);
+      await load();
+    } catch (error) {
+      setEditError(error instanceof Error ? error.message : "Erro ao atualizar referência.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleDelete(id: string) {
@@ -189,6 +208,11 @@ export default function Legislacoes() {
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white" />
           <p className="text-xs text-gray-500 mt-1">Para leis e resoluções, o app identifica automaticamente o ato normativo.</p>
         </div>
+        {formError && (
+          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            {formError}
+          </p>
+        )}
         <button type="submit" disabled={saving || !form.titulo || !form.referenciaAbnt}
           className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
           {saving ? "Salvando..." : "Adicionar"}
@@ -277,7 +301,7 @@ export default function Legislacoes() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={() => setEditando({ ...leg })}
+                  <button onClick={() => { setEditError(""); setEditando({ ...leg }); }}
                     className="text-xs px-2.5 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
                     Editar
                   </button>
@@ -338,6 +362,11 @@ export default function Legislacoes() {
                 onChange={(e) => setEditando({ ...editando, titulo: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white" />
             </div>
+            {editError && (
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {editError}
+              </p>
+            )}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Referência ABNT</label>
               <textarea rows={4} value={editando.referenciaAbnt}

@@ -101,5 +101,6 @@ model Legislacao {
   titulo         String
   referenciaAbnt String
   destaqueAbnt   String?
+  chaveReferencia String? @unique
   ativo          Boolean @default(true)
 }

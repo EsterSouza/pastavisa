@@ -39,6 +39,44 @@ function normalizeValue(table, column, value) {
   return value;
 }
 
+function referenceKey(row) {
+  const normalize = (value) => String(value || "")
+    .replace(/[º°]/g, "o")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+  const canonical = (value) => normalize(value)
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const scope = `${canonical(row.estadoUf || "BR")}:${canonical(row.municipio || "")}`;
+  const text = normalize(`${row.titulo || ""} ${row.referenciaAbnt || ""}`);
+  const patterns = [
+    ["rdc", /\brdc\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+    ["lei-complementar", /\blei complementar\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+    ["lei", /\blei(?! complementar)\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+    ["decreto", /\bdecreto(?: municipal| rio)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+    ["resolucao-cofen", /\bresolucao cofen\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+    ["resolucao-sms", /\bresolucao sms\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+    ["resolucao", /\bresolucao\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+    ["portaria", /\bportaria(?: gm\/ms)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+    ["nr", /\bnr\s*[- ]?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+    ["nota-tecnica", /\bnota tecnica\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+    ["parecer", /\bparecer(?: normativo)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ];
+  for (const [kind, pattern] of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const number = match[1].replace(/\D/g, "");
+      const year = text.match(/\b((?:19|20)\d{2})\b/)?.[1] || "";
+      return `${scope}|${kind}|${number}|${year}`;
+    }
+  }
+  return `${scope}|texto|${canonical(row.titulo || row.referenciaAbnt || "")}`;
+}
+
 async function ensureSchema(pool) {
   await pool.query(`
     create table if not exists "Pasta" (
@@ -98,6 +136,7 @@ async function ensureSchema(pool) {
       "titulo" text not null,
       "referenciaAbnt" text not null,
       "destaqueAbnt" text,
+      "chaveReferencia" text,
       "ativo" boolean not null default true
     );
 
@@ -131,11 +170,21 @@ async function ensureSchema(pool) {
 
     alter table "Pasta" add column if not exists "legislacaoIds" text;
     alter table "Legislacao" add column if not exists "destaqueAbnt" text;
+    alter table "Legislacao" add column if not exists "chaveReferencia" text;
+    create unique index if not exists "Legislacao_chaveReferencia_key"
+      on "Legislacao" ("chaveReferencia")
+      where "chaveReferencia" is not null;
   `);
 }
 
 async function upsertTable(pool, localDb, table) {
-  const rows = localDb.prepare(`select * from ${quoteIdent(table)}`).all();
+  let rows = localDb.prepare(`select * from ${quoteIdent(table)}`).all();
+  if (table === "Legislacao") {
+    rows = rows.map((row) => ({
+      ...row,
+      chaveReferencia: row.chaveReferencia || referenceKey(row),
+    }));
+  }
   if (rows.length === 0) {
     console.log(`${table}: 0 registros`);
     return;
