@@ -28,7 +28,15 @@ function unauthorized(req: NextRequest) {
 }
 
 export async function middleware(req: NextRequest) {
-  if (!authCredentialsConfigured()) return NextResponse.next();
+  if (!authCredentialsConfigured()) {
+    if (process.env.NODE_ENV !== "production") return NextResponse.next();
+
+    if (req.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Application authentication is not configured" }, { status: 503 });
+    }
+
+    return new NextResponse("Aplicacao temporariamente indisponivel.", { status: 503 });
+  }
 
   const path = req.nextUrl.pathname;
   if (path === "/login" || path.startsWith("/api/auth/")) {
