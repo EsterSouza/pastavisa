@@ -210,6 +210,28 @@ export async function storageFileExists(ref?: string | null): Promise<boolean> {
   }
 }
 
+export async function deleteGeneratedDocx(ref?: string | null): Promise<void> {
+  if (!ref) return;
+
+  if (isSupabaseReference(ref)) {
+    if (!isManagedStorageReference(ref, "output")) {
+      throw new Error("Referência de arquivo gerado fora do armazenamento permitido");
+    }
+    const { bucket, filePath } = parseSupabaseRef(ref);
+    const supabase = supabaseAdminClient();
+    const { error } = await supabase.storage.from(bucket).remove([filePath]);
+    if (error) throw new Error(`Falha ao remover arquivo do Supabase Storage: ${error.message}`);
+    return;
+  }
+
+  const outputRoot = path.resolve(process.cwd(), "storage", "output");
+  const localPath = path.resolve(resolveProjectPath(ref));
+  if (localPath !== outputRoot && !localPath.startsWith(`${outputRoot}${path.sep}`)) {
+    throw new Error("Referência de arquivo gerado fora do diretório permitido");
+  }
+  if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+}
+
 export async function materializeStorageFile(ref?: string | null): Promise<string> {
   if (!ref) return "";
   const localPath = resolveProjectPath(ref);

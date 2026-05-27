@@ -82,6 +82,7 @@ export default function NovaPasta() {
   // Fase 2 — revisão
   const [fase, setFase] = useState<Fase>("upload");
   const [resultado, setResultado] = useState<ExtrairResult | null>(null);
+  const [docsRevisao, setDocsRevisao] = useState<DocExtraido[]>([]);
   const [docsSelecionados, setDocsSelecionados] = useState<Set<number>>(new Set());
   const [confirmando, setConfirmando] = useState(false);
 
@@ -143,6 +144,7 @@ export default function NovaPasta() {
 
       // Pre-select all suggested documents
       const docs: DocExtraido[] = json.data?.documentosAGerar || [];
+      setDocsRevisao(docs);
       setDocsSelecionados(new Set(docs.map((_, i) => i)));
       setResultado(json as ExtrairResult);
       setFase("revisao");
@@ -160,8 +162,7 @@ export default function NovaPasta() {
     setConfirmando(true);
     setError("");
 
-    const todosOsDocs: DocExtraido[] = resultado.data?.documentosAGerar || [];
-    const selecionados = todosOsDocs.filter((_, i) => docsSelecionados.has(i));
+    const selecionados = docsRevisao.filter((_, i) => docsSelecionados.has(i));
 
     try {
       const res = await fetch("/api/extrair/confirmar", {
@@ -188,6 +189,18 @@ export default function NovaPasta() {
     setDocsSelecionados((prev) => {
       const next = new Set(prev);
       if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+  }
+
+  function removeDoc(i: number) {
+    setDocsRevisao((prev) => prev.filter((_, index) => index !== i));
+    setDocsSelecionados((prev) => {
+      const next = new Set<number>();
+      prev.forEach((index) => {
+        if (index < i) next.add(index);
+        if (index > i) next.add(index - 1);
+      });
       return next;
     });
   }
@@ -262,7 +275,7 @@ export default function NovaPasta() {
   // FASE 2 — Revisão
   // ────────────────────────────────────────────────────────────────
   const dados = resultado!.data;
-  const docs: DocExtraido[] = dados?.documentosAGerar || [];
+  const docs = docsRevisao;
   const nomeCliente = dados?.clienteNomeFantasia || dados?.clienteRazaoSocial || "Cliente";
 
   return (
@@ -368,7 +381,7 @@ export default function NovaPasta() {
         ) : (
           <ul className="divide-y divide-gray-100">
             {docs.map((doc, i) => (
-              <li key={i} className="px-5 py-3 flex items-center gap-3">
+              <li key={`${doc.nome}-${i}`} className="px-5 py-3 flex items-center gap-3">
                 <input
                   type="checkbox"
                   id={`doc-${i}`}
@@ -384,6 +397,13 @@ export default function NovaPasta() {
                     </span>
                   )}
                 </label>
+                <button
+                  type="button"
+                  onClick={() => removeDoc(i)}
+                  className="text-xs text-red-500 hover:underline"
+                >
+                  Remover
+                </button>
               </li>
             ))}
           </ul>

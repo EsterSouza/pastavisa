@@ -9,6 +9,7 @@ interface Documento {
   nomeArquivo: string;
   status: string;
   templateId: string | null;
+  outputPath: string | null;
   tokensUsados: number | null;
   mensagemErro: string | null;
   avisoRtNoCorpo: boolean;
@@ -194,6 +195,8 @@ export default function ProcessarPasta() {
   const [autoFilling, setAutoFilling] = useState(false);
   const [currentDocName, setCurrentDocName] = useState("");
   const [documentSearch, setDocumentSearch] = useState("");
+  const [documentActionMessage, setDocumentActionMessage] = useState("");
+  const [changingDocuments, setChangingDocuments] = useState(false);
   const [generationStartedAt, setGenerationStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
 
@@ -229,6 +232,7 @@ export default function ProcessarPasta() {
           tokensUsados: null,
           mensagemErro: null,
           templateId: null,
+          outputPath: null,
           equipamentosSelecionados: null,
           ...d,
         })) as Documento[];
@@ -320,6 +324,51 @@ export default function ProcessarPasta() {
   function selecionarPendentes(){ setSelectedDocs(new Set(docs.filter((d) => d.status !== "gerado").map((d) => d.id))); }
   function desselecionarTodos() { setSelectedDocs(new Set()); }
 
+  async function removeDocument(doc: Documento) {
+    if (doc.outputPath && !window.confirm(
+      `Remover "${doc.nomeArquivo}"? O arquivo já gerado será excluído e não aparecerá no ZIP final.`
+    )) {
+      return;
+    }
+    setChangingDocuments(true);
+    setDocumentActionMessage("");
+    try {
+      const response = await fetch(`/api/pastas/${id}/documentos`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docId: doc.id }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao remover documento");
+      setDocs((prev) => prev.filter((item) => item.id !== doc.id));
+      setSelectedDocs((prev) => {
+        const next = new Set(prev);
+        next.delete(doc.id);
+        return next;
+      });
+      setAssignments((prev) => {
+        const next = { ...prev };
+        delete next[doc.id];
+        return next;
+      });
+      setEquipmentAssignments((prev) => {
+        const next = { ...prev };
+        delete next[doc.id];
+        return next;
+      });
+      setEquipmentOptionsOpen((prev) => {
+        const next = { ...prev };
+        delete next[doc.id];
+        return next;
+      });
+      setDocumentActionMessage("Documento removido da pasta.");
+    } catch (error) {
+      setDocumentActionMessage(error instanceof Error ? error.message : "Erro ao remover documento");
+    } finally {
+      setChangingDocuments(false);
+    }
+  }
+
   function salvarEquipamentosDoDoc(docId: string, equipamentos: Equipamento[]) {
     fetch(`/api/pastas/${id}/documentos`, {
       method: "PATCH",
@@ -378,6 +427,7 @@ export default function ProcessarPasta() {
         tokensUsados: null,
         mensagemErro: null,
         templateId: null,
+        outputPath: null,
         equipamentosSelecionados: null,
         ...d,
       })) as Documento[];
@@ -572,6 +622,12 @@ export default function ProcessarPasta() {
           </div>
         )}
 
+        {documentActionMessage && (
+          <p className="px-5 py-3 border-b border-gray-100 bg-blue-50/40 text-xs text-blue-700">
+            {documentActionMessage}
+          </p>
+        )}
+
         {docs.length === 0 && (
           <p className="px-5 py-6 text-gray-600 text-sm">Nenhum documento extraído.</p>
         )}
@@ -655,6 +711,14 @@ export default function ProcessarPasta() {
                       Erro
                     </span>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => { void removeDocument(doc); }}
+                    disabled={processing || changingDocuments}
+                    className="text-xs text-red-500 hover:underline disabled:text-gray-400 shrink-0"
+                  >
+                    Remover
+                  </button>
                 </div>
 
                 {/* Post-generation badges */}

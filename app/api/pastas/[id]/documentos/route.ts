@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { deleteGeneratedDocx } from "@/lib/file-storage";
 import { findBestTemplateMatch } from "@/lib/template-matcher";
 
 export const runtime = "nodejs";
@@ -39,4 +40,30 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     data,
   });
   return NextResponse.json(doc);
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { docId } = await req.json();
+    if (!docId) {
+      return NextResponse.json({ error: "Documento obrigatório" }, { status: 400 });
+    }
+
+    const doc = await prisma.documentoGerado.findFirst({
+      where: { id: docId, pastaId: params.id },
+      select: { id: true, outputPath: true },
+    });
+    if (!doc) {
+      return NextResponse.json({ error: "Documento não encontrado" }, { status: 404 });
+    }
+
+    await deleteGeneratedDocx(doc.outputPath);
+    await prisma.documentoGerado.delete({ where: { id: doc.id } });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Erro ao remover documento" },
+      { status: 500 }
+    );
+  }
 }

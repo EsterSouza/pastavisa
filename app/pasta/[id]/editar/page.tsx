@@ -201,7 +201,16 @@ export default function EditarPasta() {
           <ul className="space-y-1 mb-3">
             {form.clienteServicos.map((s, i) => (
               <li key={i} className="flex items-center gap-2 text-sm">
-                <span className="flex-1 bg-gray-50 px-3 py-1.5 rounded-lg text-gray-900">{s}</span>
+                <input
+                  type="text"
+                  value={s}
+                  onChange={(e) => {
+                    const updated = [...form.clienteServicos];
+                    updated[i] = e.target.value;
+                    set("clienteServicos", updated);
+                  }}
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 bg-white"
+                />
                 <button onClick={() => set("clienteServicos", form.clienteServicos.filter((_, j) => j !== i))}
                   className="text-red-400 hover:text-red-600 text-xs">✕</button>
               </li>
