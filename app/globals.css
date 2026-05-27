@@ -25,3 +25,65 @@ body {
     text-wrap: balance;
   }
 }
+
+.docx-preview-content {
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.docx-preview-content p {
+  margin: 0 0 0.75rem;
+}
+
+.docx-preview-content h1,
+.docx-preview-content h2,
+.docx-preview-content h3 {
+  color: #111827;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 1.25rem 0 0.75rem;
+}
+
+.docx-preview-content h1 {
+  font-size: 1.5rem;
+}
+
+.docx-preview-content h2 {
+  font-size: 1.25rem;
+}
+
+.docx-preview-content h3 {
+  font-size: 1.05rem;
+}
+
+.docx-preview-content ul,
+.docx-preview-content ol {
+  margin: 0.75rem 0 0.75rem 1.5rem;
+}
+
+.docx-preview-content ul {
+  list-style: disc;
+}
+
+.docx-preview-content ol {
+  list-style: decimal;
+}
+
+.docx-preview-content table {
+  border-collapse: collapse;
+  margin: 1rem 0;
+  width: 100%;
+}
+
+.docx-preview-content th,
+.docx-preview-content td {
+  border: 1px solid #d1d5db;
+  padding: 0.4rem 0.5rem;
+  vertical-align: top;
+}
+
+.docx-preview-content img {
+  height: auto;
+  max-width: 100%;
+}

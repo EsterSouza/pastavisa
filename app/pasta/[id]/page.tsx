@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
 
 interface Pasta {
   id: string;
@@ -52,6 +53,7 @@ export default function PastaDetalhe() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [preview, setPreview] = useState<DocumentPreviewState | null>(null);
 
   useEffect(() => {
     fetch(`/api/pastas/${id}`)
@@ -65,8 +67,6 @@ export default function PastaDetalhe() {
   const comErro = pasta.documentos.filter((d) => d.status === "erro").length;
   const pendentes = pasta.documentos.filter((d) => d.status === "pendente" || d.status === "processando").length;
   const semTemplate = pasta.documentos.filter((d) => !d.templateId).length;
-  const alertasRt = pasta.documentos.filter((d) => d.avisoRtNoCorpo).length;
-  const alertasLogo = pasta.documentos.filter((d) => d.status === "gerado" && d.logoSubstituida === false).length;
   const camposPendentes = [
     !pasta.clienteNomeFantasia && "nome fantasia",
     !pasta.clienteCnpj && "CNPJ",
@@ -80,9 +80,27 @@ export default function PastaDetalhe() {
     gerados === total &&
     comErro === 0 &&
     semTemplate === 0 &&
-    camposPendentes.length === 0 &&
-    alertasRt === 0;
+    camposPendentes.length === 0;
   const pastaStatus = PASTA_STATUS_LABELS[pasta.status] || PASTA_STATUS_LABELS.rascunho;
+
+  async function visualizarDocumento(doc: { id: string; nomeArquivo: string }, versaoId?: string) {
+    const title = versaoId ? `${doc.nomeArquivo} - versao anterior` : doc.nomeArquivo;
+    setPreview({ title, html: "", loading: true });
+    try {
+      const query = versaoId ? `?versaoId=${encodeURIComponent(versaoId)}` : "";
+      const response = await fetch(`/api/pastas/${id}/documentos/${doc.id}/preview${query}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Falha ao carregar preview");
+      setPreview({ title, html: data.html || "", loading: false });
+    } catch (error) {
+      setPreview({
+        title,
+        html: "",
+        loading: false,
+        error: error instanceof Error ? error.message : "Falha ao carregar preview",
+      });
+    }
+  }
 
   async function atualizarStatus(status: "rascunho" | "concluida") {
     if (!pasta) return;
@@ -213,8 +231,6 @@ export default function PastaDetalhe() {
           <p className={pendentes ? "text-amber-800" : "text-green-700"}>{pendentes ? `${pendentes} pendente(s)` : "Sem pendências de geração"}</p>
           <p className={comErro ? "text-red-700" : "text-green-700"}>{comErro ? `${comErro} documento(s) com erro` : "Sem erros"}</p>
           <p className={semTemplate ? "text-red-700" : "text-green-700"}>{semTemplate ? `${semTemplate} sem template` : "Templates definidos"}</p>
-          <p className={alertasRt ? "text-amber-800" : "text-green-700"}>{alertasRt ? `${alertasRt} com RT para revisar` : "Sem alerta de RT"}</p>
-          <p className={alertasLogo ? "text-amber-800" : "text-green-700"}>{alertasLogo ? `${alertasLogo} para conferir logo` : "Sem alerta de logo"}</p>
           <p className={camposPendentes.length ? "text-amber-800" : "text-green-700"}>
             {camposPendentes.length ? `Dados faltantes: ${camposPendentes.join(", ")}` : "Dados essenciais preenchidos"}
           </p>
@@ -243,12 +259,21 @@ export default function PastaDetalhe() {
                       )}
                       <span className={`text-xs font-medium ${st.color}`}>{st.label}</span>
                       {doc.outputPath && (
-                        <a
-                          href={`/api/pastas/${id}/documentos/${doc.id}/download`}
-                          className="text-xs text-blue-700 hover:underline"
-                        >
-                          Baixar atual
-                        </a>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => { void visualizarDocumento(doc); }}
+                            className="text-xs text-blue-700 hover:underline"
+                          >
+                            Visualizar
+                          </button>
+                          <a
+                            href={`/api/pastas/${id}/documentos/${doc.id}/download`}
+                            className="text-xs text-blue-700 hover:underline"
+                          >
+                            Baixar atual
+                          </a>
+                        </>
                       )}
                     </div>
                   </div>
@@ -260,13 +285,21 @@ export default function PastaDetalhe() {
                       <summary className="cursor-pointer text-blue-700">Versões anteriores ({versoesAnteriores.length})</summary>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {versoesAnteriores.map((versao) => (
-                          <a
-                            key={versao.id}
-                            href={`/api/pastas/${id}/documentos/${doc.id}/download?versaoId=${versao.id}`}
-                            className="border border-gray-200 bg-gray-50 px-2.5 py-1 rounded hover:bg-gray-100"
-                          >
-                            {new Date(versao.criadaEm).toLocaleString("pt-BR")}
-                          </a>
+                          <span key={versao.id} className="inline-flex items-center gap-2 border border-gray-200 bg-gray-50 px-2.5 py-1 rounded">
+                            <button
+                              type="button"
+                              onClick={() => { void visualizarDocumento(doc, versao.id); }}
+                              className="text-blue-700 hover:underline"
+                            >
+                              Visualizar
+                            </button>
+                            <a
+                              href={`/api/pastas/${id}/documentos/${doc.id}/download?versaoId=${versao.id}`}
+                              className="hover:underline"
+                            >
+                              {new Date(versao.criadaEm).toLocaleString("pt-BR")}
+                            </a>
+                          </span>
                         ))}
                       </div>
                     </details>
@@ -277,6 +310,7 @@ export default function PastaDetalhe() {
           </ul>
         )}
       </div>
+      <DocumentPreviewModal preview={preview} onClose={() => setPreview(null)} />
     </div>
   );
 }

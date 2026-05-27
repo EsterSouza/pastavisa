@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
 import { findBestTemplateMatch } from "@/lib/template-matcher";
 
 interface Documento {
@@ -214,6 +215,7 @@ export default function ProcessarPasta() {
   const [legislacaoMessage, setLegislacaoMessage] = useState("");
   const [generationStartedAt, setGenerationStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [preview, setPreview] = useState<DocumentPreviewState | null>(null);
 
   // Prevent auto-assign from running more than once
   const autoAssigned = useRef(false);
@@ -347,6 +349,23 @@ export default function ProcessarPasta() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ legislacaoIds: JSON.stringify(ids) }),
     }).catch(console.error);
+  }
+
+  async function visualizarDocumento(doc: Documento) {
+    setPreview({ title: doc.nomeArquivo, html: "", loading: true });
+    try {
+      const response = await fetch(`/api/pastas/${id}/documentos/${doc.id}/preview`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Falha ao carregar preview");
+      setPreview({ title: doc.nomeArquivo, html: data.html || "", loading: false });
+    } catch (error) {
+      setPreview({
+        title: doc.nomeArquivo,
+        html: "",
+        loading: false,
+        error: error instanceof Error ? error.message : "Falha ao carregar preview",
+      });
+    }
   }
 
   async function associarLegislacoesDoArquivo() {
@@ -764,6 +783,16 @@ export default function ProcessarPasta() {
                       Erro
                     </span>
                   )}
+                  {doc.outputPath && (
+                    <button
+                      type="button"
+                      onClick={() => { void visualizarDocumento(doc); }}
+                      disabled={processing}
+                      className="text-xs text-blue-600 hover:underline disabled:text-gray-400 shrink-0"
+                    >
+                      Visualizar
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => { void removeDocument(doc); }}
@@ -775,7 +804,7 @@ export default function ProcessarPasta() {
                 </div>
 
                 {/* Post-generation badges */}
-                {jaGerado && (
+                {false && jaGerado && (
                   <div className="flex items-center gap-2 pl-11">
                     {doc.avisoRtNoCorpo && (
                       <span className="inline-flex items-center gap-1 text-xs font-medium bg-red-50 text-red-700 border border-red-200 rounded-full px-2.5 py-0.5">
@@ -1068,6 +1097,7 @@ export default function ProcessarPasta() {
           </div>
         </div>
       )}
+      <DocumentPreviewModal preview={preview} onClose={() => setPreview(null)} />
     </div>
   );
 }
