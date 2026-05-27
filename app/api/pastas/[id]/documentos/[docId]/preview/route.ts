@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import mammoth from "mammoth";
 import { prisma } from "@/lib/prisma";
+import { convertDocxBufferToPreviewHtml } from "@/lib/docx-preview";
 import { readStorageBuffer, storageFileExists } from "@/lib/file-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function sanitizePreviewHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
-    .replace(/<object[\s\S]*?<\/object>/gi, "")
-    .replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
-}
 
 export async function GET(
   req: NextRequest,
@@ -42,14 +33,11 @@ export async function GET(
   }
 
   const buffer = await readStorageBuffer(outputPath);
-  const result = await mammoth.convertToHtml({ buffer });
+  const preview = await convertDocxBufferToPreviewHtml(buffer);
 
   return NextResponse.json({
-    html: sanitizePreviewHtml(result.value),
-    messages: result.messages.map((message) => ({
-      type: message.type,
-      message: message.message,
-    })),
+    html: preview.html,
+    messages: preview.messages,
     nomeArquivo: doc.nomeArquivo,
     versaoId: versao?.id || null,
   });

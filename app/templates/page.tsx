@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
 import {
   findTemplateVariable,
   TEMPLATE_SPECIAL_SYNTAX,
@@ -82,7 +83,9 @@ export default function Templates() {
 
   // Variables and validation
   const [variavelModal, setVariavelModal] = useState<{ nome: string; report: TemplateValidationReport } | null>(null);
+  const [preview, setPreview] = useState<DocumentPreviewState | null>(null);
   const [loadingVars, setLoadingVars] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
   const [catalogOpen, setCatalogOpen] = useState(true);
   const [catalogSearch, setCatalogSearch] = useState("");
   const [catalogCategory, setCatalogCategory] = useState("");
@@ -246,6 +249,26 @@ export default function Templates() {
       setError(json.error || "Erro ao analisar template.");
     }
     setLoadingVars(null);
+  }
+
+  async function handleVisualizarTemplate(t: Template) {
+    setLoadingPreview(t.id);
+    setPreview({ title: t.nome, html: "", loading: true });
+    try {
+      const res = await fetch(`/api/templates/${t.id}/preview`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Erro ao carregar preview.");
+      setPreview({ title: t.nome, html: json.html || "", loading: false });
+    } catch (err) {
+      setPreview({
+        title: t.nome,
+        html: "",
+        loading: false,
+        error: err instanceof Error ? err.message : "Erro ao carregar preview.",
+      });
+    } finally {
+      setLoadingPreview(null);
+    }
   }
 
   async function copyTag(tag: string) {
@@ -580,6 +603,14 @@ export default function Templates() {
                 {/* Action buttons */}
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
+                    onClick={() => { void handleVisualizarTemplate(t); }}
+                    disabled={loadingPreview === t.id}
+                    title="Visualizar DOCX do template"
+                    className="text-xs px-2.5 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {loadingPreview === t.id ? "..." : "Visualizar"}
+                  </button>
+                  <button
                     onClick={() => handleVerVariaveis(t)}
                     disabled={loadingVars === t.id}
                     title="Validar variáveis do template"
@@ -768,6 +799,7 @@ export default function Templates() {
           </div>
         </div>
       )}
+      <DocumentPreviewModal preview={preview} onClose={() => setPreview(null)} />
     </div>
   );
 }
