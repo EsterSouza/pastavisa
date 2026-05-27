@@ -9,6 +9,7 @@ interface Legislacao {
   tipo: string;
   titulo: string;
   referenciaAbnt: string;
+  destaqueAbnt: string | null;
   ativo: boolean;
 }
 
@@ -51,7 +52,7 @@ const BADGE_TIPO: Record<string, string> = {
 };
 
 const BLANK_FORM = {
-  estadoUf: "RJ", municipio: "", tipo: "estadual", titulo: "", referenciaAbnt: "",
+  estadoUf: "RJ", municipio: "", tipo: "estadual", titulo: "", referenciaAbnt: "", destaqueAbnt: "",
 };
 
 export default function Legislacoes() {
@@ -90,7 +91,11 @@ export default function Legislacoes() {
     await fetch("/api/legislacoes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, municipio: form.municipio.trim() || null }),
+      body: JSON.stringify({
+        ...form,
+        municipio: form.municipio.trim() || null,
+        destaqueAbnt: form.destaqueAbnt.trim() || null,
+      }),
     });
     setForm({ ...BLANK_FORM });
     await load();
@@ -110,6 +115,7 @@ export default function Legislacoes() {
         tipo: editando.tipo,
         titulo: editando.titulo,
         referenciaAbnt: editando.referenciaAbnt,
+        destaqueAbnt: editando.destaqueAbnt?.trim() || null,
       }),
     });
     setEditando(null);
@@ -174,6 +180,14 @@ export default function Legislacoes() {
             placeholder="AMAZONAS. Lei Complementar nº 70, de 03 de dezembro de 2009..."
             onChange={(e) => setForm({ ...form, referenciaAbnt: e.target.value })}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Trecho em negrito na referência (opcional)</label>
+          <input type="text" value={form.destaqueAbnt}
+            placeholder="Título do manual, periódico ou obra a destacar"
+            onChange={(e) => setForm({ ...form, destaqueAbnt: e.target.value })}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white" />
+          <p className="text-xs text-gray-500 mt-1">Para leis e resoluções, o app identifica automaticamente o ato normativo.</p>
         </div>
         <button type="submit" disabled={saving || !form.titulo || !form.referenciaAbnt}
           className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
@@ -328,6 +342,13 @@ export default function Legislacoes() {
               <label className="block text-xs font-medium text-gray-600 mb-1">Referência ABNT</label>
               <textarea rows={4} value={editando.referenciaAbnt}
                 onChange={(e) => setEditando({ ...editando, referenciaAbnt: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Trecho em negrito (opcional)</label>
+              <input type="text" value={editando.destaqueAbnt || ""}
+                onChange={(e) => setEditando({ ...editando, destaqueAbnt: e.target.value || null })}
+                placeholder="Título da obra, manual ou periódico"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white" />
             </div>
 

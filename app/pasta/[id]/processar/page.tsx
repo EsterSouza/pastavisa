@@ -32,6 +32,9 @@ interface Legislacao {
   municipio: string | null;
   titulo: string;
   tipo: string;
+  referenciaAbnt?: string;
+  destaqueAbnt?: string | null;
+  ativo?: boolean;
 }
 
 interface Equipamento {
@@ -95,6 +98,16 @@ function parseEquipamentos(value?: string | null): Equipamento[] {
   try {
     const parsed = JSON.parse(value);
     return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function parseStringList(value?: string | null): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
   } catch {
     return [];
   }
@@ -197,6 +210,8 @@ export default function ProcessarPasta() {
   const [documentSearch, setDocumentSearch] = useState("");
   const [documentActionMessage, setDocumentActionMessage] = useState("");
   const [changingDocuments, setChangingDocuments] = useState(false);
+  const [associandoLegislacoes, setAssociandoLegislacoes] = useState(false);
+  const [legislacaoMessage, setLegislacaoMessage] = useState("");
   const [generationStartedAt, setGenerationStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
 
@@ -212,13 +227,14 @@ export default function ProcessarPasta() {
         const estado = pasta.clienteEstado || "";
         setEstadoCliente(estado);
         setClienteEquipamentos(parseEquipamentos(pasta.clienteEquipamentos));
+        const associadas = parseStringList(pasta.legislacaoIds);
+        setSelectedLeg(associadas);
         if (!estado) return;
-        return fetch(`/api/legislacoes?estado=${estado}`)
+        const idsAssociadas = associadas.length > 0 ? `&ids=${encodeURIComponent(associadas.join(","))}` : "";
+        return fetch(`/api/legislacoes?estado=${estado}${idsAssociadas}`)
           .then((r) => r.json())
           .then((legs: Legislacao[]) => {
-            setLegislacoes(legs);
-            // Auto-select all â€” they are all included by default
-            setSelectedLeg(legs.map((l) => l.id));
+            setLegislacoes(legs.filter((leg) => leg.ativo !== false));
           });
       });
 
@@ -323,6 +339,41 @@ export default function ProcessarPasta() {
   function selecionarTodos()    { setSelectedDocs(new Set(docs.map((d) => d.id))); }
   function selecionarPendentes(){ setSelectedDocs(new Set(docs.filter((d) => d.status !== "gerado").map((d) => d.id))); }
   function desselecionarTodos() { setSelectedDocs(new Set()); }
+
+  function salvarLegislacoes(ids: string[]) {
+    setSelectedLeg(ids);
+    fetch(`/api/pastas/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ legislacaoIds: JSON.stringify(ids) }),
+    }).catch(console.error);
+  }
+
+  async function associarLegislacoesDoArquivo() {
+    setAssociandoLegislacoes(true);
+    setLegislacaoMessage("");
+    try {
+      const response = await fetch(`/api/pastas/${id}/legislacoes/associar`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao reconhecer referências");
+      const associadas = (data.legislacoes || []) as Legislacao[];
+      setSelectedLeg(associadas.map((legislacao) => legislacao.id));
+      setLegislacoes((current) => {
+        const byId = new Map(current.map((legislacao) => [legislacao.id, legislacao]));
+        associadas.forEach((legislacao) => byId.set(legislacao.id, legislacao));
+        return Array.from(byId.values());
+      });
+      setLegislacaoMessage(
+        associadas.length > 0
+          ? `${associadas.length} referência(s) reconhecida(s) no Documento em Elaboração.`
+          : "Nenhuma referência cadastrada foi reconhecida no Documento em Elaboração."
+      );
+    } catch (error) {
+      setLegislacaoMessage(error instanceof Error ? error.message : "Erro ao reconhecer referências");
+    } finally {
+      setAssociandoLegislacoes(false);
+    }
+  }
 
   async function removeDocument(doc: Documento) {
     if (doc.outputPath && !window.confirm(
@@ -819,14 +870,22 @@ export default function ProcessarPasta() {
             </h2>
             <div className="flex gap-3 text-xs">
               <button
-                onClick={() => setSelectedLeg(legislacoes.map((l) => l.id))}
+                onClick={() => { void associarLegislacoesDoArquivo(); }}
+                disabled={processing || associandoLegislacoes}
+                className="text-emerald-700 hover:underline disabled:text-gray-400"
+              >
+                {associandoLegislacoes ? "Reconhecendo..." : "Reconhecer do documento"}
+              </button>
+              <span className="text-gray-300">|</span>
+              <button
+                onClick={() => salvarLegislacoes(legislacoes.map((l) => l.id))}
                 className="text-blue-600 hover:underline"
               >
                 Todas
               </button>
               <span className="text-gray-300">|</span>
               <button
-                onClick={() => setSelectedLeg([])}
+                onClick={() => salvarLegislacoes([])}
                 className="text-gray-500 hover:underline"
               >
                 Nenhuma
@@ -834,8 +893,13 @@ export default function ProcessarPasta() {
             </div>
           </div>
           <p className="text-xs text-gray-500 mb-3">
-            {selectedLeg.length} de {legislacoes.length} selecionadas - incluídas automaticamente nos documentos
+            {selectedLeg.length} de {legislacoes.length} associadas - a seleção inicial veio do Documento em Elaboração
           </p>
+          {legislacaoMessage && (
+            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mb-3">
+              {legislacaoMessage}
+            </p>
+          )}
           <div className="space-y-2">
             {legislacoes.map((leg) => (
               <label key={leg.id} className="flex items-start gap-3 cursor-pointer group">
@@ -843,8 +907,10 @@ export default function ProcessarPasta() {
                   type="checkbox"
                   checked={selectedLeg.includes(leg.id)}
                   onChange={(e) =>
-                    setSelectedLeg((prev) =>
-                      e.target.checked ? [...prev, leg.id] : prev.filter((l) => l !== leg.id)
+                    salvarLegislacoes(
+                      e.target.checked
+                        ? Array.from(new Set([...selectedLeg, leg.id]))
+                        : selectedLeg.filter((l) => l !== leg.id)
                     )
                   }
                   className="mt-0.5 w-4 h-4 shrink-0"

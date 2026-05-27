@@ -36,6 +36,7 @@ const PASTA_EDIT_FIELDS = [
   "docElaborador",
   "docMesExtenso",
   "docAno",
+  "legislacaoIds",
 ] as const;
 
 const PASTA_STATUS = new Set(["rascunho", "processando", "concluida"]);

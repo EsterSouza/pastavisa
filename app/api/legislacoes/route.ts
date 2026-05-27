@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   // estado/municipio params kept for backward compat (processar page uses ?estado=XX)
   const estado = searchParams.get("estado");
   const municipio = searchParams.get("municipio");
+  const ids = (searchParams.get("ids") || "").split(",").filter(Boolean);
 
   const where: Record<string, unknown> = {};
   if (estado) {
@@ -16,6 +17,7 @@ export async function GET(req: NextRequest) {
     where.OR = [
       { estadoUf: "BR" },
       { estadoUf: estado },
+      ...(ids.length > 0 ? [{ id: { in: ids } }] : []),
     ];
   }
   if (municipio) where.municipio = municipio;

@@ -495,9 +495,15 @@ export async function hasRtInBody(templatePath: string): Promise<boolean> {
 // ─── Main generator ───────────────────────────────────────────────────────────
 
 export interface LegislacoesTexto {
-  federal: string;
-  estadual: string;
-  municipal: string;
+  federal: LegislacaoReferencia[];
+  estadual: LegislacaoReferencia[];
+  municipal: LegislacaoReferencia[];
+}
+
+export interface LegislacaoReferencia {
+  titulo: string;
+  referenciaAbnt: string;
+  destaqueAbnt?: string | null;
 }
 
 export interface DocumentoGuiaItem {
@@ -548,6 +554,79 @@ const RESERVED_WINDOWS_NAMES = new Set([
   "LPT8",
   "LPT9",
 ]);
+
+function xmlEscapeReference(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function inferirDestaqueAbnt(referencia: LegislacaoReferencia): string | null {
+  const explicit = referencia.destaqueAbnt?.trim();
+  if (explicit && referencia.referenciaAbnt.includes(explicit)) return explicit;
+
+  const legal = referencia.referenciaAbnt.match(
+    /((?:Lei Complementar|Lei|Decreto(?: Municipal| Rio)?|Resolu[cç][aã]o(?: da Diretoria Colegiada - RDC| COFEN| SMS)?|Portaria(?: GM\/MS)?|Norma Regulamentadora|Nota T[eé]cnica|Parecer Normativo)\s+n?[º°]?\s*[\d.]+(?:\s*\([^)]*\))?(?:,\s*de\s*[^.]+?\s*de\s*\d{4})?)/i
+  );
+  if (legal) return legal[1];
+
+  const technical = referencia.referenciaAbnt.match(
+    /((?:Manual|Seguran[cç]a do paciente)[^.]*\.)/i
+  );
+  return technical?.[1] || null;
+}
+
+function buildReferenciaParagraphs(
+  referencias: LegislacaoReferencia[],
+  originalParaXml: string
+): string {
+  const pPrMatch = originalParaXml.match(/<w:pPr>([\s\S]*?)<\/w:pPr>/);
+  const pPr = pPrMatch ? `<w:pPr>${pPrMatch[1]}</w:pPr>` : "";
+  const rPrMatch = originalParaXml.match(/<w:rPr>([\s\S]*?)<\/w:rPr>/);
+  const baseRPr = (rPrMatch?.[1] || "")
+    .replace(/<w:b(?:\s[^>]*)?\/>/g, "")
+    .replace(/<w:b(?:\s[^>]*)?>[\s\S]*?<\/w:b>/g, "");
+  const regularRPr = baseRPr ? `<w:rPr>${baseRPr}</w:rPr>` : "";
+  const boldRPr = `<w:rPr>${baseRPr}<w:b/></w:rPr>`;
+
+  return referencias.map((referencia) => {
+    const text = referencia.referenciaAbnt.trim();
+    const destaque = inferirDestaqueAbnt(referencia);
+    const start = destaque ? text.indexOf(destaque) : -1;
+    if (start < 0 || !destaque) {
+      return `<w:p>${pPr}<w:r>${regularRPr}<w:t xml:space="preserve">${xmlEscapeReference(text)}</w:t></w:r></w:p>`;
+    }
+
+    const before = text.slice(0, start);
+    const after = text.slice(start + destaque.length);
+    return (
+      `<w:p>${pPr}` +
+      (before ? `<w:r>${regularRPr}<w:t xml:space="preserve">${xmlEscapeReference(before)}</w:t></w:r>` : "") +
+      `<w:r>${boldRPr}<w:t xml:space="preserve">${xmlEscapeReference(destaque)}</w:t></w:r>` +
+      (after ? `<w:r>${regularRPr}<w:t xml:space="preserve">${xmlEscapeReference(after)}</w:t></w:r>` : "") +
+      `</w:p>`
+    );
+  }).join("");
+}
+
+function injectLegislacoesAbnt(xmlContent: string, legislacoes?: LegislacoesTexto): string {
+  const groups: Array<[string, LegislacaoReferencia[]]> = [
+    ["texto_legislacao_federal", legislacoes?.federal || []],
+    ["texto_legislacao_estadual", legislacoes?.estadual || []],
+    ["texto_legislacao_municipal", legislacoes?.municipal || []],
+  ];
+  let xml = xmlContent;
+  groups.forEach(([variableName, referencias]) => {
+    xml = xml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (paragraph) => {
+      return paragraphPlainText(paragraph).includes(`{${variableName}}`)
+        ? buildReferenciaParagraphs(referencias, paragraph)
+        : paragraph;
+    });
+  });
+  return xml;
+}
 
 function truncateFileBaseName(name: string, maxLength: number): string {
   if (Array.from(name).length <= maxLength) return name;
@@ -728,9 +807,9 @@ export async function gerarDocumento(
     )?.registro_anvisa || "",
     pigmento_marilyn_anvisa: "",
     agulha_anvisa: "",
-    texto_legislacao_federal: options.legislacoesTexto?.federal || "",
-    texto_legislacao_estadual: options.legislacoesTexto?.estadual || "",
-    texto_legislacao_municipal: options.legislacoesTexto?.municipal || "",
+    texto_legislacao_federal: "",
+    texto_legislacao_estadual: "",
+    texto_legislacao_municipal: "",
     // Preposição correta para o estado (ex: SC → "de", PA → "do", BA → "da")
     // Usar em templates: "Estado {cliente_estado_preposicao} {cliente_estado_extenso}"
     cliente_estado_preposicao:
@@ -978,6 +1057,11 @@ export async function gerarDocumento(
         zip.file("word/document.xml", result.xml);
       }
     }
+  }
+
+  const docXmlForReferences = zip.files["word/document.xml"]?.asText();
+  if (docXmlForReferences) {
+    zip.file("word/document.xml", injectLegislacoesAbnt(docXmlForReferences, options.legislacoesTexto));
   }
 
   // ── docxtemplater variable substitution ──────────────────────────────────

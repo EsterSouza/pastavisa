@@ -27,6 +27,16 @@ function parseEquipamentosSelecionados(value?: string | null): EquipamentoDocume
   }
 }
 
+function parseLegislacaoIds(value?: string | null): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function POST(req: NextRequest) {
   const { pastaId, documentoIds, legislacaoIds } = await req.json();
 
@@ -71,42 +81,25 @@ export async function POST(req: NextRequest) {
     clienteResiduosE: pasta.clienteResiduosE || undefined,
   };
 
-  // ── Fetch legislações for this client's state ────────────────────────────
-  const estadoUf = pasta.clienteEstado?.toUpperCase() || "";
-  const todasLegislacoes = await prisma.legislacao.findMany({
-    where: {
-      ativo: true,
-      OR: [
-        { estadoUf: "BR" },
-        ...(estadoUf ? [{ estadoUf }] : []),
-      ],
-    },
+  // References are sourced from the list recognized in the uploaded elaboration document.
+  const idsSelecionados = Array.isArray(legislacaoIds)
+    ? legislacaoIds.filter((item): item is string => typeof item === "string")
+    : parseLegislacaoIds(pasta.legislacaoIds);
+  if (Array.isArray(legislacaoIds)) {
+    await prisma.pasta.update({
+      where: { id: pastaId },
+      data: { legislacaoIds: JSON.stringify(idsSelecionados) },
+    });
+  }
+  const legislacoesFiltradas = await prisma.legislacao.findMany({
+    where: { ativo: true, id: { in: idsSelecionados } },
     orderBy: { titulo: "asc" },
   });
 
-  function formatarLegislacoesAbnt(items: Array<{ referenciaAbnt: string }>): string {
-    return items.map((l) => l.referenciaAbnt).join("\n");
-  }
-
-  // Filter legislações: federal (BR) always included; non-federal filtered by
-  // the IDs the client selected (if none provided, include all for the state).
-  const legislacoesFiltradas =
-    Array.isArray(legislacaoIds) && legislacaoIds.length > 0
-      ? todasLegislacoes.filter(
-          (l) => l.estadoUf === "BR" || legislacaoIds.includes(l.id)
-        )
-      : todasLegislacoes;
-
   const legislacoesTexto: LegislacoesTexto = {
-    federal: formatarLegislacoesAbnt(
-      legislacoesFiltradas.filter((l) => l.estadoUf === "BR" && !l.municipio)
-    ),
-    estadual: formatarLegislacoesAbnt(
-      legislacoesFiltradas.filter((l) => l.estadoUf !== "BR" && !l.municipio)
-    ),
-    municipal: formatarLegislacoesAbnt(
-      legislacoesFiltradas.filter((l) => !!l.municipio)
-    ),
+    federal: legislacoesFiltradas.filter((l) => l.estadoUf === "BR" && !l.municipio),
+    estadual: legislacoesFiltradas.filter((l) => l.estadoUf !== "BR" && !l.municipio),
+    municipal: legislacoesFiltradas.filter((l) => !!l.municipio),
   };
 
   const outputDir = path.join(process.cwd(), "storage", "output", pastaId);

@@ -16,12 +16,13 @@ interface ConfirmarBody {
   docxPath: string;
   data: ClienteData;
   documentosSelecionados: DocSelecionado[];
+  legislacaoIds?: string[];
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body: ConfirmarBody = await req.json();
-    const { pdfPath, docxPath, data, documentosSelecionados } = body;
+    const { pdfPath, docxPath, data, documentosSelecionados, legislacaoIds } = body;
 
     if (!data || !documentosSelecionados) {
       return NextResponse.json({ error: "Dados obrigatórios ausentes" }, { status: 400 });
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
         clienteResiduosE: data.clienteResiduosE,
         formsPdfPath: pdfPath,
         documentosElaboracaoPath: docxPath,
+        legislacaoIds: JSON.stringify(Array.isArray(legislacaoIds) ? legislacaoIds : []),
       },
     });
 

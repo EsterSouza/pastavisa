@@ -45,6 +45,7 @@ model Pasta {
 
   formsPdfPath             String?
   documentosElaboracaoPath String?
+  legislacaoIds            String?
 
   documentos               DocumentoGerado[]
 }
@@ -99,5 +100,6 @@ model Legislacao {
   tipo           String
   titulo         String
   referenciaAbnt String
+  destaqueAbnt   String?
   ativo          Boolean @default(true)
 }

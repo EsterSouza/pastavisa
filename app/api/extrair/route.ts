@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractDocxTextFromBuffer } from "@/lib/extractor";
 import { extractClienteData } from "@/lib/ai";
+import { associarLegislacoesDoDocumento } from "@/lib/legislation-matcher";
+import { prisma } from "@/lib/prisma";
 import {
   isManagedStorageReference,
   readStorageBuffer,
@@ -73,6 +75,8 @@ export async function POST(req: NextRequest) {
 
     // Call AI with native PDF + docx text
     const { data, tokensUsados } = await extractClienteData(pdfBase64, elaboracaoText);
+    const legislacoes = await prisma.legislacao.findMany({ where: { ativo: true } });
+    const legislacoesAssociadas = associarLegislacoesDoDocumento(elaboracaoText, legislacoes);
 
     // Return extracted data + sessionId (pasta is NOT created yet — user reviews first)
     // elaboracaoTextPreview: first 600 chars, shown in UI when docs list is empty
@@ -82,6 +86,7 @@ export async function POST(req: NextRequest) {
       docxPath,
       data,
       tokensUsados,
+      legislacoesAssociadas,
       elaboracaoTextPreview: elaboracaoText.slice(0, 600) || null,
     });
   } catch (err) {

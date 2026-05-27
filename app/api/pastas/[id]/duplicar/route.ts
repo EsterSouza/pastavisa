@@ -46,6 +46,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       docElaborador: original.docElaborador,
       docMesExtenso: original.docMesExtenso,
       docAno: original.docAno,
+      legislacaoIds: original.legislacaoIds,
       documentos: {
         create: original.documentos.map((doc) => ({
           nomeArquivo: doc.nomeArquivo,

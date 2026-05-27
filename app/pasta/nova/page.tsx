@@ -9,6 +9,14 @@ interface DocExtraido {
   tipo: string;
 }
 
+interface LegislacaoAssociada {
+  id: string;
+  titulo: string;
+  tipo: string;
+  estadoUf: string;
+  municipio?: string | null;
+}
+
 interface DadosExtraidos {
   clienteNomeFantasia?: string;
   clienteRazaoSocial?: string;
@@ -27,6 +35,7 @@ interface ExtrairResult {
   docxPath: string;
   data: DadosExtraidos;
   tokensUsados: number;
+  legislacoesAssociadas: LegislacaoAssociada[];
   elaboracaoTextPreview: string | null;
 }
 
@@ -173,6 +182,7 @@ export default function NovaPasta() {
           docxPath: resultado.docxPath,
           data: resultado.data,
           documentosSelecionados: selecionados,
+          legislacaoIds: resultado.legislacoesAssociadas.map((legislacao) => legislacao.id),
         }),
       });
       const json = await res.json();
@@ -324,6 +334,32 @@ export default function NovaPasta() {
         <p className="text-xs text-gray-400 mt-3">
           Todos os campos podem ser editados na próxima tela.
         </p>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl mb-5">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-800">Referências associadas do documento de elaboração</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Somente referências reconhecidas no arquivo enviado serão levadas para a geração. Você ainda poderá ajustar na próxima tela.
+          </p>
+        </div>
+        {resultado!.legislacoesAssociadas.length === 0 ? (
+          <p className="px-5 py-4 text-sm text-amber-700">
+            Nenhuma referência cadastrada foi reconhecida no documento. Confira na tela de geração antes de emitir os arquivos.
+          </p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {resultado!.legislacoesAssociadas.map((legislacao) => (
+              <li key={legislacao.id} className="px-5 py-3">
+                <p className="text-sm text-gray-800">{legislacao.titulo}</p>
+                <p className="text-xs text-gray-500">
+                  {legislacao.tipo} · {legislacao.estadoUf}
+                  {legislacao.municipio ? ` · ${legislacao.municipio}` : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Document checklist */}

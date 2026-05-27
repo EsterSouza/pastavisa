@@ -75,7 +75,8 @@ async function ensureSchema(pool) {
       "docMesExtenso" text,
       "docAno" text,
       "formsPdfPath" text,
-      "documentosElaboracaoPath" text
+      "documentosElaboracaoPath" text,
+      "legislacaoIds" text
     );
 
     create table if not exists "Template" (
@@ -96,6 +97,7 @@ async function ensureSchema(pool) {
       "tipo" text not null,
       "titulo" text not null,
       "referenciaAbnt" text not null,
+      "destaqueAbnt" text,
       "ativo" boolean not null default true
     );
 
@@ -126,6 +128,9 @@ async function ensureSchema(pool) {
 
     create index if not exists "DocumentoVersao_documentoId_criadaEm_idx"
       on "DocumentoVersao" ("documentoId", "criadaEm");
+
+    alter table "Pasta" add column if not exists "legislacaoIds" text;
+    alter table "Legislacao" add column if not exists "destaqueAbnt" text;
   `);
 }
 
