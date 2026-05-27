@@ -518,6 +518,8 @@ export interface GeneratorOptions {
   documentoTipo?: string | null;
   documentoNome?: string;
   equipamentosDoPop?: EquipamentoDocumento[];
+  storageVersionId?: string;
+  numeroVersao?: number;
 }
 
 const DOCX_EXTENSION = ".DOCX";
@@ -706,7 +708,7 @@ export async function gerarDocumento(
     doc_emissao: emissao,
     doc_revisao_1ano: addMonths(emissao, 12),
     doc_revisao_2anos: addMonths(emissao, 24),
-    doc_versao: "1",
+    doc_versao: String(options.numeroVersao || 1),
     doc_elaborador: options.docElaborador || buildElaborador(clienteData.clienteNomeFantasia),
     doc_mes_extenso: options.docMesExtenso || getMesExtenso(emissaoDate),
     doc_ano: options.docAno || getAno(emissaoDate),
@@ -991,7 +993,7 @@ export async function gerarDocumento(
   assertValidDocxBuffer(outputBuffer);
 
   const outputFileName = createOutputDocxFileName(nomeArquivo);
-  const outputPath = await saveGeneratedDocx(outputDir, outputFileName, outputBuffer);
+  const outputPath = await saveGeneratedDocx(outputDir, outputFileName, outputBuffer, options.storageVersionId);
 
   return { outputPath, tokensTotal, logoSubstituida };
 }

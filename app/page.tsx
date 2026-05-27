@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState<Pasta | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [criandoTeste, setCriandoTeste] = useState(false);
 
   useEffect(() => {
@@ -40,10 +41,18 @@ export default function Dashboard() {
   async function handleDelete() {
     if (!confirmDelete) return;
     setDeleting(true);
-    await fetch(`/api/pastas/${confirmDelete.id}`, { method: "DELETE" });
-    setPastas((prev) => prev.filter((p) => p.id !== confirmDelete.id));
-    setConfirmDelete(null);
-    setDeleting(false);
+    setDeleteError("");
+    try {
+      const response = await fetch(`/api/pastas/${confirmDelete.id}`, { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Falha ao excluir pasta");
+      setPastas((prev) => prev.filter((p) => p.id !== confirmDelete.id));
+      setConfirmDelete(null);
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Falha ao excluir pasta");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function handleCriarTeste() {
@@ -157,7 +166,7 @@ export default function Dashboard() {
               </button>
 
               <button
-                onClick={() => setConfirmDelete(pasta)}
+                onClick={() => { setDeleteError(""); setConfirmDelete(pasta); }}
                 className="mr-3 shrink-0 text-gray-300 hover:text-red-500 transition-colors p-1.5 rounded"
                 title="Excluir pasta"
               >
@@ -181,6 +190,11 @@ export default function Dashboard() {
             <p className="text-sm text-gray-500 mb-6">
               Todos os documentos gerados desta pasta serão excluídos permanentemente. Esta ação não pode ser desfeita.
             </p>
+            {deleteError && (
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
+                {deleteError}
+              </p>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDelete(null)}

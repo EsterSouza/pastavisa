@@ -64,6 +64,20 @@ model DocumentoGerado {
   logoSubstituida Boolean   @default(false)
   equipamentosSelecionados String?
   criadoEm        DateTime  @default(now())
+  versoes         DocumentoVersao[]
+}
+
+model DocumentoVersao {
+  id              String           @id @default(cuid())
+  documentoId     String
+  documento       DocumentoGerado @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+  outputPath      String
+  tokensUsados    Int?
+  avisoRtNoCorpo  Boolean          @default(false)
+  logoSubstituida Boolean          @default(false)
+  criadaEm        DateTime         @default(now())
+
+  @@index([documentoId, criadaEm])
 }
 
 model Template {

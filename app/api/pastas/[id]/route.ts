@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { deleteGeneratedDocx } from "@/lib/file-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,7 +43,14 @@ const PASTA_STATUS = new Set(["rascunho", "processando", "concluida"]);
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const pasta = await prisma.pasta.findUnique({
     where: { id: params.id },
-    include: { documentos: { include: { template: true } } },
+    include: {
+      documentos: {
+        include: {
+          template: true,
+          versoes: { orderBy: { criadaEm: "desc" } },
+        },
+      },
+    },
   });
   if (!pasta) return NextResponse.json({ error: "Não encontrada" }, { status: 404 });
   return NextResponse.json(pasta);
@@ -65,6 +73,23 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  await prisma.pasta.delete({ where: { id: params.id } });
-  return NextResponse.json({ ok: true });
+  try {
+    const pasta = await prisma.pasta.findUnique({
+      where: { id: params.id },
+      include: { documentos: { include: { versoes: true } } },
+    });
+    if (!pasta) return NextResponse.json({ error: "Não encontrada" }, { status: 404 });
+
+    const outputPaths = new Set<string>();
+    pasta.documentos.forEach((doc) => {
+      if (doc.outputPath) outputPaths.add(doc.outputPath);
+      doc.versoes.forEach((versao) => outputPaths.add(versao.outputPath));
+    });
+    await Promise.all(Array.from(outputPaths).map((outputPath) => deleteGeneratedDocx(outputPath)));
+    await prisma.pasta.delete({ where: { id: params.id } });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro ao excluir pasta";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

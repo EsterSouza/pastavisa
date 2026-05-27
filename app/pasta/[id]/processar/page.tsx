@@ -512,6 +512,7 @@ export default function ProcessarPasta() {
           avisoRt?: boolean;
           logoSubstituida?: boolean;
           tokensUsados?: number;
+          outputPath?: string;
         } | undefined;
 
         // 4. Update this document's status and increment batch counter
@@ -525,6 +526,7 @@ export default function ProcessarPasta() {
                   avisoRtNoCorpo:  r?.avisoRt ?? d.avisoRtNoCorpo,
                   logoSubstituida: r?.logoSubstituida ?? d.logoSubstituida,
                   tokensUsados:    r?.tokensUsados ?? d.tokensUsados,
+                  outputPath:      r?.outputPath ?? d.outputPath,
                 }
               : d
           )

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 interface Pasta {
   id: string;
@@ -20,6 +20,15 @@ interface Pasta {
     status: string;
     tokensUsados: number | null;
     mensagemErro: string | null;
+    templateId: string | null;
+    outputPath: string | null;
+    avisoRtNoCorpo: boolean;
+    logoSubstituida: boolean;
+    versoes: Array<{
+      id: string;
+      outputPath: string;
+      criadaEm: string;
+    }>;
   }>;
 }
 
@@ -38,8 +47,11 @@ const PASTA_STATUS_LABELS: Record<string, { label: string; color: string }> = {
 
 export default function PastaDetalhe() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [pasta, setPasta] = useState<Pasta | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     fetch(`/api/pastas/${id}`)
@@ -50,7 +62,26 @@ export default function PastaDetalhe() {
   if (!pasta) return <p className="text-gray-500">Carregando...</p>;
 
   const gerados = pasta.documentos.filter((d) => d.status === "gerado").length;
+  const comErro = pasta.documentos.filter((d) => d.status === "erro").length;
+  const pendentes = pasta.documentos.filter((d) => d.status === "pendente" || d.status === "processando").length;
+  const semTemplate = pasta.documentos.filter((d) => !d.templateId).length;
+  const alertasRt = pasta.documentos.filter((d) => d.avisoRtNoCorpo).length;
+  const alertasLogo = pasta.documentos.filter((d) => d.status === "gerado" && d.logoSubstituida === false).length;
+  const camposPendentes = [
+    !pasta.clienteNomeFantasia && "nome fantasia",
+    !pasta.clienteCnpj && "CNPJ",
+    !pasta.clienteEstado && "estado",
+    !pasta.clienteCidade && "cidade",
+    !pasta.clienteRtNome && "responsável técnico",
+  ].filter(Boolean) as string[];
   const total = pasta.documentos.length;
+  const prontaParaEntrega =
+    total > 0 &&
+    gerados === total &&
+    comErro === 0 &&
+    semTemplate === 0 &&
+    camposPendentes.length === 0 &&
+    alertasRt === 0;
   const pastaStatus = PASTA_STATUS_LABELS[pasta.status] || PASTA_STATUS_LABELS.rascunho;
 
   async function atualizarStatus(status: "rascunho" | "concluida") {
@@ -71,6 +102,20 @@ export default function PastaDetalhe() {
       setPasta(previous);
     } finally {
       setUpdatingStatus(false);
+    }
+  }
+
+  async function duplicarPasta() {
+    setDuplicating(true);
+    setActionError("");
+    try {
+      const response = await fetch(`/api/pastas/${id}/duplicar`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Falha ao duplicar pasta");
+      router.push(`/pasta/${data.pastaId}/editar`);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Falha ao duplicar pasta");
+      setDuplicating(false);
     }
   }
 
@@ -106,6 +151,13 @@ export default function PastaDetalhe() {
           >
             Editar dados
           </Link>
+          <button
+            onClick={() => { void duplicarPasta(); }}
+            disabled={duplicating}
+            className="border border-blue-200 text-blue-700 px-4 py-2 rounded-lg text-sm hover:bg-blue-50 disabled:opacity-50"
+          >
+            {duplicating ? "Duplicando..." : "Duplicar pasta"}
+          </button>
           <Link
             href={`/pasta/${id}/processar`}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"
@@ -123,6 +175,12 @@ export default function PastaDetalhe() {
         </div>
       </div>
 
+      {actionError && (
+        <p className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          {actionError}
+        </p>
+      )}
+
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-white border border-gray-200 rounded-xl p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Localização</p>
@@ -131,6 +189,35 @@ export default function PastaDetalhe() {
         <div className="bg-white border border-gray-200 rounded-xl p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Responsável Técnico</p>
           <p className="font-medium text-gray-900">{pasta.clienteRtNome || "—"}</p>
+        </div>
+      </div>
+
+      <div className={`border rounded-xl p-5 mb-6 ${prontaParaEntrega ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-200"}`}>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <h2 className="font-semibold text-gray-900">Conferência final</h2>
+            <p className={`text-sm ${prontaParaEntrega ? "text-green-700" : "text-amber-700"}`}>
+              {prontaParaEntrega ? "Pasta pronta para entrega." : "Revise os itens abaixo antes de entregar."}
+            </p>
+          </div>
+          {gerados > 0 && (
+            <a
+              href={`/api/pastas/${id}/download`}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700"
+            >
+              Baixar ZIP final
+            </a>
+          )}
+        </div>
+        <div className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          <p className={pendentes ? "text-amber-800" : "text-green-700"}>{pendentes ? `${pendentes} pendente(s)` : "Sem pendências de geração"}</p>
+          <p className={comErro ? "text-red-700" : "text-green-700"}>{comErro ? `${comErro} documento(s) com erro` : "Sem erros"}</p>
+          <p className={semTemplate ? "text-red-700" : "text-green-700"}>{semTemplate ? `${semTemplate} sem template` : "Templates definidos"}</p>
+          <p className={alertasRt ? "text-amber-800" : "text-green-700"}>{alertasRt ? `${alertasRt} com RT para revisar` : "Sem alerta de RT"}</p>
+          <p className={alertasLogo ? "text-amber-800" : "text-green-700"}>{alertasLogo ? `${alertasLogo} para conferir logo` : "Sem alerta de logo"}</p>
+          <p className={camposPendentes.length ? "text-amber-800" : "text-green-700"}>
+            {camposPendentes.length ? `Dados faltantes: ${camposPendentes.join(", ")}` : "Dados essenciais preenchidos"}
+          </p>
         </div>
       </div>
 
@@ -145,20 +232,45 @@ export default function PastaDetalhe() {
           <ul className="divide-y divide-gray-100">
             {pasta.documentos.map((doc) => {
               const st = STATUS_LABELS[doc.status] || STATUS_LABELS.pendente;
+              const versoesAnteriores = doc.versoes.filter((versao) => versao.outputPath !== doc.outputPath);
               return (
-                <li key={doc.id} className="px-5 py-3 flex items-center justify-between">
-                  <span className="text-sm text-gray-800">{doc.nomeArquivo}</span>
-                  <div className="flex items-center gap-3">
-                    {doc.tokensUsados && (
-                      <span className="text-xs text-gray-500">{doc.tokensUsados} tokens</span>
-                    )}
-                    <span className={`text-xs font-medium ${st.color}`}>{st.label}</span>
-                    {doc.mensagemErro && (
-                      <span className="text-xs text-red-500 max-w-xs truncate" title={doc.mensagemErro}>
-                        {doc.mensagemErro}
-                      </span>
-                    )}
+                <li key={doc.id} className="px-5 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-gray-800">{doc.nomeArquivo}</span>
+                    <div className="flex items-center gap-3">
+                      {doc.tokensUsados && (
+                        <span className="text-xs text-gray-500">{doc.tokensUsados} tokens</span>
+                      )}
+                      <span className={`text-xs font-medium ${st.color}`}>{st.label}</span>
+                      {doc.outputPath && (
+                        <a
+                          href={`/api/pastas/${id}/documentos/${doc.id}/download`}
+                          className="text-xs text-blue-700 hover:underline"
+                        >
+                          Baixar atual
+                        </a>
+                      )}
+                    </div>
                   </div>
+                  {doc.mensagemErro && (
+                    <p className="text-xs text-red-500 mt-1" title={doc.mensagemErro}>{doc.mensagemErro}</p>
+                  )}
+                  {versoesAnteriores.length > 0 && (
+                    <details className="mt-2 text-xs text-gray-600">
+                      <summary className="cursor-pointer text-blue-700">Versões anteriores ({versoesAnteriores.length})</summary>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {versoesAnteriores.map((versao) => (
+                          <a
+                            key={versao.id}
+                            href={`/api/pastas/${id}/documentos/${doc.id}/download?versaoId=${versao.id}`}
+                            className="border border-gray-200 bg-gray-50 px-2.5 py-1 rounded hover:bg-gray-100"
+                          >
+                            {new Date(versao.criadaEm).toLocaleString("pt-BR")}
+                          </a>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </li>
               );
             })}

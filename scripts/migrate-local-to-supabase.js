@@ -32,6 +32,8 @@ function normalizeValue(table, column, value) {
     "Legislacao.ativo",
     "DocumentoGerado.avisoRtNoCorpo",
     "DocumentoGerado.logoSubstituida",
+    "DocumentoVersao.avisoRtNoCorpo",
+    "DocumentoVersao.logoSubstituida",
   ]);
   if (booleanColumns.has(`${table}.${column}`)) return Boolean(value);
   return value;
@@ -111,6 +113,19 @@ async function ensureSchema(pool) {
       "equipamentosSelecionados" text,
       "criadoEm" timestamptz not null default now()
     );
+
+    create table if not exists "DocumentoVersao" (
+      "id" text primary key,
+      "documentoId" text not null references "DocumentoGerado"("id") on delete cascade on update cascade,
+      "outputPath" text not null,
+      "tokensUsados" integer,
+      "avisoRtNoCorpo" boolean not null default false,
+      "logoSubstituida" boolean not null default false,
+      "criadaEm" timestamptz not null default now()
+    );
+
+    create index if not exists "DocumentoVersao_documentoId_criadaEm_idx"
+      on "DocumentoVersao" ("documentoId", "criadaEm");
   `);
 }
 
@@ -158,7 +173,11 @@ async function main() {
   });
 
   await ensureSchema(pool);
-  for (const table of ["Pasta", "Template", "Legislacao", "DocumentoGerado"]) {
+  for (const table of ["Pasta", "Template", "Legislacao", "DocumentoGerado", "DocumentoVersao"]) {
+    const exists = localDb.prepare(
+      "select 1 from sqlite_master where type = 'table' and name = ?"
+    ).get(table);
+    if (!exists) continue;
     await upsertTable(pool, localDb, table);
   }
 

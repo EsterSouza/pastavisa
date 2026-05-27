@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import path from "path";
 import { prisma } from "@/lib/prisma";
 import {
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   const pasta = await prisma.pasta.findUnique({
     where: { id: pastaId },
-    include: { documentos: { include: { template: true } } },
+    include: { documentos: { include: { template: true, versoes: true } } },
   });
 
   if (!pasta) {
@@ -120,6 +121,7 @@ export async function POST(req: NextRequest) {
     logoSubstituida?: boolean;
     avisoRt?: boolean;
     tokensUsados?: number;
+    outputPath?: string;
     error?: string;
   }> = [];
 
@@ -154,6 +156,20 @@ export async function POST(req: NextRequest) {
     try {
       const nomeArquivo = createOutputDocxFileName(doc.nomeArquivo, usedOutputNames);
       usedOutputNames.add(nomeArquivo.toLocaleUpperCase("pt-BR"));
+      let numeroVersao = doc.versoes.length + 1;
+
+      if (doc.outputPath && !doc.versoes.some((versao) => versao.outputPath === doc.outputPath)) {
+        await prisma.documentoVersao.create({
+          data: {
+            documentoId: doc.id,
+            outputPath: doc.outputPath,
+            tokensUsados: doc.tokensUsados,
+            logoSubstituida: doc.logoSubstituida,
+            avisoRtNoCorpo: doc.avisoRtNoCorpo,
+          },
+        });
+        numeroVersao += 1;
+      }
 
       // Check if RT appears in body
       const rtNoCorpo = await hasRtInBody(doc.template.arquivoPath);
@@ -176,22 +192,35 @@ export async function POST(req: NextRequest) {
           documentoTipo: doc.template.tipo,
           documentoNome: doc.nomeArquivo,
           equipamentosDoPop: parseEquipamentosSelecionados(doc.equipamentosSelecionados),
+          storageVersionId: `v${numeroVersao}_${randomUUID()}`,
+          numeroVersao,
         },
         (msg) => console.log(`[${doc.nomeArquivo}] ${msg}`)
       );
 
-      await prisma.documentoGerado.update({
-        where: { id: doc.id },
-        data: {
-          status: "gerado",
-          outputPath,
-          tokensUsados: tokensTotal,
-          logoSubstituida,
-          avisoRtNoCorpo: rtNoCorpo,
-        },
-      });
+      await prisma.$transaction([
+        prisma.documentoVersao.create({
+          data: {
+            documentoId: doc.id,
+            outputPath,
+            tokensUsados: tokensTotal,
+            logoSubstituida,
+            avisoRtNoCorpo: rtNoCorpo,
+          },
+        }),
+        prisma.documentoGerado.update({
+          where: { id: doc.id },
+          data: {
+            status: "gerado",
+            outputPath,
+            tokensUsados: tokensTotal,
+            logoSubstituida,
+            avisoRtNoCorpo: rtNoCorpo,
+          },
+        }),
+      ]);
 
-      results.push({ id: doc.id, status: "gerado", nomeArquivo, logoSubstituida, avisoRt: rtNoCorpo, tokensUsados: tokensTotal });
+      results.push({ id: doc.id, status: "gerado", nomeArquivo, outputPath, logoSubstituida, avisoRt: rtNoCorpo, tokensUsados: tokensTotal });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro desconhecido";
       await prisma.documentoGerado.update({

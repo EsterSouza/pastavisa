@@ -250,14 +250,20 @@ export async function materializeStorageFile(ref?: string | null): Promise<strin
 export async function saveGeneratedDocx(
   outputDir: string,
   fileName: string,
-  buffer: Buffer
+  buffer: Buffer,
+  versionId?: string
 ): Promise<string> {
+  const ext = path.extname(fileName);
+  const fileNameForStorage = versionId
+    ? `${path.basename(fileName, ext)}_${safeStorageFileName(versionId)}${ext}`
+    : fileName;
+
   if (storageDriver() === "supabase") {
     const pastaId = path.basename(outputDir);
-    return saveStorageBuffer("output", `${pastaId}/${fileName}`, buffer, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    return saveStorageBuffer("output", `${pastaId}/${fileNameForStorage}`, buffer, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
   }
 
-  const outputPath = path.join(outputDir, fileName);
+  const outputPath = path.join(outputDir, fileNameForStorage);
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, buffer);
   return outputPath;

@@ -51,13 +51,17 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     const doc = await prisma.documentoGerado.findFirst({
       where: { id: docId, pastaId: params.id },
-      select: { id: true, outputPath: true },
+      select: { id: true, outputPath: true, versoes: { select: { outputPath: true } } },
     });
     if (!doc) {
       return NextResponse.json({ error: "Documento não encontrado" }, { status: 404 });
     }
 
-    await deleteGeneratedDocx(doc.outputPath);
+    const outputPaths = new Set([
+      ...(doc.outputPath ? [doc.outputPath] : []),
+      ...doc.versoes.map((versao) => versao.outputPath),
+    ]);
+    await Promise.all(Array.from(outputPaths).map((outputPath) => deleteGeneratedDocx(outputPath)));
     await prisma.documentoGerado.delete({ where: { id: doc.id } });
     return NextResponse.json({ ok: true });
   } catch (error) {
