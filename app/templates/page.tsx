@@ -68,10 +68,19 @@ export default function Templates() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [form, setForm] = useState({ nome: "", tipo: "MBP", padraoHeader: "A", processingType: "LIGHT_HAIKU" });
   const [file, setFile] = useState<File | null>(null);
+  const [bulkFiles, setBulkFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
   const [importMsg, setImportMsg] = useState("");
+  const [importResults, setImportResults] = useState<Array<{
+    nome: string;
+    status: string;
+    tipo?: string;
+    variaveis?: number;
+    errosValidacao?: number;
+    error?: string;
+  }>>([]);
 
   // Multi-select
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -141,12 +150,34 @@ export default function Templates() {
   }
 
   async function handleBulkImport() {
-    setImporting(true); setImportMsg("");
-    const res = await fetch("/api/templates/bulk-import", { method: "POST" });
+    if (bulkFiles.length === 0) {
+      setImportMsg("Selecione um ou mais arquivos .docx para importar.");
+      return;
+    }
+    setImporting(true); setImportMsg(""); setImportResults([]);
+    const fd = new FormData();
+    bulkFiles.forEach((selectedFile) => fd.append("arquivos", selectedFile));
+    const res = await fetch("/api/templates/bulk-import", { method: "POST", body: fd });
     const json = await res.json();
-    const importados = json.results?.filter((r: { status: string }) => r.status === "importado").length || 0;
-    const jaExistem = json.results?.filter((r: { status: string }) => r.status === "já existe").length || 0;
-    setImportMsg(`✓ ${importados} templates importados, ${jaExistem} já existiam.`);
+    if (!res.ok) {
+      setImportMsg(json.error || "Erro ao importar templates.");
+      setImporting(false);
+      return;
+    }
+    const results = (json.results || []) as Array<{
+      nome: string;
+      status: string;
+      tipo?: string;
+      variaveis?: number;
+      errosValidacao?: number;
+      error?: string;
+    }>;
+    setImportResults(results);
+    const importados = results.filter((r) => r.status === "importado").length;
+    const atualizados = results.filter((r) => r.status === "atualizado").length;
+    const erros = results.filter((r) => r.status === "erro").length;
+    setImportMsg(`Importacao concluida: ${importados} novo(s), ${atualizados} atualizado(s), ${erros} com erro.`);
+    setBulkFiles([]);
     await load();
     setImporting(false);
   }
@@ -317,13 +348,6 @@ export default function Templates() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Templates</h1>
-        <button
-          onClick={handleBulkImport}
-          disabled={importing}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
-        >
-          {importing ? "Verificando..." : "Ver instru??o de sync"}
-        </button>
       </div>
 
       {importMsg && (
@@ -331,6 +355,66 @@ export default function Templates() {
           {importMsg}
         </div>
       )}
+
+      <section className="bg-white border border-green-200 rounded-xl p-5 mb-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="font-semibold text-gray-800">Importar ou atualizar templates em lote</h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Selecione os DOCX novos ou substituidos. Se o nome ja existir, o app atualiza o template ativo.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 md:min-w-[360px]">
+            <input
+              type="file"
+              accept=".docx"
+              multiple
+              onChange={(e) => setBulkFiles(Array.from(e.target.files || []))}
+              disabled={importing}
+              className="block w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-green-50 file:text-green-700 hover:file:bg-green-100 disabled:opacity-50"
+            />
+            <button
+              type="button"
+              onClick={() => { void handleBulkImport(); }}
+              disabled={importing || bulkFiles.length === 0}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+            >
+              {importing
+                ? "Importando..."
+                : bulkFiles.length > 0
+                ? `Importar/atualizar ${bulkFiles.length} template${bulkFiles.length > 1 ? "s" : ""}`
+                : "Selecionar DOCX para importar"}
+            </button>
+          </div>
+        </div>
+        {bulkFiles.length > 0 && (
+          <p className="mt-3 text-xs text-gray-500">
+            Selecionados: {bulkFiles.map((selectedFile) => selectedFile.name).join(", ")}
+          </p>
+        )}
+        {importResults.length > 0 && (
+          <div className="mt-4 overflow-hidden rounded-lg border border-gray-200">
+            <div className="grid grid-cols-[1fr_auto_auto] gap-3 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
+              <span>Template</span>
+              <span>Status</span>
+              <span>Validacao</span>
+            </div>
+            {importResults.map((result, index) => (
+              <div key={`${result.nome}-${index}`} className="grid grid-cols-[1fr_auto_auto] gap-3 border-t border-gray-100 px-3 py-2 text-xs">
+                <span className="truncate text-gray-800" title={result.nome}>{result.nome}</span>
+                <span className={result.status === "erro" ? "text-red-700" : result.status === "atualizado" ? "text-blue-700" : "text-green-700"}>
+                  {result.status}
+                </span>
+                <span className={result.status === "erro" || (result.errosValidacao || 0) > 0 ? "text-red-700" : "text-gray-500"}>
+                  {result.status === "erro"
+                    ? result.error
+                    : `${result.variaveis ?? 0} variaveis, ${result.errosValidacao ?? 0} erro(s)`}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Upload form */}
       <form onSubmit={handleUpload} className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
