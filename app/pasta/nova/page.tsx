@@ -174,19 +174,24 @@ export default function NovaPasta() {
     const selecionados = docsRevisao.filter((_, i) => docsSelecionados.has(i));
 
     try {
-      const res = await fetch("/api/extrair/confirmar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pdfPath: resultado.pdfPath,
-          docxPath: resultado.docxPath,
-          data: resultado.data,
-          documentosSelecionados: selecionados,
-          legislacaoIds: resultado.legislacoesAssociadas.map((legislacao) => legislacao.id),
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Erro ao criar pasta");
+      let res: Response;
+      try {
+        res = await fetch("/api/extrair/confirmar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pdfPath: resultado.pdfPath,
+            docxPath: resultado.docxPath,
+            data: resultado.data,
+            documentosSelecionados: selecionados,
+            legislacaoIds: resultado.legislacoesAssociadas.map((legislacao) => legislacao.id),
+          }),
+        });
+      } catch {
+        throw new Error("Não foi possível conectar ao servidor para criar a pasta. Tente novamente em instantes.");
+      }
+      const json = await readApiResponse<{ pastaId: string }>(res, "Erro ao criar pasta");
+      if (!json.pastaId) throw new Error("A pasta foi criada sem retornar o ID.");
 
       router.push(`/pasta/${json.pastaId}/editar`);
     } catch (err) {

@@ -75,6 +75,25 @@ function getPtBadge(pt: string) {
   return PROCESSING_TYPES.find((p) => p.value === pt) || PROCESSING_TYPES[1];
 }
 
+async function readJsonResponse<T>(res: Response, fallback: string): Promise<T> {
+  const text = await res.text();
+  let data: { error?: string } | T = {} as T;
+
+  if (text.trim()) {
+    try {
+      data = JSON.parse(text) as { error?: string } | T;
+    } catch {
+      throw new Error(`${fallback}. O servidor retornou uma resposta inesperada.`);
+    }
+  }
+
+  if (!res.ok) {
+    throw new Error(("error" in (data as { error?: string }) && (data as { error?: string }).error) || fallback);
+  }
+
+  return data as T;
+}
+
 export default function Templates() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [form, setForm] = useState({ nome: "", tipo: "MBP", padraoHeader: "A", processingType: "LIGHT_HAIKU" });
@@ -123,8 +142,12 @@ export default function Templates() {
   const [filtroPT, setFiltroPT] = useState("");
 
   async function load() {
-    const res = await fetch("/api/templates");
-    setTemplates(await res.json());
+    try {
+      const res = await fetch("/api/templates");
+      setTemplates(await readJsonResponse<Template[]>(res, "Erro ao carregar templates"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar templates.");
+    }
   }
 
   useEffect(() => { load(); }, []);
@@ -145,22 +168,23 @@ export default function Templates() {
     e.preventDefault();
     if (!file || !form.nome) { setError("Nome e arquivo são obrigatórios."); return; }
     setUploading(true); setError("");
-    const fd = new FormData();
-    fd.append("arquivo", file);
-    fd.append("nome", form.nome);
-    fd.append("tipo", form.tipo);
-    fd.append("padraoHeader", form.padraoHeader);
-    fd.append("processingType", form.processingType);
-    const res = await fetch("/api/templates", { method: "POST", body: fd });
-    if (res.ok) {
+    try {
+      const fd = new FormData();
+      fd.append("arquivo", file);
+      fd.append("nome", form.nome);
+      fd.append("tipo", form.tipo);
+      fd.append("padraoHeader", form.padraoHeader);
+      fd.append("processingType", form.processingType);
+      const res = await fetch("/api/templates", { method: "POST", body: fd });
+      await readJsonResponse<Template>(res, "Erro no upload");
       setForm({ nome: "", tipo: "MBP", padraoHeader: "A", processingType: "LIGHT_HAIKU" });
       setFile(null);
       await load();
-    } else {
-      const j = await res.json();
-      setError(j.error || "Erro no upload");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro no upload");
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   }
 
   async function handleBulkImport() {
@@ -169,15 +193,18 @@ export default function Templates() {
       return;
     }
     setImporting(true); setImportMsg(""); setImportResults([]);
-    const fd = new FormData();
-    bulkFiles.forEach((selectedFile) => fd.append("arquivos", selectedFile));
-    const res = await fetch("/api/templates/bulk-import", { method: "POST", body: fd });
-    const json = await res.json();
-    if (!res.ok) {
-      setImportMsg(json.error || "Erro ao importar templates.");
-      setImporting(false);
-      return;
-    }
+    try {
+      const fd = new FormData();
+      bulkFiles.forEach((selectedFile) => fd.append("arquivos", selectedFile));
+      const res = await fetch("/api/templates/bulk-import", { method: "POST", body: fd });
+      const json = await readJsonResponse<{ results?: Array<{
+        nome: string;
+        status: string;
+        tipo?: string;
+        variaveis?: number;
+        errosValidacao?: number;
+        error?: string;
+      }> }>(res, "Erro ao importar templates.");
     const results = (json.results || []) as Array<{
       nome: string;
       status: string;
@@ -190,10 +217,14 @@ export default function Templates() {
     const importados = results.filter((r) => r.status === "importado").length;
     const atualizados = results.filter((r) => r.status === "atualizado").length;
     const erros = results.filter((r) => r.status === "erro").length;
-    setImportMsg(`Importacao concluida: ${importados} novo(s), ${atualizados} atualizado(s), ${erros} com erro.`);
+    setImportMsg(`Importação concluída: ${importados} novo(s), ${atualizados} atualizado(s), ${erros} com erro.`);
     setBulkFiles([]);
     await load();
-    setImporting(false);
+    } catch (err) {
+      setImportMsg(err instanceof Error ? err.message : "Erro ao importar templates.");
+    } finally {
+      setImporting(false);
+    }
   }
 
   async function toggleAtivo(id: string, ativo: boolean) {
@@ -291,14 +322,16 @@ export default function Templates() {
 
   async function handleVerVariaveis(t: Template) {
     setLoadingVars(t.id);
-    const res = await fetch(`/api/templates/${t.id}/variaveis`);
-    const json = await res.json();
-    if (res.ok) {
-      setVariavelModal({ nome: t.nome, report: json as TemplateValidationReport });
-    } else {
-      setError(json.error || "Erro ao analisar template.");
+    setError("");
+    try {
+      const res = await fetch(`/api/templates/${t.id}/variaveis`);
+      const json = await readJsonResponse<TemplateValidationReport>(res, "Erro ao analisar template.");
+      setVariavelModal({ nome: t.nome, report: json });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao analisar template.");
+    } finally {
+      setLoadingVars(null);
     }
-    setLoadingVars(null);
   }
 
   async function handleVisualizarTemplate(t: Template) {
@@ -306,8 +339,7 @@ export default function Templates() {
     setPreview({ title: t.nome, html: "", loading: true });
     try {
       const res = await fetch(`/api/templates/${t.id}/preview`);
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Erro ao carregar preview.");
+      const json = await readJsonResponse<{ html?: string }>(res, "Erro ao carregar preview.");
       setPreview({ title: t.nome, html: json.html || "", loading: false });
     } catch (err) {
       setPreview({
@@ -323,30 +355,29 @@ export default function Templates() {
 
   async function handleVerVersoes(t: Template) {
     setLoadingVersions(t.id);
+    setError("");
     try {
       const res = await fetch(`/api/templates/${t.id}/versoes`);
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Erro ao carregar versoes.");
-      setVersionModal({ template: t, versoes: json as TemplateVersion[] });
+      const json = await readJsonResponse<TemplateVersion[]>(res, "Erro ao carregar versões.");
+      setVersionModal({ template: t, versoes: json });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar versoes.");
+      setError(err instanceof Error ? err.message : "Erro ao carregar versões.");
     } finally {
       setLoadingVersions(null);
     }
   }
 
   async function handleRestaurarVersao(templateId: string, versaoId: string) {
-    if (!confirm("Restaurar esta versao? A versao atual sera guardada no historico antes da restauracao.")) return;
+    if (!confirm("Restaurar esta versão? A versão atual será guardada no histórico antes da restauração.")) return;
     setRestoringVersion(versaoId);
     try {
       const res = await fetch(`/api/templates/${templateId}/versoes/${versaoId}/restaurar`, { method: "POST" });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Erro ao restaurar versao.");
+      await readJsonResponse<Template>(res, "Erro ao restaurar versão.");
       await load();
       setVersionModal(null);
-      setImportMsg("Versao anterior restaurada com sucesso.");
+      setImportMsg("Versão anterior restaurada com sucesso.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao restaurar versao.");
+      setError(err instanceof Error ? err.message : "Erro ao restaurar versão.");
     } finally {
       setRestoringVersion(null);
     }
@@ -411,7 +442,7 @@ export default function Templates() {
           <div>
             <h2 className="font-semibold text-gray-800">Importar ou atualizar templates em lote</h2>
             <p className="text-xs text-gray-500 mt-1">
-              Selecione os DOCX novos ou substituidos. Se o nome ja existir, o app atualiza o template ativo.
+              Selecione os DOCX novos ou substituídos. Se o nome já existir, o app atualiza o template ativo.
             </p>
           </div>
           <div className="flex flex-col gap-2 md:min-w-[360px]">
@@ -447,7 +478,7 @@ export default function Templates() {
             <div className="grid grid-cols-[1fr_auto_auto] gap-3 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
               <span>Template</span>
               <span>Status</span>
-              <span>Validacao</span>
+              <span>Validação</span>
             </div>
             {importResults.map((result, index) => (
               <div key={`${result.nome}-${index}`} className="grid grid-cols-[1fr_auto_auto] gap-3 border-t border-gray-100 px-3 py-2 text-xs">
@@ -458,7 +489,7 @@ export default function Templates() {
                 <span className={result.status === "erro" || (result.errosValidacao || 0) > 0 ? "text-red-700" : "text-gray-500"}>
                   {result.status === "erro"
                     ? result.error
-                    : `${result.variaveis ?? 0} variaveis, ${result.errosValidacao ?? 0} erro(s)`}
+                    : `${result.variaveis ?? 0} variáveis, ${result.errosValidacao ?? 0} erro(s)`}
                 </span>
               </div>
             ))}
@@ -755,10 +786,10 @@ export default function Templates() {
                   <button
                     onClick={() => { void handleVerVersoes(t); }}
                     disabled={loadingVersions === t.id}
-                    title="Ver e restaurar versoes anteriores"
+                    title="Ver e restaurar versões anteriores"
                     className="text-xs px-2.5 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
                   >
-                    {loadingVersions === t.id ? "..." : "Versoes"}
+                    {loadingVersions === t.id ? "..." : "Versões"}
                   </button>
                   <button
                     onClick={() => setEditando({ ...t })}
@@ -987,7 +1018,7 @@ export default function Templates() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <h2 className="font-semibold text-gray-900">Versoes do template</h2>
+                <h2 className="font-semibold text-gray-900">Versões do template</h2>
                 <p className="text-xs text-gray-500 mt-0.5">{versionModal.template.nome}</p>
               </div>
               <button onClick={() => setVersionModal(null)}
@@ -995,7 +1026,7 @@ export default function Templates() {
             </div>
             {versionModal.versoes.length === 0 ? (
               <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-                Ainda nao ha versoes anteriores para este template. A partir de agora, edicoes e importacoes guardam historico automaticamente.
+                Ainda não há versões anteriores para este template. A partir de agora, edições e importações guardam histórico automaticamente.
               </p>
             ) : (
               <div className="space-y-2">
