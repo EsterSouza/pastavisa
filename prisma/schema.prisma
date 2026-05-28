@@ -91,6 +91,22 @@ model Template {
   ativo          Boolean           @default(true)
   criadoEm       DateTime          @default(now())
   documentos     DocumentoGerado[]
+  versoes        TemplateVersao[]
+}
+
+model TemplateVersao {
+  id             String   @id @default(cuid())
+  templateId     String
+  template       Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  nome           String
+  tipo           String
+  padraoHeader   String
+  processingType String
+  arquivoPath    String
+  motivo         String?
+  criadaEm       DateTime @default(now())
+
+  @@index([templateId, criadaEm])
 }
 
 model Legislacao {

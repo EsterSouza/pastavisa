@@ -35,6 +35,17 @@ interface TemplateValidationReport {
   valid: boolean;
 }
 
+interface TemplateVersion {
+  id: string;
+  nome: string;
+  tipo: string;
+  padraoHeader: string;
+  processingType: string;
+  arquivoPath: string;
+  motivo: string | null;
+  criadaEm: string;
+}
+
 const TIPOS = ["MBP", "POP", "TCLE", "PGRSS", "FICHA", "PLANILHA", "GUIA", "TERMO", "RECEITUARIO", "OUTROS"];
 const PADROES = ["A", "B", "C", "D"];
 const PADROES_LABEL: Record<string, string> = {
@@ -93,8 +104,11 @@ export default function Templates() {
   // Variables and validation
   const [variavelModal, setVariavelModal] = useState<{ nome: string; report: TemplateValidationReport } | null>(null);
   const [preview, setPreview] = useState<DocumentPreviewState | null>(null);
+  const [versionModal, setVersionModal] = useState<{ template: Template; versoes: TemplateVersion[] } | null>(null);
   const [loadingVars, setLoadingVars] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
+  const [loadingVersions, setLoadingVersions] = useState<string | null>(null);
+  const [restoringVersion, setRestoringVersion] = useState<string | null>(null);
   const [catalogOpen, setCatalogOpen] = useState(true);
   const [catalogSearch, setCatalogSearch] = useState("");
   const [catalogCategory, setCatalogCategory] = useState("");
@@ -304,6 +318,37 @@ export default function Templates() {
       });
     } finally {
       setLoadingPreview(null);
+    }
+  }
+
+  async function handleVerVersoes(t: Template) {
+    setLoadingVersions(t.id);
+    try {
+      const res = await fetch(`/api/templates/${t.id}/versoes`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Erro ao carregar versoes.");
+      setVersionModal({ template: t, versoes: json as TemplateVersion[] });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar versoes.");
+    } finally {
+      setLoadingVersions(null);
+    }
+  }
+
+  async function handleRestaurarVersao(templateId: string, versaoId: string) {
+    if (!confirm("Restaurar esta versao? A versao atual sera guardada no historico antes da restauracao.")) return;
+    setRestoringVersion(versaoId);
+    try {
+      const res = await fetch(`/api/templates/${templateId}/versoes/${versaoId}/restaurar`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Erro ao restaurar versao.");
+      await load();
+      setVersionModal(null);
+      setImportMsg("Versao anterior restaurada com sucesso.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao restaurar versao.");
+    } finally {
+      setRestoringVersion(null);
     }
   }
 
@@ -708,6 +753,14 @@ export default function Templates() {
                     {loadingVars === t.id ? "..." : "Validar"}
                   </button>
                   <button
+                    onClick={() => { void handleVerVersoes(t); }}
+                    disabled={loadingVersions === t.id}
+                    title="Ver e restaurar versoes anteriores"
+                    className="text-xs px-2.5 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {loadingVersions === t.id ? "..." : "Versoes"}
+                  </button>
+                  <button
                     onClick={() => setEditando({ ...t })}
                     title="Editar metadados"
                     className="text-xs px-2.5 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
@@ -926,6 +979,49 @@ export default function Templates() {
                 Fechar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {versionModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h2 className="font-semibold text-gray-900">Versoes do template</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{versionModal.template.nome}</p>
+              </div>
+              <button onClick={() => setVersionModal(null)}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none">x</button>
+            </div>
+            {versionModal.versoes.length === 0 ? (
+              <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                Ainda nao ha versoes anteriores para este template. A partir de agora, edicoes e importacoes guardam historico automaticamente.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {versionModal.versoes.map((versao) => (
+                  <div key={versao.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-gray-900">{versao.nome}</p>
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        {new Date(versao.criadaEm).toLocaleString("pt-BR")} · {versao.tipo} · {getPtBadge(versao.processingType).label}
+                      </p>
+                      {versao.motivo && (
+                        <p className="mt-1 text-xs text-gray-400">{versao.motivo}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { void handleRestaurarVersao(versionModal.template.id, versao.id); }}
+                      disabled={restoringVersion === versao.id}
+                      className="shrink-0 rounded-lg border border-blue-200 px-3 py-1.5 text-xs text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                    >
+                      {restoringVersion === versao.id ? "Restaurando..." : "Restaurar"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

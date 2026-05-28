@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { detectProcessingType } from "@/lib/classifier";
 import { safeStorageFileName, saveStorageBuffer } from "@/lib/file-storage";
 import { validateTemplateBuffer } from "@/lib/template-validator";
+import { snapshotTemplateVersion } from "@/lib/template-versions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -97,6 +98,7 @@ export async function POST(req: NextRequest) {
       const key = normalizeTemplateName(nome);
       const existente = existingByName.get(key);
       if (existente) {
+        await snapshotTemplateVersion(existente.id, "Antes da atualizacao por importacao em lote");
         await prisma.template.update({
           where: { id: existente.id },
           data: {
