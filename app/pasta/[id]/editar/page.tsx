@@ -56,6 +56,17 @@ function Input({ label, value, onChange, multiline }: {
   );
 }
 
+function buildPatchPayload(form: FormData) {
+  return {
+    ...form,
+    clienteServicos: JSON.stringify(form.clienteServicos),
+    clienteFuncionarios: JSON.stringify(form.clienteFuncionarios),
+    clienteEquipamentos: JSON.stringify(form.clienteEquipamentos),
+    clienteProdutosInsumos: JSON.stringify(form.clienteProdutosInsumos),
+    clienteTerceirizados: JSON.stringify(form.clienteTerceirizados),
+  };
+}
+
 export default function EditarPasta() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -63,12 +74,13 @@ export default function EditarPasta() {
   const [saving, setSaving] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [novoServico, setNovoServico] = useState("");
+  const [initialPayload, setInitialPayload] = useState("");
 
   useEffect(() => {
     fetch(`/api/pastas/${id}`)
       .then((r) => r.json())
       .then((pasta) => {
-        setForm({
+        const nextForm = {
           clienteNomeFantasia: pasta.clienteNomeFantasia || "",
           clienteRazaoSocial: pasta.clienteRazaoSocial || "",
           clienteCnpj: pasta.clienteCnpj || "",
@@ -98,7 +110,9 @@ export default function EditarPasta() {
           docElaborador: pasta.docElaborador || "",
           docMesExtenso: pasta.docMesExtenso || "",
           docAno: pasta.docAno || "",
-        });
+        };
+        setForm(nextForm);
+        setInitialPayload(JSON.stringify(buildPatchPayload(nextForm)));
       });
   }, [id]);
 
@@ -116,21 +130,20 @@ export default function EditarPasta() {
       await fetch(`/api/pastas/${id}/logo`, { method: "POST", body: fd });
     }
 
-    await fetch(`/api/pastas/${id}`, {
+    const payload = buildPatchPayload(form);
+    const dadosAlterados = JSON.stringify(payload) !== initialPayload || !!logoFile;
+    const response = await fetch(`/api/pastas/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        clienteServicos: JSON.stringify(form.clienteServicos),
-        clienteFuncionarios: JSON.stringify(form.clienteFuncionarios),
-        clienteEquipamentos: JSON.stringify(form.clienteEquipamentos),
-        clienteProdutosInsumos: JSON.stringify(form.clienteProdutosInsumos),
-        clienteTerceirizados: JSON.stringify(form.clienteTerceirizados),
-      }),
+      body: JSON.stringify(payload),
     });
+    if (!response.ok) {
+      setSaving(false);
+      return;
+    }
 
     setSaving(false);
-    router.push(`/pasta/${id}/processar`);
+    router.push(`/pasta/${id}/processar${dadosAlterados ? "?regenerar=dados" : ""}`);
   }
 
   if (!form) return <p className="text-gray-500">Carregando...</p>;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
 import { findBestTemplateMatch } from "@/lib/template-matcher";
 
@@ -190,6 +190,8 @@ function formatDuration(seconds: number): string {
 
 export default function ProcessarPasta() {
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const regenerarAposEdicao = searchParams.get("regenerar") === "dados";
 
   const [docs,       setDocs]       = useState<Documento[]>([]);
   const [templates,  setTemplates]  = useState<Template[]>([]);
@@ -209,6 +211,7 @@ export default function ProcessarPasta() {
   const [autoFilling, setAutoFilling] = useState(false);
   const [currentDocName, setCurrentDocName] = useState("");
   const [documentSearch, setDocumentSearch] = useState("");
+  const [templateAddSearch, setTemplateAddSearch] = useState("");
   const [documentActionMessage, setDocumentActionMessage] = useState("");
   const [changingDocuments, setChangingDocuments] = useState(false);
   const [associandoLegislacoes, setAssociandoLegislacoes] = useState(false);
@@ -271,8 +274,13 @@ export default function ProcessarPasta() {
         setEquipmentAssignments(equipmentInit);
         setEquipmentOptionsOpen(equipmentOpenInit);
 
-        // Default: select all pending docs
-        setSelectedDocs(new Set(normalized.filter((d) => d.status === "pendente").map((d) => d.id)));
+        // Default: select pending docs. After editing customer data, preselect generated docs too
+        // because they need regeneration to reflect the updated services/equipment/client data.
+        setSelectedDocs(new Set(
+          normalized
+            .filter((d) => regenerarAposEdicao ? !!d.templateId : d.status === "pendente")
+            .map((d) => d.id)
+        ));
       });
 
     // 3. Fetch templates
@@ -281,7 +289,7 @@ export default function ProcessarPasta() {
       .then((ts: Template[]) =>
         setTemplates(ts.filter((t: Template & { ativo?: boolean }) => t.ativo !== false))
       );
-  }, [id]);
+  }, [id, regenerarAposEdicao]);
 
   useEffect(() => {
     if (!processing) return;
@@ -434,6 +442,42 @@ export default function ProcessarPasta() {
       setDocumentActionMessage("Documento removido da pasta.");
     } catch (error) {
       setDocumentActionMessage(error instanceof Error ? error.message : "Erro ao remover documento");
+    } finally {
+      setChangingDocuments(false);
+    }
+  }
+
+  async function addDocumentFromTemplate(template: Template) {
+    setChangingDocuments(true);
+    setDocumentActionMessage("");
+    try {
+      const response = await fetch(`/api/pastas/${id}/documentos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId: template.id, nomeArquivo: template.nome }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao adicionar documento");
+
+      const novoDoc = {
+        avisoRtNoCorpo: false,
+        logoSubstituida: null,
+        tokensUsados: null,
+        mensagemErro: null,
+        outputPath: null,
+        equipamentosSelecionados: null,
+        ...data,
+      } as Documento;
+
+      setDocs((prev) => [...prev, novoDoc]);
+      setAssignments((prev) => ({ ...prev, [novoDoc.id]: template.id }));
+      setSelectedDocs((prev) => new Set([...Array.from(prev), novoDoc.id]));
+      setEquipmentAssignments((prev) => ({ ...prev, [novoDoc.id]: [] }));
+      setEquipmentOptionsOpen((prev) => ({ ...prev, [novoDoc.id]: false }));
+      setTemplateAddSearch("");
+      setDocumentActionMessage(`Documento "${novoDoc.nomeArquivo}" adicionado e selecionado para geracao.`);
+    } catch (error) {
+      setDocumentActionMessage(error instanceof Error ? error.message : "Erro ao adicionar documento");
     } finally {
       setChangingDocuments(false);
     }
@@ -633,6 +677,18 @@ export default function ProcessarPasta() {
         return searchable.includes(normalizedDocumentSearch);
       })
     : docs;
+  const normalizedTemplateAddSearch = normalizeForMatch(templateAddSearch.trim());
+  const templatesParaAdicionar = templates
+    .filter((template) => {
+      const templateKey = normalizeForMatch(`${template.nome} ${template.tipo}`);
+      const jaExiste = docs.some((doc) =>
+        doc.templateId === template.id ||
+        normalizeForMatch(doc.nomeArquivo) === normalizeForMatch(template.nome)
+      );
+      return !jaExiste && (!normalizedTemplateAddSearch || templateKey.includes(normalizedTemplateAddSearch));
+    })
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }))
+    .slice(0, 8);
   const prontoParaGerar = docs.filter((d) => selectedDocs.has(d.id) && assignments[d.id]).length;
   const totalTokens  = docs.reduce((s, d) => s + (d.tokensUsados ?? 0), 0);
   const custo        = formatCost(totalTokens);
@@ -647,6 +703,12 @@ export default function ProcessarPasta() {
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Gerar documentos</h1>
+
+      {regenerarAposEdicao && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Os dados da pasta foram alterados. Documentos ja gerados foram pre-selecionados para regeracao, assim novos servicos, equipamentos ou dados do cliente entram no arquivo atualizado.
+        </div>
+      )}
 
       {/* â”€â”€ Documents list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="bg-white border border-gray-200 rounded-xl mb-6">
@@ -671,6 +733,46 @@ export default function ProcessarPasta() {
             <button onClick={selecionarPendentes} className="text-xs text-blue-500 hover:underline">Pendentes/erros</button>
             <span className="text-gray-300">|</span>
             <button onClick={desselecionarTodos}  className="text-xs text-gray-500 hover:underline">Nenhum</button>
+          </div>
+        </div>
+
+        <div className="border-b border-gray-100 bg-blue-50/40 px-5 py-4">
+          <div className="flex flex-col gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800">Adicionar documento por template</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Use quando a cliente adicionou um servico depois do Documento em Elaboracao e o POP/documento nao entrou na lista inicial.
+              </p>
+            </div>
+            <input
+              type="search"
+              value={templateAddSearch}
+              onChange={(e) => setTemplateAddSearch(e.target.value)}
+              disabled={processing || changingDocuments}
+              placeholder="Buscar template ativo para adicionar..."
+              className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
+            />
+            {templateAddSearch.trim() && (
+              <div className="flex flex-wrap gap-2">
+                {templatesParaAdicionar.length > 0 ? (
+                  templatesParaAdicionar.map((template) => (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => { void addDocumentFromTemplate(template); }}
+                      disabled={processing || changingDocuments}
+                      className="rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                    >
+                      + {template.nome}
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-500">
+                    Nenhum template ativo disponivel ou o documento ja esta na pasta.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
