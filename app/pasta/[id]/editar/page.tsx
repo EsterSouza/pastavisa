@@ -72,6 +72,7 @@ export default function EditarPasta() {
   const router = useRouter();
   const [form, setForm] = useState<FormData | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [novoServico, setNovoServico] = useState("");
   const [initialPayload, setInitialPayload] = useState("");
@@ -123,12 +124,7 @@ export default function EditarPasta() {
   async function handleSave() {
     if (!form) return;
     setSaving(true);
-
-    if (logoFile) {
-      const fd = new FormData();
-      fd.append("logo", logoFile);
-      await fetch(`/api/pastas/${id}/logo`, { method: "POST", body: fd });
-    }
+    setSaveError("");
 
     const payload = buildPatchPayload(form);
     const dadosAlterados = JSON.stringify(payload) !== initialPayload || !!logoFile;
@@ -138,6 +134,42 @@ export default function EditarPasta() {
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      setSaveError(data.error || "Erro ao salvar dados da pasta.");
+      setSaving(false);
+      return;
+    }
+
+    if (logoFile) {
+      const fd = new FormData();
+      fd.append("logo", logoFile);
+      const logoResponse = await fetch(`/api/pastas/${id}/logo`, { method: "POST", body: fd });
+      if (!logoResponse.ok) {
+        const data = await logoResponse.json().catch(() => ({}));
+        setSaveError(data.error || "Dados salvos, mas a logo nao foi salva.");
+        setSaving(false);
+        return;
+      }
+    }
+
+    const confirmResponse = await fetch(`/api/pastas/${id}`);
+    if (confirmResponse.ok) {
+      const updated = await confirmResponse.json();
+      const memorialSalvo = updated.clienteMemorialDescritivoMbp || "";
+      if ((form.clienteMemorialDescritivoMbp || "") !== memorialSalvo) {
+        setSaveError("O memorial nao confirmou persistencia no banco. Verifique a migracao da coluna clienteMemorialDescritivoMbp.");
+        setSaving(false);
+        return;
+      }
+      if (logoFile && !updated.clienteLogoPath) {
+        setSaveError("A logo foi enviada, mas o caminho nao ficou salvo na pasta.");
+        setSaving(false);
+        return;
+      }
+    }
+
+    if (!confirmResponse.ok) {
+      setSaveError("Dados salvos, mas nao foi possivel confirmar a persistencia.");
       setSaving(false);
       return;
     }
@@ -151,6 +183,11 @@ export default function EditarPasta() {
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Editar dados do cliente</h1>
+      {saveError && (
+        <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {saveError}
+        </p>
+      )}
 
       <div className="space-y-6">
         {/* Estabelecimento */}
@@ -446,6 +483,11 @@ export default function EditarPasta() {
         {/* Logo */}
         <section className="bg-white border border-gray-200 rounded-xl p-5">
           <h2 className="font-semibold text-gray-800 mb-3">Logo do cliente</h2>
+          {logoFile && (
+            <p className="mb-2 text-xs text-blue-700">
+              Nova logo selecionada: {logoFile.name}. Ela sera salva junto com os dados.
+            </p>
+          )}
           <input type="file" accept=".png,.jpg,.jpeg"
             onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
             className="block text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />

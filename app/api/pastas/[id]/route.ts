@@ -58,19 +58,26 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const body = await req.json();
-  if (Object.prototype.hasOwnProperty.call(body, "status") && !PASTA_STATUS.has(body.status)) {
-    return NextResponse.json({ error: "Status invalido" }, { status: 400 });
+  try {
+    const body = await req.json();
+    if (Object.prototype.hasOwnProperty.call(body, "status") && !PASTA_STATUS.has(body.status)) {
+      return NextResponse.json({ error: "Status invalido" }, { status: 400 });
+    }
+
+    const data = Object.fromEntries(
+      PASTA_EDIT_FIELDS
+        .filter((field) => Object.prototype.hasOwnProperty.call(body, field))
+        .map((field) => [field, body[field]])
+    );
+
+    const pasta = await prisma.pasta.update({ where: { id: params.id }, data });
+    return NextResponse.json(pasta);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Erro ao salvar pasta" },
+      { status: 500 }
+    );
   }
-
-  const data = Object.fromEntries(
-    PASTA_EDIT_FIELDS
-      .filter((field) => Object.prototype.hasOwnProperty.call(body, field))
-      .map((field) => [field, body[field]])
-  );
-
-  const pasta = await prisma.pasta.update({ where: { id: params.id }, data });
-  return NextResponse.json(pasta);
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {

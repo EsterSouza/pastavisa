@@ -207,7 +207,12 @@ export default function Templates() {
     await fetch(`/api/templates/${editando.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome: editando.nome, tipo: editando.tipo, padraoHeader: editando.padraoHeader }),
+      body: JSON.stringify({
+        nome: editando.nome,
+        tipo: editando.tipo,
+        padraoHeader: editando.padraoHeader,
+        processingType: editando.processingType,
+      }),
     });
     setEditando(null);
     setSaving(false);
@@ -741,7 +746,7 @@ export default function Templates() {
       {editando && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <form onSubmit={handleEditSave}
-            className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+            className="bg-white rounded-xl shadow-xl w-full max-w-3xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Editar metadados</h2>
               <button type="button" onClick={() => setEditando(null)}
@@ -769,6 +774,47 @@ export default function Templates() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white">
                   {PADROES.map((p) => <option key={p} value={p}>{p} — {PADROES_LABEL[p]}</option>)}
                 </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Instrução de geração</label>
+              <select value={editando.processingType}
+                onChange={(e) => setEditando({ ...editando, processingType: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white">
+                {PROCESSING_TYPES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Isso controla se o template apenas substitui variáveis ou usa IA leve/moderada/avançada nos blocos [AI_ADAPT_START].
+              </p>
+            </div>
+            <div className="grid gap-4 rounded-lg border border-blue-100 bg-blue-50/40 p-4 md:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold text-blue-900">Variáveis mais usadas</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {[
+                    "{cliente_nome_fantasia}",
+                    "{cliente_logo}",
+                    "{cliente_memorial_descritivo_mbp}",
+                    "{cliente_servicos_lista}",
+                    "{texto_legislacao_federal}",
+                  ].map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => { void copyTag(tag); }}
+                      className="rounded border border-blue-200 bg-white px-2 py-1 text-[11px] text-blue-800 hover:bg-blue-50"
+                    >
+                      {copiedTag === tag ? "Copiado" : tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-blue-900">Como usar instruções</p>
+                <p className="mt-2 text-xs text-gray-600">
+                  No DOCX, coloque dados fixos com {"{variavel}"} e trechos adaptáveis entre [AI_ADAPT_START] e [AI_ADAPT_END].
+                  Use Validar depois de salvar para conferir tags quebradas.
+                </p>
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-1">
