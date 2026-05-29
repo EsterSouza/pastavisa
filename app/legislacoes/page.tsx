@@ -14,6 +14,16 @@ interface Legislacao {
   ativo: boolean;
 }
 
+interface ReferenciaImportada {
+  estadoUf: string;
+  municipio?: string | null;
+  tipo: string;
+  titulo: string;
+  referenciaAbnt: string;
+  destaqueAbnt?: string | null;
+  ativo: boolean;
+}
+
 const ESTADOS_BR = [
   "BR","AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
   "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO",
@@ -56,6 +66,22 @@ const BLANK_FORM = {
   estadoUf: "RJ", municipio: "", tipo: "estadual", titulo: "", referenciaAbnt: "", destaqueAbnt: "",
 };
 
+async function readJsonResponse<T>(response: Response, fallback: string): Promise<T> {
+  const text = await response.text();
+  let data: { error?: string } | T = {} as T;
+  if (text.trim()) {
+    try {
+      data = JSON.parse(text) as { error?: string } | T;
+    } catch {
+      throw new Error(fallback);
+    }
+  }
+  if (!response.ok) {
+    throw new Error(("error" in (data as { error?: string }) && (data as { error?: string }).error) || fallback);
+  }
+  return data as T;
+}
+
 export default function Legislacoes() {
   const [items, setItems] = useState<Legislacao[]>([]);
   const [busca, setBusca] = useState("");
@@ -68,6 +94,15 @@ export default function Legislacoes() {
   const [deletandoId, setDeletandoId] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
   const [editError, setEditError] = useState("");
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importEstado, setImportEstado] = useState("RJ");
+  const [importMunicipio, setImportMunicipio] = useState("");
+  const [importando, setImportando] = useState(false);
+  const [importError, setImportError] = useState("");
+  const [importMsg, setImportMsg] = useState("");
+  const [importPreview, setImportPreview] = useState<string | null>(null);
+  const [referenciasImportadas, setReferenciasImportadas] = useState<ReferenciaImportada[]>([]);
+  const [selecionadasImportacao, setSelecionadasImportacao] = useState<Set<number>>(new Set());
 
   async function load() {
     const res = await fetch("/api/legislacoes");
@@ -111,6 +146,79 @@ export default function Legislacoes() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function analisarArquivoLegislacoes() {
+    if (!importFile) {
+      setImportError("Selecione um arquivo .docx para analisar.");
+      return;
+    }
+    setImportando(true);
+    setImportError("");
+    setImportMsg("");
+    setImportPreview(null);
+    setReferenciasImportadas([]);
+    setSelecionadasImportacao(new Set());
+    try {
+      const formData = new FormData();
+      formData.append("arquivo", importFile);
+      formData.append("estadoUf", importEstado);
+      formData.append("municipio", importMunicipio.trim());
+      const response = await fetch("/api/legislacoes/importar", { method: "POST", body: formData });
+      const data = await readJsonResponse<{
+        referencias: ReferenciaImportada[];
+        textoExtraidoPreview: string | null;
+      }>(response, "Erro ao analisar arquivo.");
+      setReferenciasImportadas(data.referencias || []);
+      setSelecionadasImportacao(new Set((data.referencias || []).map((_, index) => index)));
+      setImportPreview(data.textoExtraidoPreview);
+      setImportMsg(
+        data.referencias.length > 0
+          ? `${data.referencias.length} referência(s) nova(s) encontrada(s).`
+          : "Nenhuma referência nova foi encontrada. Se o documento tem referências, me avise: vamos ajustar o detector para esse formato."
+      );
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "Erro ao analisar arquivo.");
+    } finally {
+      setImportando(false);
+    }
+  }
+
+  async function adicionarReferenciasImportadas() {
+    const selecionadas = referenciasImportadas.filter((_, index) => selecionadasImportacao.has(index));
+    if (selecionadas.length === 0) return;
+
+    setImportando(true);
+    setImportError("");
+    setImportMsg("");
+    try {
+      let adicionadas = 0;
+      for (const referencia of selecionadas) {
+        const response = await fetch("/api/legislacoes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(referencia),
+        });
+        await readJsonResponse<Legislacao>(response, "Erro ao adicionar referência.");
+        adicionadas += 1;
+      }
+      setImportMsg(`${adicionadas} referência(s) adicionada(s) à base.`);
+      setReferenciasImportadas((current) => current.filter((_, index) => !selecionadasImportacao.has(index)));
+      setSelecionadasImportacao(new Set());
+      await load();
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "Erro ao adicionar referências.");
+    } finally {
+      setImportando(false);
+    }
+  }
+
+  function toggleImportada(index: number) {
+    setSelecionadasImportacao((current) => {
+      const next = new Set(current);
+      if (next.has(index)) next.delete(index); else next.add(index);
+      return next;
+    });
   }
 
   async function handleEdit(e: React.FormEvent) {
@@ -218,6 +326,113 @@ export default function Legislacoes() {
           {saving ? "Salvando..." : "Adicionar"}
         </button>
       </form>
+
+      <section className="bg-white border border-amber-200 rounded-xl p-5 mb-6 space-y-4">
+        <div>
+          <h2 className="font-semibold text-gray-800">Importar legislações do Documento em Elaboração</h2>
+          <p className="text-xs text-gray-500 mt-1">
+            Envie um DOCX com a seção de referências. O app detecta o que ainda não está na base, remove duplicatas aproximadas e deixa você revisar antes de adicionar.
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-[1fr_120px_180px_auto] md:items-end">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Arquivo .docx</label>
+            <input
+              type="file"
+              accept=".docx"
+              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              disabled={importando}
+              className="block w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 disabled:opacity-50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">UF padrão</label>
+            <select
+              value={importEstado}
+              onChange={(e) => setImportEstado(e.target.value)}
+              disabled={importando}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white disabled:opacity-50"
+            >
+              {ESTADOS_BR.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Município padrão</label>
+            <input
+              type="text"
+              value={importMunicipio}
+              onChange={(e) => setImportMunicipio(e.target.value)}
+              disabled={importando}
+              placeholder="opcional"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white disabled:opacity-50"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => { void analisarArquivoLegislacoes(); }}
+            disabled={importando || !importFile}
+            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+          >
+            {importando ? "Analisando..." : "Analisar"}
+          </button>
+        </div>
+
+        {importError && (
+          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            {importError}
+          </p>
+        )}
+        {importMsg && (
+          <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            {importMsg}
+          </p>
+        )}
+
+        {referenciasImportadas.length > 0 && (
+          <div className="overflow-hidden rounded-lg border border-amber-200">
+            <div className="flex items-center justify-between gap-3 bg-amber-50 px-3 py-2">
+              <p className="text-xs font-semibold text-amber-900">
+                {selecionadasImportacao.size} de {referenciasImportadas.length} selecionada(s)
+              </p>
+              <button
+                type="button"
+                onClick={() => { void adicionarReferenciasImportadas(); }}
+                disabled={importando || selecionadasImportacao.size === 0}
+                className="rounded bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+              >
+                Adicionar selecionadas
+              </button>
+            </div>
+            <ul className="divide-y divide-amber-100">
+              {referenciasImportadas.map((referencia, index) => (
+                <li key={`${referencia.referenciaAbnt}-${index}`} className="flex items-start gap-3 px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={selecionadasImportacao.has(index)}
+                    onChange={() => toggleImportada(index)}
+                    className="mt-1 h-4 w-4 shrink-0 rounded border-amber-300 text-amber-600"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{referencia.titulo}</p>
+                    <p className="text-xs text-gray-500">
+                      {referencia.tipo} · {referencia.estadoUf}
+                      {referencia.municipio ? ` · ${referencia.municipio}` : ""}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-700">{referencia.referenciaAbnt}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {importPreview && referenciasImportadas.length === 0 && (
+          <details className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+            <summary className="cursor-pointer text-xs font-medium text-gray-700">Ver texto extraído do DOCX</summary>
+            <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-gray-600">{importPreview}</pre>
+          </details>
+        )}
+      </section>
 
       {/* ── Filters + list ─────────────────────────────────────────── */}
       <div className="bg-white border border-gray-200 rounded-xl">
