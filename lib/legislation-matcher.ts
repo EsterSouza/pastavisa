@@ -1,3 +1,5 @@
+import { extractReferenceSection, type ReferenceScopeOptions } from "@/lib/reference-extractor";
+
 export interface LegislacaoAssociavel {
   id: string;
   estadoUf: string;
@@ -55,12 +57,22 @@ function descriptiveTokens(value: string): string[] {
 
 export function associarLegislacoesDoDocumento(
   documentText: string,
-  legislacoes: LegislacaoAssociavel[]
+  legislacoes: LegislacaoAssociavel[],
+  options: ReferenceScopeOptions = {}
 ): LegislacaoAssociavel[] {
-  const normalizedDocument = normalize(documentText);
-  const documentKeys = instrumentKeys(documentText);
+  const referenceText = extractReferenceSection(documentText) || documentText;
+  const normalizedDocument = normalize(referenceText);
+  const documentKeys = instrumentKeys(referenceText);
+  const estadoCliente = options.estadoUf?.toUpperCase().trim();
+  const municipioCliente = normalize(options.municipio || "");
 
   return legislacoes.filter((legislacao) => {
+    const estadoLegislacao = legislacao.estadoUf?.toUpperCase().trim();
+    if (estadoLegislacao && estadoLegislacao !== "BR") {
+      if (estadoCliente && estadoLegislacao !== estadoCliente) return false;
+      if (legislacao.municipio && municipioCliente && normalize(legislacao.municipio) !== municipioCliente) return false;
+    }
+
     const keys = instrumentKeys(`${legislacao.titulo} ${legislacao.referenciaAbnt}`);
     let identifierMatched = false;
     keys.forEach((key) => {

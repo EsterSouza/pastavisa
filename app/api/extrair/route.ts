@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractDocxTextFromBuffer } from "@/lib/extractor";
 import { extractClienteData } from "@/lib/ai";
 import { associarLegislacoesDoDocumento } from "@/lib/legislation-matcher";
+import { detectarReferenciasNaoCadastradas } from "@/lib/reference-extractor";
 import { prisma } from "@/lib/prisma";
 import {
   isManagedStorageReference,
@@ -76,7 +77,9 @@ export async function POST(req: NextRequest) {
     // Call AI with native PDF + docx text
     const { data, tokensUsados } = await extractClienteData(pdfBase64, elaboracaoText);
     const legislacoes = await prisma.legislacao.findMany({ where: { ativo: true } });
-    const legislacoesAssociadas = associarLegislacoesDoDocumento(elaboracaoText, legislacoes);
+    const scope = { estadoUf: data.clienteEstado, municipio: data.clienteCidade };
+    const legislacoesAssociadas = associarLegislacoesDoDocumento(elaboracaoText, legislacoes, scope);
+    const referenciasNaoCadastradas = detectarReferenciasNaoCadastradas(elaboracaoText, legislacoes, scope);
 
     // Return extracted data + sessionId (pasta is NOT created yet — user reviews first)
     // elaboracaoTextPreview: first 600 chars, shown in UI when docs list is empty
@@ -87,6 +90,7 @@ export async function POST(req: NextRequest) {
       data,
       tokensUsados,
       legislacoesAssociadas,
+      referenciasNaoCadastradas,
       elaboracaoTextPreview: elaboracaoText.slice(0, 600) || null,
     });
   } catch (err) {

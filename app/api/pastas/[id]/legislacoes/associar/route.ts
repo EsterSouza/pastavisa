@@ -11,7 +11,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   try {
     const pasta = await prisma.pasta.findUnique({
       where: { id: params.id },
-      select: { documentosElaboracaoPath: true },
+      select: { documentosElaboracaoPath: true, clienteEstado: true, clienteCidade: true },
     });
     if (!pasta) {
       return NextResponse.json({ error: "Pasta não encontrada" }, { status: 404 });
@@ -25,7 +25,10 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       prisma.legislacao.findMany({ where: { ativo: true } }),
     ]);
     const text = await extractDocxTextFromBuffer(buffer);
-    const associadas = associarLegislacoesDoDocumento(text, legislacoes);
+    const associadas = associarLegislacoesDoDocumento(text, legislacoes, {
+      estadoUf: pasta.clienteEstado,
+      municipio: pasta.clienteCidade,
+    });
 
     await prisma.pasta.update({
       where: { id: params.id },

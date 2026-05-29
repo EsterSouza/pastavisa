@@ -17,6 +17,16 @@ interface LegislacaoAssociada {
   municipio?: string | null;
 }
 
+interface ReferenciaNaoCadastrada {
+  estadoUf: string;
+  municipio?: string | null;
+  tipo: string;
+  titulo: string;
+  referenciaAbnt: string;
+  destaqueAbnt?: string | null;
+  ativo: boolean;
+}
+
 interface DadosExtraidos {
   clienteNomeFantasia?: string;
   clienteRazaoSocial?: string;
@@ -36,6 +46,7 @@ interface ExtrairResult {
   data: DadosExtraidos;
   tokensUsados: number;
   legislacoesAssociadas: LegislacaoAssociada[];
+  referenciasNaoCadastradas?: ReferenciaNaoCadastrada[];
   elaboracaoTextPreview: string | null;
 }
 
@@ -93,6 +104,9 @@ export default function NovaPasta() {
   const [resultado, setResultado] = useState<ExtrairResult | null>(null);
   const [docsRevisao, setDocsRevisao] = useState<DocExtraido[]>([]);
   const [docsSelecionados, setDocsSelecionados] = useState<Set<number>>(new Set());
+  const [referenciasNaoCadastradas, setReferenciasNaoCadastradas] = useState<ReferenciaNaoCadastrada[]>([]);
+  const [referenciasSelecionadas, setReferenciasSelecionadas] = useState<Set<number>>(new Set());
+  const [salvandoReferencias, setSalvandoReferencias] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
 
   // ── Fase 1: analisar ─────────────────────────────────────────────
@@ -155,6 +169,9 @@ export default function NovaPasta() {
       const docs: DocExtraido[] = json.data?.documentosAGerar || [];
       setDocsRevisao(docs);
       setDocsSelecionados(new Set(docs.map((_, i) => i)));
+      const referencias = json.referenciasNaoCadastradas || [];
+      setReferenciasNaoCadastradas(referencias);
+      setReferenciasSelecionadas(new Set(referencias.map((_, i) => i)));
       setResultado(json as ExtrairResult);
       setFase("revisao");
     } catch (err) {
@@ -218,6 +235,46 @@ export default function NovaPasta() {
       });
       return next;
     });
+  }
+
+  function toggleReferencia(i: number) {
+    setReferenciasSelecionadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+  }
+
+  async function adicionarReferenciasSelecionadas() {
+    if (!resultado || referenciasSelecionadas.size === 0) return;
+    setSalvandoReferencias(true);
+    setError("");
+    try {
+      const selecionadas = referenciasNaoCadastradas.filter((_, index) => referenciasSelecionadas.has(index));
+      const adicionadas: LegislacaoAssociada[] = [];
+      for (const referencia of selecionadas) {
+        const response = await fetch("/api/legislacoes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(referencia),
+        });
+        const data = await readApiResponse<LegislacaoAssociada>(response, "Erro ao adicionar referência à base");
+        adicionadas.push(data);
+      }
+      setResultado({
+        ...resultado,
+        legislacoesAssociadas: [
+          ...resultado.legislacoesAssociadas,
+          ...adicionadas,
+        ],
+      });
+      setReferenciasNaoCadastradas((current) => current.filter((_, index) => !referenciasSelecionadas.has(index)));
+      setReferenciasSelecionadas(new Set());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao adicionar referências à base");
+    } finally {
+      setSalvandoReferencias(false);
+    }
   }
 
   // ────────────────────────────────────────────────────────────────
@@ -366,6 +423,47 @@ export default function NovaPasta() {
           </ul>
         )}
       </div>
+
+      {referenciasNaoCadastradas.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl mb-5">
+          <div className="px-5 py-4 border-b border-amber-100 flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold text-amber-900">Referências encontradas fora da base</h2>
+              <p className="text-xs text-amber-800 mt-0.5">
+                O app encontrou estas referências no Documento em Elaboração e não achou duplicata cadastrada. Revise e adicione as corretas à base antes de criar a pasta.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => { void adicionarReferenciasSelecionadas(); }}
+              disabled={salvandoReferencias || referenciasSelecionadas.size === 0}
+              className="shrink-0 rounded-lg bg-amber-600 px-3 py-2 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+            >
+              {salvandoReferencias ? "Adicionando..." : `Adicionar ${referenciasSelecionadas.size}`}
+            </button>
+          </div>
+          <ul className="divide-y divide-amber-100">
+            {referenciasNaoCadastradas.map((referencia, index) => (
+              <li key={`${referencia.referenciaAbnt}-${index}`} className="px-5 py-3 flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={referenciasSelecionadas.has(index)}
+                  onChange={() => toggleReferencia(index)}
+                  className="mt-1 w-4 h-4 rounded border-amber-300 text-amber-600 cursor-pointer"
+                />
+                <div>
+                  <p className="text-sm font-medium text-amber-950">{referencia.titulo}</p>
+                  <p className="text-xs text-amber-800 mt-0.5">
+                    {referencia.tipo} · {referencia.estadoUf === "BR" ? "Federal" : referencia.estadoUf}
+                    {referencia.municipio ? ` · ${referencia.municipio}` : ""}
+                  </p>
+                  <p className="text-xs text-amber-700 mt-1">{referencia.referenciaAbnt}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Document checklist */}
       <div className="bg-white border border-gray-200 rounded-xl mb-5">
