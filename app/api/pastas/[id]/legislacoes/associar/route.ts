@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { readStorageBuffer } from "@/lib/file-storage";
 import { extractDocxTextFromBuffer } from "@/lib/extractor";
 import { associarLegislacoesDoDocumento } from "@/lib/legislation-matcher";
+import { detectarReferenciasNaoCadastradas } from "@/lib/reference-extractor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,22 +21,25 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ error: "Esta pasta não possui Documento em Elaboração salvo." }, { status: 400 });
     }
 
-    const [buffer, legislacoes] = await Promise.all([
+    const [buffer, legislacoes, todasLegislacoes] = await Promise.all([
       readStorageBuffer(pasta.documentosElaboracaoPath),
       prisma.legislacao.findMany({ where: { ativo: true } }),
+      prisma.legislacao.findMany(),
     ]);
     const text = await extractDocxTextFromBuffer(buffer);
-    const associadas = associarLegislacoesDoDocumento(text, legislacoes, {
+    const scope = {
       estadoUf: pasta.clienteEstado,
       municipio: pasta.clienteCidade,
-    });
+    };
+    const associadas = associarLegislacoesDoDocumento(text, legislacoes, scope);
+    const referenciasNaoCadastradas = detectarReferenciasNaoCadastradas(text, todasLegislacoes, scope);
 
     await prisma.pasta.update({
       where: { id: params.id },
       data: { legislacaoIds: JSON.stringify(associadas.map((legislacao) => legislacao.id)) },
     });
 
-    return NextResponse.json({ legislacoes: associadas });
+    return NextResponse.json({ legislacoes: associadas, referenciasNaoCadastradas });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro ao associar referências";
     return NextResponse.json({ error: message }, { status: 500 });

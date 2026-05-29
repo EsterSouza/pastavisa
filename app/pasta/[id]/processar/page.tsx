@@ -38,6 +38,16 @@ interface Legislacao {
   ativo?: boolean;
 }
 
+interface ReferenciaNaoCadastrada {
+  estadoUf: string;
+  municipio?: string | null;
+  tipo: string;
+  titulo: string;
+  referenciaAbnt: string;
+  destaqueAbnt?: string | null;
+  ativo: boolean;
+}
+
 interface Equipamento {
   nome: string;
   marca: string;
@@ -216,6 +226,8 @@ export default function ProcessarPasta() {
   const [changingDocuments, setChangingDocuments] = useState(false);
   const [associandoLegislacoes, setAssociandoLegislacoes] = useState(false);
   const [legislacaoMessage, setLegislacaoMessage] = useState("");
+  const [referenciasNovas, setReferenciasNovas] = useState<ReferenciaNaoCadastrada[]>([]);
+  const [referenciasNovasSelecionadas, setReferenciasNovasSelecionadas] = useState<Set<number>>(new Set());
   const [generationStartedAt, setGenerationStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   const [preview, setPreview] = useState<DocumentPreviewState | null>(null);
@@ -397,6 +409,78 @@ export default function ProcessarPasta() {
       );
     } catch (error) {
       setLegislacaoMessage(error instanceof Error ? error.message : "Erro ao reconhecer referências");
+    } finally {
+      setAssociandoLegislacoes(false);
+    }
+  }
+
+  function toggleReferenciaNova(index: number) {
+    setReferenciasNovasSelecionadas((current) => {
+      const next = new Set(current);
+      if (next.has(index)) next.delete(index); else next.add(index);
+      return next;
+    });
+  }
+
+  async function buscarReferenciasNovasDoArquivo() {
+    setAssociandoLegislacoes(true);
+    setLegislacaoMessage("");
+    setReferenciasNovas([]);
+    setReferenciasNovasSelecionadas(new Set());
+    try {
+      const response = await fetch(`/api/pastas/${id}/legislacoes/associar`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao buscar referências novas");
+      const novas = (data.referenciasNaoCadastradas || []) as ReferenciaNaoCadastrada[];
+      const associadas = (data.legislacoes || []) as Legislacao[];
+      setSelectedLeg(associadas.map((legislacao) => legislacao.id));
+      setLegislacoes((current) => {
+        const byId = new Map(current.map((legislacao) => [legislacao.id, legislacao]));
+        associadas.forEach((legislacao) => byId.set(legislacao.id, legislacao));
+        return Array.from(byId.values());
+      });
+      setReferenciasNovas(novas);
+      setReferenciasNovasSelecionadas(new Set(novas.map((_, index) => index)));
+      setLegislacaoMessage(
+        `${associadas.length} referência(s) já cadastrada(s) associada(s). ${novas.length} nova(s) para revisar.`
+      );
+    } catch (error) {
+      setLegislacaoMessage(error instanceof Error ? error.message : "Erro ao buscar referências novas");
+    } finally {
+      setAssociandoLegislacoes(false);
+    }
+  }
+
+  async function adicionarReferenciasNovas() {
+    const selecionadas = referenciasNovas.filter((_, index) => referenciasNovasSelecionadas.has(index));
+    if (selecionadas.length === 0) return;
+
+    setAssociandoLegislacoes(true);
+    setLegislacaoMessage("");
+    try {
+      const adicionadas: Legislacao[] = [];
+      for (const referencia of selecionadas) {
+        const response = await fetch("/api/legislacoes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(referencia),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Erro ao adicionar referência.");
+        adicionadas.push(data as Legislacao);
+      }
+      const novosIds = adicionadas.map((legislacao) => legislacao.id);
+      setLegislacoes((current) => {
+        const byId = new Map(current.map((legislacao) => [legislacao.id, legislacao]));
+        adicionadas.forEach((legislacao) => byId.set(legislacao.id, legislacao));
+        return Array.from(byId.values());
+      });
+      salvarLegislacoes(Array.from(new Set([...selectedLeg, ...novosIds])));
+      setReferenciasNovas((current) => current.filter((_, index) => !referenciasNovasSelecionadas.has(index)));
+      setReferenciasNovasSelecionadas(new Set());
+      setLegislacaoMessage(`${adicionadas.length} referência(s) adicionada(s) à base e associada(s) à pasta.`);
+    } catch (error) {
+      setLegislacaoMessage(error instanceof Error ? error.message : "Erro ao adicionar referências.");
     } finally {
       setAssociandoLegislacoes(false);
     }
@@ -993,7 +1077,7 @@ export default function ProcessarPasta() {
       </div>
 
       {/* â”€â”€ LegislaÃ§Ãµes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      {legislacoes.length > 0 && (
+      {(legislacoes.length > 0 || estadoCliente) && (
         <div className="bg-white border border-gray-200 rounded-xl mb-6 p-5">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-gray-800">
@@ -1006,6 +1090,14 @@ export default function ProcessarPasta() {
                 className="text-emerald-700 hover:underline disabled:text-gray-400"
               >
                 {associandoLegislacoes ? "Reconhecendo..." : "Reconhecer do documento"}
+              </button>
+              <span className="text-gray-300">|</span>
+              <button
+                onClick={() => { void buscarReferenciasNovasDoArquivo(); }}
+                disabled={processing || associandoLegislacoes}
+                className="text-amber-700 hover:underline disabled:text-gray-400"
+              >
+                Importar novas
               </button>
               <span className="text-gray-300">|</span>
               <button
@@ -1031,7 +1123,49 @@ export default function ProcessarPasta() {
               {legislacaoMessage}
             </p>
           )}
+          {referenciasNovas.length > 0 && (
+            <div className="mb-4 overflow-hidden rounded-lg border border-amber-200 bg-amber-50/50">
+              <div className="flex items-center justify-between gap-3 px-3 py-2">
+                <p className="text-xs font-semibold text-amber-900">
+                  {referenciasNovasSelecionadas.size} de {referenciasNovas.length} referência(s) nova(s) selecionada(s)
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { void adicionarReferenciasNovas(); }}
+                  disabled={processing || associandoLegislacoes || referenciasNovasSelecionadas.size === 0}
+                  className="rounded bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                >
+                  Adicionar à base e associar
+                </button>
+              </div>
+              <ul className="divide-y divide-amber-100">
+                {referenciasNovas.map((referencia, index) => (
+                  <li key={`${referencia.referenciaAbnt}-${index}`} className="flex items-start gap-3 px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={referenciasNovasSelecionadas.has(index)}
+                      onChange={() => toggleReferenciaNova(index)}
+                      className="mt-1 h-4 w-4 shrink-0 rounded border-amber-300 text-amber-600"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-amber-950">{referencia.titulo}</p>
+                      <p className="text-xs text-amber-800">
+                        {referencia.tipo} · {referencia.estadoUf}
+                        {referencia.municipio ? ` · ${referencia.municipio}` : ""}
+                      </p>
+                      <p className="mt-1 text-xs text-amber-900">{referencia.referenciaAbnt}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="space-y-2">
+            {legislacoes.length === 0 && (
+              <p className="text-sm text-gray-500">
+                Nenhuma legislação carregada para esta UF. Use &quot;Importar novas&quot; para buscar no Documento em Elaboração.
+              </p>
+            )}
             {legislacoes.map((leg) => (
               <label key={leg.id} className="flex items-start gap-3 cursor-pointer group">
                 <input
