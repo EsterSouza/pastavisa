@@ -785,7 +785,7 @@ export default function ProcessarPasta() {
 
   // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Gerar documentos</h1>
 
       {regenerarAposEdicao && (
@@ -906,7 +906,7 @@ export default function ProcessarPasta() {
 
             return (
               <li key={doc.id} className="px-5 py-3 flex flex-col gap-2">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-start gap-3">
                   {/* Checkbox */}
                   <input
                     type="checkbox"
@@ -922,7 +922,10 @@ export default function ProcessarPasta() {
                   </span>
 
                   {/* Document name */}
-                  <span className={`flex-1 text-sm min-w-0 truncate ${jaGerado && !isSelecionado ? "text-gray-400 line-through" : "text-gray-900"}`}>
+                  <span
+                    className={`min-w-[18rem] flex-[1_1_28rem] whitespace-normal break-words text-sm leading-snug ${jaGerado && !isSelecionado ? "text-gray-400 line-through" : "text-gray-900"}`}
+                    title={doc.nomeArquivo}
+                  >
                     {doc.nomeArquivo}
                     {jaGerado && isSelecionado && (
                       <span className="ml-2 text-xs text-amber-600 font-medium">(vai regerar)</span>
@@ -943,7 +946,7 @@ export default function ProcessarPasta() {
                       }).catch(console.error);
                     }}
                     disabled={processing}
-                    className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 max-w-[220px] text-gray-900 bg-white disabled:opacity-50 shrink-0"
+                    className="w-full max-w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 disabled:opacity-50 sm:w-[22rem] lg:w-[26rem] lg:shrink-0"
                   >
                     <option value="">- template -</option>
                     {[...templates]
