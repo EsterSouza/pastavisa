@@ -89,7 +89,12 @@ function checkEnvExample() {
 
 function checkSupabaseStorageDriver() {
   const storage = read("lib/file-storage.ts");
-  if (storage.includes('FILE_STORAGE_DRIVER === "supabase"')) ok("storage suporta Supabase");
+  const supportsSupabase =
+    storage.includes('configured === "supabase"') &&
+    storage.includes('storageDriver() === "supabase"') &&
+    storage.includes("createSignedStorageUpload") &&
+    storage.includes("supabase.storage.from");
+  if (supportsSupabase) ok("storage suporta Supabase");
   else fail("storage nao suporta Supabase");
 
   if (storage.includes("SUPABASE_SERVICE_ROLE_KEY") && !storage.includes("NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY")) {
