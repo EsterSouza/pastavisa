@@ -62,6 +62,10 @@ export function detectProcessingType(templateName: string): ProcessingType {
     "MBP",
     "RELACAO DE SERVICOS",
     "RELACAO SERVICOS",
+    "POP",
+    "PROCEDIMENTO OPERACIONAL PADRAO",
+    "TCLE",
+    "TERMO DE CONSENTIMENTO",
     // Protocolos clínicos específicos
     "PROTOCOLO DE ATENDIMENTO",
     "PROTOCOLO CLINICO",

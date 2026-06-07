@@ -218,7 +218,7 @@ export async function adaptTrecho(
       ?.map((e) => `${e.nome} ${e.marca} ${e.modelo} (ANVISA: ${e.registro_anvisa})`)
       .join(", ") || "Não informado";
 
-  const servicosList = clienteData.clienteServicos?.join(", ") || "Nao informado";
+  const servicosList = clienteData.clienteServicos?.join("; ") || "Nao informado";
   const produtosInsumosList =
     clienteData.clienteProdutosInsumos
       ?.map((p) => [p.nome, p.categoria, p.fabricante, p.registro_anvisa ? `ANVISA ${p.registro_anvisa}` : "", p.uso].filter(Boolean).join(" | "))
@@ -242,7 +242,7 @@ DADOS DO NOVO CLIENTE:
 ${produtosInsumosList}
 - Funcionários:
 ${funcionariosList}
-- Serviços: ${servicosList}
+- Serviços/procedimentos do cliente (contexto amplo; nao copie a lista inteira): ${servicosList}
 
 TRECHO ORIGINAL (cliente anterior):
 ${trechoOriginal}
@@ -331,6 +331,15 @@ NÃO copie esses dados literalmente no output.
 NÃO reproduza listas inteiras de serviços, equipamentos ou estruturas físicas vindas da instrução.
 USE esses dados para escrever parágrafos técnicos fluidos e personalizados.
 
+REGRA DE SINTESE OBJETIVA:
+Listas longas de servicos, procedimentos, equipamentos, produtos ou estruturas sao CONTEXTO,
+nao um roteiro para enumeracao. Use apenas os itens diretamente relevantes para a secao atual.
+Quando houver muitos procedimentos semelhantes, agrupe por familia tecnica e escreva a rotina
+de forma objetiva, sem transformar o trecho em catalogo completo de atividades.
+So enumere todos os itens quando a instrucao pedir explicitamente "liste todos", "inventario",
+"relacao completa", "todos os procedimentos" ou uma tabela completa.
+Se a instrucao pedir um paragrafo, gere um paragrafo sintetico com ate 4 familias de servico.
+
 Exemplo de instrução:
   "A partir dos serviços [Curativos, Aplicação de injeções, Vacinação], descreva a relação."
 Saída ERRADA (cópia literal):
@@ -344,14 +353,18 @@ Saída CORRETA (uso como contexto):
 const DOCUMENT_VOICE_RULES = `
 VOZ E PERSPECTIVA DO DOCUMENTO:
 O documento descreve rotinas que JÁ EXISTEM e SÃO FEITAS no estabelecimento.
-Escreva como se o próprio RT estivesse descrevendo sua rotina estabelecida.
-Use presente do indicativo ativo: "é realizado", "ocorre", "são acondicionados", "o profissional higieniza".
-Nunca use futuro do subjuntivo ("deverá ser", "deverão manter") em seções de procedimento.
+Escreva como se a própria Responsável Técnica estivesse descrevendo a rotina estabelecida.
+Use voz ativa, presente do indicativo e sujeito operacional claro: "a equipe executa",
+"a responsável técnica supervisiona", "o profissional higieniza", "os resíduos permanecem acondicionados".
+Nunca use voz passiva burocrática em procedimentos: "é realizado", "são realizados",
+"é executado", "são executados", "é feito", "deve ser realizado".
+Nunca use futuro do subjuntivo ou tom de obrigação ("deverá ser", "deverão manter") em seções de procedimento.
 
 PROIBIÇÕES ABSOLUTAS DE VOZ:
 - NUNCA escreva como avaliador ou auditor de terceiros.
 - NUNCA use: "O estabelecimento apresenta...", "Identificamos que...", "Verificou-se que..."
 - NUNCA use: "Recomenda-se", "sugere-se", "é necessário que o estabelecimento", "orienta-se"
+- NUNCA escreva como promessa, plano futuro ou recomendação. Descreva a rotina atual já implantada.
 - NUNCA mencione dados ausentes, variáveis "Não informado", ou limitações de dados.
   Se uma informação não está disponível, use o placeholder [a preencher] e continue.
 - NUNCA escreva o seu próprio raciocínio, análise ou processo de pensamento no documento.
@@ -369,10 +382,10 @@ PROIBIÇÃO ABSOLUTA DE REFERÊNCIAS (regra crítica):
 
 REGRAS DURAS DE BREVIDADE E ESCOPO:
 - Seu output é APENAS o conteúdo da seção atual. Nunca gere outras seções, mesmo que pareça relacionado.
-- Para a maioria dos blocos, gere de 1 a 3 parágrafos curtos (60–150 palavras cada). Nunca mais que 4 parágrafos.
+- Para a maioria dos blocos, gere de 1 a 2 parágrafos curtos (50–110 palavras cada). Nunca mais que 3 parágrafos.
 - Listas: no máximo 6 itens, exceto se a instrução pedir explicitamente "todos os X".
 - NUNCA inicie sua resposta com um título de documento. NUNCA termine com "REFERÊNCIAS" ou similar.
-- Se seu output passou de 250 palavras e você sente que vai escrever mais, PARE.
+- Se seu output passou de 180 palavras e a instrucao nao pediu lista completa ou tabela, PARE.
 
 ESTRUTURA DE SEÇÕES (MUITO IMPORTANTE):
 - NUNCA invente títulos novos. O template já tem todos os títulos numerados (1, 2, 2.1, etc.).
@@ -387,11 +400,11 @@ TOM E ESPECIFICIDADE:
 - Descrições de serviços na Relação de Serviços: gerúndio técnico descritivo, 1 parágrafo curto por categoria.
   BOM: "Execução de consulta de enfermagem contemplando a avaliação clínica sistêmica, anamnese e estruturação do plano terapêutico."
   RUIM: "Realização de consulta." ou "Consulta de enfermagem."
-- Descrições de procedimentos no POP: voz passiva institucional ou ativa com sujeito implícito.
-  BOM: "O paciente é acomodado na maca. O profissional higieniza as mãos e calça as luvas."
-  RUIM: "Deve-se acomodar o paciente" ou "Recomenda-se que o profissional higienize as mãos."
+- Descrições de procedimentos no POP: voz ativa institucional com sujeito operacional claro.
+  BOM: "O profissional acomoda o paciente na maca, higieniza as mãos e calça as luvas."
+  RUIM: "O paciente é acomodado na maca", "Deve-se acomodar o paciente" ou "Recomenda-se que o profissional higienize as mãos."
 - Descrições no PGRSS: descreva o que ocorre, não o que deveria ocorrer.
-  BOM: "Os resíduos do Grupo A são acondicionados em lixeiras com acionamento por pedal..."
+  BOM: "A equipe acondiciona os resíduos do Grupo A em lixeiras com acionamento por pedal..."
   RUIM: "Os resíduos do Grupo A devem ser acondicionados..."
 
 QUANDO DADOS ESTÃO AUSENTES:
@@ -450,12 +463,12 @@ EXEMPLO INCORRETO:
 
 const FEW_SHOT_PGRSS_SEGREGACAO = `
 EXEMPLO CORRETO para seção de segregação (UM parágrafo, sem subtítulos):
-"A segregação ocorre na própria sala de atendimento, na recepção, no banheiro e no DML.
-O descarte dos materiais perfurocortantes (Grupo E) e infetantes (Grupo A) é realizado
+"A equipe executa a segregação na própria sala de atendimento, na recepção, no banheiro e no DML.
+A equipe descarta os materiais perfurocortantes (Grupo E) e infectantes (Grupo A)
 imediatamente após o uso, minimizando a manipulação e o risco de acidentes.
-Os resíduos recicláveis limpos (Grupo D) são separados na origem dos resíduos comuns de varrição.
-É expressamente proibida a transferência de resíduos de um recipiente para outro, o esvaziamento,
-a compactação ou o reaproveitamento de recipientes que já contenham resíduos dos Grupos A e E."
+A equipe separa os resíduos recicláveis limpos (Grupo D) dos resíduos comuns de varrição na origem.
+A rotina proíbe a transferência de resíduos entre recipientes, o esvaziamento, a compactação
+ou o reaproveitamento de recipientes que já contenham resíduos dos Grupos A e E."
 
 EXEMPLO INCORRETO (NUNCA FAÇA ISSO):
 "GESTÃO DE RESÍDUOS DE SERVIÇOS DE SAÚDE
@@ -464,7 +477,7 @@ A segregação ocorre nas áreas técnicas, compreendendo:
 • Recepção
 • Salas de consultório
 DESCARTE DE MATERIAIS INFECTANTES E PERFUROCORTANTES
-O descarte é realizado imediatamente após o uso..."
+A equipe descarta imediatamente após o uso..."
 → Inventou subtítulos. Inventou bullets. Duplicou conteúdo. NUNCA faça assim.
 `.trim();
 
@@ -643,7 +656,7 @@ export async function processAdaptBlock(
       ?.map((e) => `${e.nome} | ${e.marca} | ${e.modelo} | ANVISA ${e.registro_anvisa}`)
       .join("\n") || "Não informado";
 
-  const servicosList = clienteData.clienteServicos?.join(", ") || "Nao informado";
+  const servicosList = clienteData.clienteServicos?.join("; ") || "Nao informado";
   const produtosInsumosList =
     clienteData.clienteProdutosInsumos
       ?.map((p) => [p.nome, p.categoria, p.fabricante, p.registro_anvisa ? `ANVISA ${p.registro_anvisa}` : "", p.uso].filter(Boolean).join(" | "))
@@ -667,7 +680,7 @@ export async function processAdaptBlock(
     `Funcionários:\n${funcionariosList}`,
     `Equipamentos:\n${equipamentosList}`,
     `Produtos, insumos, medicamentos, cosmeticos e ativos:\n${produtosInsumosList}`,
-    `Servicos: ${servicosList}`,
+    `Servicos/procedimentos (contexto amplo; nao copiar integralmente): ${servicosList}`,
   ].join("\n");
 
   let userPrompt: string;
@@ -741,11 +754,14 @@ ${instruction}${siglasExclusion}
 REGRAS DE EXECUÇÃO:
 - Retorne APENAS o texto gerado, sem repetir a instrução, sem explicações.
 - Tom técnico e formal (documento sanitário oficial).
-- LIMITE ABSOLUTO: máximo 250 palavras no total da resposta. Se vai passar disso, corte.
+- META DE TAMANHO: 80 a 180 palavras para texto corrido. So passe disso quando a instrucao pedir lista completa, tabela ou passo a passo essencial.
 - Em instruções condicionais (SE SIM / SE NÃO, CENÁRIO A / B): execute APENAS o ramo que se aplica.
 - Se a instrução indicar "retorne vazio" ou o estabelecimento não se enquadrar: retorne string vazia.
 - Dados do cliente que aparecem NA INSTRUÇÃO (listas, nomes, estruturas) são contexto de raciocínio.
-  Transforme-os em texto corrido técnico — nunca os liste ou copie de volta no output.`;
+  Transforme-os em texto corrido técnico — nunca os liste ou copie de volta no output.
+- Quando a instrucao citar muitos procedimentos do cliente, selecione somente os grupos relevantes
+  para a secao atual. Prefira sintese tecnica objetiva a enumeracao completa.
+- Nunca escreva uma frase-catálogo com mais de 6 procedimentos separados por virgulas.`;
   } else {
     userPrompt = `${CONTEXT_HEADER}
 
@@ -765,6 +781,8 @@ Adapte o trecho abaixo substituindo os dados do cliente anterior pelos dados do 
 Mantenha EXATAMENTE a mesma estrutura e nível de detalhe.
 Não adicione nem remova seções. Não altere legislações, RDCs ou referências técnicas.
 Altere apenas: nomes, RT, equipamentos (marcas/modelos/ANVISA), serviços e localização.
+Ao adaptar serviços/procedimentos, não despeje a lista completa do novo cliente no texto.
+Use síntese por famílias técnicas e mantenha somente o que for relevante para este trecho.
 
 DADOS DO NOVO CLIENTE:
 ${clienteContext}
@@ -773,6 +791,8 @@ TRECHO ORIGINAL:
 ${instruction}
 
 LIMITE: o texto adaptado tem aproximadamente o MESMO tamanho do trecho original. NUNCA o dobro.
+Se o trecho original for uma enumeração longa de procedimentos, substitua por texto técnico mais sintético,
+preservando a função da seção sem listar todos os procedimentos.
 
 Retorne APENAS o trecho adaptado, sem explicações.`;
   }

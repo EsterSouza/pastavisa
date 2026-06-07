@@ -37,6 +37,20 @@ function isListLine(s: string): boolean {
   return t.startsWith("• ") || /^\d+\.\s/.test(t);
 }
 
+function buildRunProperties(rPrContent: string): string {
+  if (rPrContent.trim()) {
+    return `<w:rPr>${rPrContent}</w:rPr>`;
+  }
+
+  return (
+    `<w:rPr>` +
+    `<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="Times New Roman" w:cs="Times New Roman"/>` +
+    `<w:sz w:val="24"/>` +
+    `<w:szCs w:val="24"/>` +
+    `</w:rPr>`
+  );
+}
+
 /**
  * Converts AI output text into a sequence of OOXML <w:p> elements.
  *
@@ -58,7 +72,7 @@ export function textToOoxmlParagraphs(
   const rPrMatch = originalParaXml.match(/<w:rPr>([\s\S]*?)<\/w:rPr>/);
   const rPrContent = rPrMatch ? rPrMatch[1] : "";
 
-  const rPrTag = rPrContent ? `<w:rPr>${rPrContent}</w:rPr>` : "";
+  const rPrTag = buildRunProperties(rPrContent);
 
   // ── Normalise line array ────────────────────────────────────────────────────
   // 1. Split on newlines.
