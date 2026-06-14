@@ -192,26 +192,6 @@ export async function createSignedStorageUpload(
   };
 }
 
-export async function createStorageSignedReadUrl(ref: string, expiresInSeconds = 15 * 60): Promise<string> {
-  if (!isSupabaseReference(ref)) {
-    throw new Error("URL assinada disponivel apenas para arquivos no Supabase Storage");
-  }
-
-  const { bucket, filePath } = parseSupabaseRef(ref);
-  const supabase = supabaseAdminClient();
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(filePath, expiresInSeconds);
-
-  if (error || !data?.signedUrl) {
-    throw new Error(
-      error
-        ? supabaseStorageErrorMessage("Falha ao assinar leitura no Supabase Storage", error)
-        : "Falha ao assinar leitura no Supabase Storage: URL ausente"
-    );
-  }
-
-  return data.signedUrl;
-}
-
 export async function readStorageBuffer(ref?: string | null): Promise<Buffer> {
   if (!ref) throw new Error("Referencia de arquivo ausente");
 

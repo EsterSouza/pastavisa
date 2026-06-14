@@ -66,8 +66,7 @@ export interface ClienteData {
 
 export type PdfInput =
   | { type: "pdf_base64"; data: string }
-  | { type: "pdf_text"; text: string }
-  | { type: "pdf_url"; url: string };
+  | { type: "pdf_text"; text: string };
 
 export async function extractClienteData(
   pdfInput: PdfInput,
@@ -144,17 +143,6 @@ Retorne APENAS um JSON válido com a estrutura abaixo. Use null para campos não
           {
             type: "document",
             source: { type: "base64", media_type: "application/pdf", data: pdfInput.data },
-          } satisfies DocumentBlockParam,
-          {
-            type: "text" as const,
-            text: extractPrompt,
-          },
-        ]
-      : pdfInput.type === "pdf_url"
-      ? [
-          {
-            type: "document",
-            source: { type: "url", url: pdfInput.url },
           } satisfies DocumentBlockParam,
           {
             type: "text" as const,

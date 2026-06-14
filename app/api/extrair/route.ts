@@ -6,8 +6,6 @@ import { detectarReferenciasNaoCadastradas } from "@/lib/reference-extractor";
 import { prisma } from "@/lib/prisma";
 import {
   isManagedStorageReference,
-  isSupabaseReference,
-  createStorageSignedReadUrl,
   readStorageBuffer,
   saveStorageBuffer,
   storageDriver,
@@ -71,16 +69,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const shouldUseSignedPdfUrl = isSupabaseReference(pdfPath);
-    const [rawPdfText, elaboracaoText, signedPdfUrl] = await Promise.all([
-      shouldUseSignedPdfUrl
-        ? Promise.resolve("")
-        : extractPdfTextFromBuffer(pdfBuffer).catch((err) => {
-            console.warn("[extrair] pdf-parse falhou; avaliando fallback nativo:", err);
-            return "";
-          }),
+    const [rawPdfText, elaboracaoText] = await Promise.all([
+      extractPdfTextFromBuffer(pdfBuffer).catch((err) => {
+        console.warn("[extrair] pdf-parse falhou; avaliando fallback nativo:", err);
+        return "";
+      }),
       extractDocxTextFromBuffer(docxBuffer),
-      shouldUseSignedPdfUrl ? createStorageSignedReadUrl(pdfPath) : Promise.resolve(""),
     ]);
 
     console.log(`[extrair] docx extraído: ${elaboracaoText.length} chars`);
@@ -88,9 +82,7 @@ export async function POST(req: NextRequest) {
 
     const pdfText = rawPdfText.trim();
     let pdfInput: PdfInput;
-    if (signedPdfUrl) {
-      pdfInput = { type: "pdf_url", url: signedPdfUrl };
-    } else if (pdfText.length >= MIN_EXTRACTED_PDF_TEXT_CHARS) {
+    if (pdfText.length >= MIN_EXTRACTED_PDF_TEXT_CHARS) {
       pdfInput = { type: "pdf_text", text: pdfText };
     } else {
       if (pdfBuffer.length > MAX_NATIVE_PDF_BYTES) {

@@ -4,6 +4,7 @@ export interface ReferenciaComparavel {
   municipio?: string | null;
   titulo?: string | null;
   referenciaAbnt?: string | null;
+  link?: string | null;
 }
 
 function normalize(value: string): string {
@@ -28,6 +29,26 @@ function findYear(value: string): string {
   return match?.[1] || "";
 }
 
+export function extrairUrlsReferencia(reference: ReferenciaComparavel): string[] {
+  const text = `${reference.titulo || ""} ${reference.referenciaAbnt || ""} ${reference.link || ""}`;
+  const urls = text.match(/https?:\/\/[^\s)\]}>,;]+/gi) || [];
+  const seen = new Set<string>();
+  return urls
+    .map((url) =>
+      url
+        .trim()
+        .replace(/[.,;:]+$/g, "")
+        .replace(/^http:\/\//i, "https://")
+        .replace(/\/+$/g, "")
+        .toLowerCase()
+    )
+    .filter((url) => {
+      if (seen.has(url)) return false;
+      seen.add(url);
+      return true;
+    });
+}
+
 export function criarChaveReferencia(reference: ReferenciaComparavel): string {
   const text = normalize(`${reference.titulo || ""} ${reference.referenciaAbnt || ""}`);
   const instrumentText = `${reference.titulo || ""} ${reference.referenciaAbnt || ""}`
@@ -38,8 +59,10 @@ export function criarChaveReferencia(reference: ReferenciaComparavel): string {
     .toLowerCase();
   const patterns: Array<[string, RegExp]> = [
     ["rdc", /\brdc\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+    ["instrucao-normativa", /\binstrucao normativa\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
     ["lei-complementar", /\blei complementar\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
     ["lei", /\blei(?! complementar)\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+    ["decreto-lei", /\bdecreto\s*lei\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
     ["decreto", /\bdecreto(?: municipal| rio)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
     ["resolucao-cofen", /\bresolucao cofen\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
     ["resolucao-sms", /\bresolucao sms\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
@@ -90,9 +113,24 @@ export function encontrarReferenciaDuplicada(
 ): ReferenciaComparavel | undefined {
   const candidateKey = criarChaveReferencia(candidate);
   const candidateTokens = meaningfulTokens(candidate);
+  const candidateUrls = extrairUrlsReferencia(candidate);
 
   return existing.find((reference) => {
     if (reference.id === excludedId) return false;
+    const referenceUrls = extrairUrlsReferencia(reference);
+    if (
+      candidateUrls.some((candidateUrl) =>
+        referenceUrls.some(
+          (referenceUrl) =>
+            candidateUrl === referenceUrl ||
+            candidateUrl.includes(referenceUrl) ||
+            referenceUrl.includes(candidateUrl)
+        )
+      )
+    ) {
+      return true;
+    }
+
     const referenceKey = criarChaveReferencia(reference);
     if (referenceKey === candidateKey) return true;
     if (!candidateKey.includes("|texto|") && !referenceKey.includes("|texto|")) {
