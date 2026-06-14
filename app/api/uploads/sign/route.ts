@@ -12,6 +12,16 @@ interface SignRequest {
 export async function POST(req: NextRequest) {
   try {
     if (storageDriver() !== "supabase") {
+      if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+        return NextResponse.json(
+          {
+            error:
+              "Uploads grandes exigem Supabase Storage em producao. Configure FILE_STORAGE_DRIVER=supabase, SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.",
+          },
+          { status: 503 }
+        );
+      }
+
       return NextResponse.json({ mode: "multipart" });
     }
 

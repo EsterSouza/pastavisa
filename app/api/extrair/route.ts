@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { extractDocxTextFromBuffer } from "@/lib/extractor";
-import { extractClienteData } from "@/lib/ai";
+import { extractDocxTextFromBuffer, extractPdfTextFromBuffer } from "@/lib/extractor";
+import { extractClienteData, type PdfInput } from "@/lib/ai";
 import { associarLegislacoesDoDocumento } from "@/lib/legislation-matcher";
 import { detectarReferenciasNaoCadastradas } from "@/lib/reference-extractor";
 import { prisma } from "@/lib/prisma";
 import {
   isManagedStorageReference,
+  isSupabaseReference,
+  createStorageSignedReadUrl,
   readStorageBuffer,
   saveStorageBuffer,
   storageDriver,
@@ -14,6 +16,9 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
+
+const MAX_NATIVE_PDF_BYTES = 3 * 1024 * 1024;
+const MIN_EXTRACTED_PDF_TEXT_CHARS = 200;
 
 interface StoredUploadRequest {
   pdfPath?: string;
@@ -66,16 +71,43 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert PDF to base64 for Anthropic native document support (no pdf-parse needed)
-    const pdfBase64 = pdfBuffer.toString("base64");
-
-    // Extract docx text (mammoth — still fine)
-    const elaboracaoText = await extractDocxTextFromBuffer(docxBuffer);
+    const shouldUseSignedPdfUrl = isSupabaseReference(pdfPath);
+    const [rawPdfText, elaboracaoText, signedPdfUrl] = await Promise.all([
+      shouldUseSignedPdfUrl
+        ? Promise.resolve("")
+        : extractPdfTextFromBuffer(pdfBuffer).catch((err) => {
+            console.warn("[extrair] pdf-parse falhou; avaliando fallback nativo:", err);
+            return "";
+          }),
+      extractDocxTextFromBuffer(docxBuffer),
+      shouldUseSignedPdfUrl ? createStorageSignedReadUrl(pdfPath) : Promise.resolve(""),
+    ]);
 
     console.log(`[extrair] docx extraído: ${elaboracaoText.length} chars`);
+    console.log(`[extrair] pdf: ${pdfBuffer.length} bytes, texto extraído: ${rawPdfText.length} chars`);
 
-    // Call AI with native PDF + docx text
-    const { data, tokensUsados } = await extractClienteData(pdfBase64, elaboracaoText);
+    const pdfText = rawPdfText.trim();
+    let pdfInput: PdfInput;
+    if (signedPdfUrl) {
+      pdfInput = { type: "pdf_url", url: signedPdfUrl };
+    } else if (pdfText.length >= MIN_EXTRACTED_PDF_TEXT_CHARS) {
+      pdfInput = { type: "pdf_text", text: pdfText };
+    } else {
+      if (pdfBuffer.length > MAX_NATIVE_PDF_BYTES) {
+        return NextResponse.json(
+          {
+            error:
+              "O PDF do forms.app está grande e não possui texto extraível suficiente. Exporte o formulário como PDF pesquisável ou reduza o arquivo antes de enviar.",
+          },
+          { status: 413 }
+        );
+      }
+
+      pdfInput = { type: "pdf_base64", data: pdfBuffer.toString("base64") };
+    }
+
+    // Call AI with the smallest safe PDF representation + docx text.
+    const { data, tokensUsados } = await extractClienteData(pdfInput, elaboracaoText);
     const legislacoes = await prisma.legislacao.findMany({ where: { ativo: true } });
     const scope = { estadoUf: data.clienteEstado, municipio: data.clienteCidade };
     const legislacoesAssociadas = associarLegislacoesDoDocumento(elaboracaoText, legislacoes, scope);

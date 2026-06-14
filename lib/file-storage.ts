@@ -106,6 +106,27 @@ function supabaseAdminClient() {
   });
 }
 
+function supabaseStorageErrorMessage(prefix: string, error: unknown): string {
+  if (!error || typeof error !== "object") return prefix;
+
+  const details = error as {
+    message?: string;
+    statusCode?: string | number;
+    status?: string | number;
+    code?: string;
+    name?: string;
+    error?: string;
+  };
+  const extras = [
+    details.statusCode || details.status ? `status ${details.statusCode || details.status}` : "",
+    details.code ? `code ${details.code}` : "",
+    details.error && details.error !== details.message ? details.error : "",
+  ].filter(Boolean);
+  const suffix = extras.length > 0 ? ` (${extras.join(", ")})` : "";
+
+  return `${prefix}: ${details.message || details.name || "erro desconhecido"}${suffix}`;
+}
+
 export function fileNameFromStorageRef(ref: string): string {
   try {
     const url = new URL(ref);
@@ -131,7 +152,7 @@ export async function saveStorageBuffer(
       contentType,
       upsert: true,
     });
-    if (error) throw new Error(`Falha ao enviar arquivo ao Supabase Storage: ${error.message}`);
+    if (error) throw new Error(supabaseStorageErrorMessage("Falha ao enviar arquivo ao Supabase Storage", error));
     return supabaseRef(bucket, filePath);
   }
 
@@ -156,7 +177,11 @@ export async function createSignedStorageUpload(
   const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(filePath);
 
   if (error || !data?.token) {
-    throw new Error(`Falha ao preparar upload no Supabase Storage: ${error?.message || "token ausente"}`);
+    throw new Error(
+      error
+        ? supabaseStorageErrorMessage("Falha ao preparar upload no Supabase Storage", error)
+        : "Falha ao preparar upload no Supabase Storage: token ausente"
+    );
   }
 
   return {
@@ -165,6 +190,26 @@ export async function createSignedStorageUpload(
     token: data.token,
     ref: supabaseRef(bucket, filePath),
   };
+}
+
+export async function createStorageSignedReadUrl(ref: string, expiresInSeconds = 15 * 60): Promise<string> {
+  if (!isSupabaseReference(ref)) {
+    throw new Error("URL assinada disponivel apenas para arquivos no Supabase Storage");
+  }
+
+  const { bucket, filePath } = parseSupabaseRef(ref);
+  const supabase = supabaseAdminClient();
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(filePath, expiresInSeconds);
+
+  if (error || !data?.signedUrl) {
+    throw new Error(
+      error
+        ? supabaseStorageErrorMessage("Falha ao assinar leitura no Supabase Storage", error)
+        : "Falha ao assinar leitura no Supabase Storage: URL ausente"
+    );
+  }
+
+  return data.signedUrl;
 }
 
 export async function readStorageBuffer(ref?: string | null): Promise<Buffer> {
@@ -220,7 +265,7 @@ export async function deleteGeneratedDocx(ref?: string | null): Promise<void> {
     const { bucket, filePath } = parseSupabaseRef(ref);
     const supabase = supabaseAdminClient();
     const { error } = await supabase.storage.from(bucket).remove([filePath]);
-    if (error) throw new Error(`Falha ao remover arquivo do Supabase Storage: ${error.message}`);
+    if (error) throw new Error(supabaseStorageErrorMessage("Falha ao remover arquivo do Supabase Storage", error));
     return;
   }
 

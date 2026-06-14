@@ -17,6 +17,10 @@ function hasSupabaseStorageEnv(): boolean {
   );
 }
 
+function isProductionRuntime(): boolean {
+  return process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+}
+
 export function getReadinessChecks(): ReadinessCheck[] {
   const driver = storageDriver();
   const checks: ReadinessCheck[] = [
@@ -36,9 +40,11 @@ export function getReadinessChecks(): ReadinessCheck[] {
       name: "storage",
       ok:
         (driver === "supabase" && hasSupabaseStorageEnv()) ||
-        driver === "local",
+        (driver === "local" && !isProductionRuntime()),
       message: driver === "supabase"
         ? "Supabase Storage configurado"
+        : isProductionRuntime()
+        ? "Storage local nao atende uploads grandes em producao; configure Supabase Storage"
         : "Usando storage local; configure FILE_STORAGE_DRIVER=supabase para producao",
     },
     {

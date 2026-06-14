@@ -89,6 +89,8 @@ function checkEnvExample() {
 
 function checkSupabaseStorageDriver() {
   const storage = read("lib/file-storage.ts");
+  const uploadSignRoute = read("app/api/uploads/sign/route.ts");
+  const envReadiness = read("lib/env-readiness.ts");
   const supportsSupabase =
     storage.includes('configured === "supabase"') &&
     storage.includes('storageDriver() === "supabase"') &&
@@ -101,6 +103,21 @@ function checkSupabaseStorageDriver() {
     ok("service role nao usa prefixo publico");
   } else {
     fail("service role deve ficar apenas no servidor");
+  }
+
+  if (
+    uploadSignRoute.includes("Uploads grandes exigem Supabase Storage em producao") &&
+    uploadSignRoute.includes("process.env.VERCEL")
+  ) {
+    ok("upload grande nao cai em multipart na Vercel");
+  } else {
+    fail("upload grande em producao deve exigir Supabase Storage antes de chamar /api/extrair");
+  }
+
+  if (envReadiness.includes("Storage local nao atende uploads grandes em producao")) {
+    ok("health/readiness acusa storage local em producao");
+  } else {
+    fail("readiness deve reprovar storage local em producao");
   }
 }
 

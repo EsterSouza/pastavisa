@@ -64,8 +64,13 @@ export interface ClienteData {
   documentosAGerar?: Array<{ nome: string; tipo: string }>;
 }
 
+export type PdfInput =
+  | { type: "pdf_base64"; data: string }
+  | { type: "pdf_text"; text: string }
+  | { type: "pdf_url"; url: string };
+
 export async function extractClienteData(
-  pdfBase64: string,
+  pdfInput: PdfInput,
   elaboracaoText: string
 ): Promise<{ data: ClienteData; tokensUsados: number }> {
   const systemPrompt = `Você é um assistente que extrai dados estruturados de documentos sanitários brasileiros. Retorne SOMENTE JSON válido, sem markdown, sem explicações.`;
@@ -77,8 +82,14 @@ export async function extractClienteData(
       : "AVISO VAZIO — mammoth não extraiu nada do docx"
   );
 
-  const extractPrompt = `O DOCUMENTO 1 (PDF anexo) é o formulário preenchido pelo cliente no forms.app.
+  const pdfTextSection =
+    pdfInput.type === "pdf_text"
+      ? `\nDOCUMENTO 1 — TEXTO EXTRAÍDO DO PDF DO FORMS.APP:\n${pdfInput.text || "(PDF sem texto extraível)"}\n`
+      : "";
+
+  const extractPrompt = `O DOCUMENTO 1 ${pdfInput.type === "pdf_text" ? "(texto abaixo)" : "(PDF anexo)"} é o formulário preenchido pelo cliente no forms.app.
 O DOCUMENTO 2 (texto abaixo) foi extraído do arquivo .docx "Documentos em Elaboração" do cliente.
+${pdfTextSection}
 
 DOCUMENTO 2 — CONTEÚDO EXTRAÍDO DO DOCX:
 ${elaboracaoText || "(arquivo vazio ou não legível)"}
@@ -127,10 +138,35 @@ Retorne APENAS um JSON válido com a estrutura abaixo. Use null para campos não
   "documentos_a_gerar": [{"nome": "", "tipo": ""}]
 }`;
 
-  const pdfDocument: DocumentBlockParam = {
-    type: "document",
-    source: { type: "base64", media_type: "application/pdf", data: pdfBase64 },
-  };
+  const content =
+    pdfInput.type === "pdf_base64"
+      ? [
+          {
+            type: "document",
+            source: { type: "base64", media_type: "application/pdf", data: pdfInput.data },
+          } satisfies DocumentBlockParam,
+          {
+            type: "text" as const,
+            text: extractPrompt,
+          },
+        ]
+      : pdfInput.type === "pdf_url"
+      ? [
+          {
+            type: "document",
+            source: { type: "url", url: pdfInput.url },
+          } satisfies DocumentBlockParam,
+          {
+            type: "text" as const,
+            text: extractPrompt,
+          },
+        ]
+      : [
+          {
+            type: "text" as const,
+            text: extractPrompt,
+          },
+        ];
 
   const response = await getClient().messages.create({
     model: "claude-haiku-4-5-20251001",
@@ -145,13 +181,7 @@ Retorne APENAS um JSON válido com a estrutura abaixo. Use null para campos não
     messages: [
       {
         role: "user",
-        content: [
-          pdfDocument,
-          {
-            type: "text",
-            text: extractPrompt,
-          },
-        ],
+        content,
       },
     ],
   });
