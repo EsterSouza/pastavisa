@@ -46,9 +46,11 @@ export interface ClienteData {
   clienteTelefone?: string;
   clienteEmail?: string;
   clienteHorario?: string;
+  clienteProprietarioNome?: string;
   clienteRtNome?: string;
   clienteRtProfissao?: string;
   clienteRtConselho?: string;
+  clienteResponsaveisTecnicos?: Array<{ nome: string; profissao: string; conselho: string; setor: string }>;
   clienteEstrutura?: string;
   clienteMemorialDescritivoMbp?: string;
   clienteServicos?: Array<string>;
@@ -121,9 +123,11 @@ Retorne APENAS um JSON válido com a estrutura abaixo. Use null para campos não
   "cliente_telefone": "",
   "cliente_email": "",
   "cliente_horario": "",
+  "cliente_proprietario_nome": "",
   "cliente_rt_nome": "",
   "cliente_rt_profissao": "",
   "cliente_rt_conselho": "",
+  "cliente_responsaveis_tecnicos": [{"nome": "", "profissao": "", "conselho": "", "setor": ""}],
   "cliente_estrutura_fisica": "",
   "cliente_servicos": [],
   "cliente_equipamentos": [{"nome": "", "marca": "", "modelo": "", "registro_anvisa": ""}],
@@ -199,9 +203,13 @@ Retorne APENAS um JSON válido com a estrutura abaixo. Use null para campos não
     clienteTelefone: (raw.cliente_telefone as string) || undefined,
     clienteEmail: (raw.cliente_email as string) || undefined,
     clienteHorario: (raw.cliente_horario as string) || undefined,
+    clienteProprietarioNome: (raw.cliente_proprietario_nome as string) || undefined,
     clienteRtNome: (raw.cliente_rt_nome as string) || undefined,
     clienteRtProfissao: (raw.cliente_rt_profissao as string) || undefined,
     clienteRtConselho: (raw.cliente_rt_conselho as string) || undefined,
+    clienteResponsaveisTecnicos: Array.isArray(raw.cliente_responsaveis_tecnicos)
+      ? (raw.cliente_responsaveis_tecnicos as ClienteData["clienteResponsaveisTecnicos"])
+      : [],
     clienteEstrutura: (raw.cliente_estrutura_fisica as string) || undefined,
     clienteServicos: Array.isArray(raw.cliente_servicos) ? (raw.cliente_servicos as string[]) : [],
     clienteEquipamentos: Array.isArray(raw.cliente_equipamentos)
@@ -252,6 +260,7 @@ export async function adaptTrecho(
 
 DADOS DO NOVO CLIENTE:
 - Estabelecimento: ${clienteData.clienteNomeFantasia || ""}
+- ProprietÃ¡rio: ${clienteData.clienteProprietarioNome || ""}
 - RT: ${clienteData.clienteRtNome || ""} (${clienteData.clienteRtProfissao || ""})
 - Conselho: ${clienteData.clienteRtConselho || ""}
 - Cidade/Estado: ${clienteData.clienteCidade || ""}/${clienteData.clienteEstado || ""}
@@ -684,11 +693,18 @@ export async function processAdaptBlock(
       ?.map((f) => `${f.nome} | ${f.funcao}${f.conselho ? ` | ${f.conselho}` : ""}`)
       .join("\n") || "Não informado";
 
+  const responsaveisTecnicosList =
+    clienteData.clienteResponsaveisTecnicos
+      ?.map((rt) => [rt.setor, rt.nome, rt.profissao, rt.conselho].filter(Boolean).join(" | "))
+      .join("\n") || "NÃ£o informado";
+
   const clienteContext = [
     `Nome fantasia: ${clienteData.clienteNomeFantasia || ""}`,
     `Razão social: ${clienteData.clienteRazaoSocial || ""}`,
     `Cidade/Estado: ${clienteData.clienteCidade || ""}/${clienteData.clienteEstado || ""}`,
+    `ProprietÃ¡rio: ${clienteData.clienteProprietarioNome || ""}`,
     `RT: ${clienteData.clienteRtNome || ""} (${clienteData.clienteRtProfissao || ""})`,
+    `ResponsÃ¡veis tÃ©cnicos por setor:\n${responsaveisTecnicosList}`,
     // Omit conselho line entirely when absent — prevents AI from writing "não possui conselho"
     clienteData.clienteRtConselho
       ? `Conselho do RT: ${clienteData.clienteRtConselho}`

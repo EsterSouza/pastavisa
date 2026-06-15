@@ -22,9 +22,11 @@ model Pasta {
   clienteTelefone          String?
   clienteEmail             String?
   clienteHorario           String?
+  clienteProprietarioNome  String?
   clienteRtNome            String?
   clienteRtProfissao       String?
   clienteRtConselho        String?
+  clienteResponsaveisTecnicos String?
   clienteLogoPath          String?
   clienteEstrutura         String?
   clienteMemorialDescritivoMbp String?

@@ -74,6 +74,53 @@ function buildFuncionariosList(
     .join("\n");
 }
 
+function normalizeResponsaveisTecnicos(
+  clienteData: ClienteData
+): Array<{ nome: string; profissao: string; conselho: string; setor: string }> {
+  const responsaveis = (clienteData.clienteResponsaveisTecnicos || [])
+    .map((rt) => ({
+      nome: rt.nome?.trim() || "",
+      profissao: rt.profissao?.trim() || "",
+      conselho: rt.conselho?.trim() || "",
+      setor: rt.setor?.trim() || "",
+    }))
+    .filter((rt) => rt.nome || rt.profissao || rt.conselho || rt.setor);
+
+  if (responsaveis.length > 0) return responsaveis;
+
+  if (clienteData.clienteRtNome || clienteData.clienteRtProfissao || clienteData.clienteRtConselho) {
+    return [{
+      nome: clienteData.clienteRtNome || "",
+      profissao: clienteData.clienteRtProfissao || "",
+      conselho: clienteData.clienteRtConselho || "",
+      setor: "Responsabilidade técnica",
+    }];
+  }
+
+  return [];
+}
+
+function buildResponsaveisTecnicosList(
+  responsaveis: Array<{ nome: string; profissao: string; conselho: string; setor: string }>
+): string {
+  if (responsaveis.length === 0) return "Não informado";
+  return responsaveis
+    .map((rt, index) => {
+      const detalhes = [rt.setor, rt.nome, rt.profissao, rt.conselho].filter(Boolean);
+      return `${index + 1}. ${detalhes.join(" | ")}`;
+    })
+    .join("\n");
+}
+
+function buildResponsaveisTecnicosAssinaturas(
+  responsaveis: Array<{ nome: string; profissao: string; conselho: string; setor: string }>
+): string {
+  if (responsaveis.length === 0) return "";
+  return responsaveis
+    .map((rt) => [rt.nome, rt.profissao, rt.conselho, rt.setor].filter(Boolean).join("\n"))
+    .join("\n\n");
+}
+
 function buildEquipamentosList(
   equips?: Array<{ nome: string; marca: string; modelo: string; registro_anvisa: string }>
 ): string {
@@ -100,10 +147,14 @@ function buildProdutosInsumosList(
 }
 
 export interface EquipamentoDocumento {
+  tipo?: "equipamento" | "insumo" | string | null;
   nome?: string | null;
   marca?: string | null;
   modelo?: string | null;
   registro_anvisa?: string | null;
+  categoria?: string | null;
+  fabricante?: string | null;
+  uso?: string | null;
 }
 
 function normalizeTextForSearch(text: string): string {
@@ -126,28 +177,44 @@ function paragraphPlainText(paraXml: string): string {
 }
 
 function formatEquipamentoForMaterialSection(eq: EquipamentoDocumento): string {
+  const tipo = eq.tipo?.trim();
   const nome = eq.nome?.trim();
   const marca = eq.marca?.trim();
   const modelo = eq.modelo?.trim();
   const registro = eq.registro_anvisa?.trim();
+  const categoria = eq.categoria?.trim();
+  const fabricante = eq.fabricante?.trim();
+  const uso = eq.uso?.trim();
   const detalhes = [
+    tipo && tipo !== "equipamento" ? tipo : "",
+    categoria,
+    fabricante ? `fabricante ${fabricante}` : "",
     marca ? `marca ${marca}` : "",
     modelo ? `modelo ${modelo}` : "",
     registro ? `registro ANVISA ${registro}` : "",
+    uso ? `uso: ${uso}` : "",
   ].filter(Boolean);
 
   return detalhes.length > 0
-    ? `${nome || "Equipamento"} (${detalhes.join("; ")})`
-    : (nome || "Equipamento");
+    ? `${nome || "Material"} (${detalhes.join("; ")})`
+    : (nome || "Material");
 }
 
 function buildEquipamentosPopText(equipamentos: EquipamentoDocumento[]): string {
   const linhas = equipamentos
-    .filter((eq) => eq.nome?.trim() || eq.marca?.trim() || eq.modelo?.trim() || eq.registro_anvisa?.trim())
+    .filter((eq) =>
+      eq.nome?.trim() ||
+      eq.marca?.trim() ||
+      eq.modelo?.trim() ||
+      eq.registro_anvisa?.trim() ||
+      eq.categoria?.trim() ||
+      eq.fabricante?.trim() ||
+      eq.uso?.trim()
+    )
     .map((eq) => `- ${formatEquipamentoForMaterialSection(eq)}`);
 
   if (linhas.length === 0) return "";
-  return ["Equipamentos vinculados ao procedimento:", ...linhas].join("\n");
+  return ["Materiais vinculados ao procedimento:", ...linhas].join("\n");
 }
 
 function shouldInjectEquipamentosNoPop(options: GeneratorOptions): boolean {
@@ -752,6 +819,13 @@ export async function gerarDocumento(
 
   const emissaoDate = options.criadaEm || new Date();
   const emissao = getEmissao(emissaoDate);
+  const responsaveisTecnicos = normalizeResponsaveisTecnicos(clienteData);
+  const rtPrincipal = responsaveisTecnicos[0] || {
+    nome: "",
+    profissao: "",
+    conselho: "",
+    setor: "",
+  };
 
   // Build variable map
   const variaveis: Record<string, string> = {
@@ -767,11 +841,15 @@ export async function gerarDocumento(
     cliente_telefone: clienteData.clienteTelefone || "",
     cliente_email: clienteData.clienteEmail || "",
     cliente_horario: clienteData.clienteHorario || "",
-    cliente_rt_nome: clienteData.clienteRtNome || "",
-    cliente_rt_nome_upper: (clienteData.clienteRtNome || "").toUpperCase(),
-    cliente_rt_profissao: clienteData.clienteRtProfissao || "",
+    cliente_proprietario_nome: clienteData.clienteProprietarioNome || "",
+    cliente_rt_nome: clienteData.clienteRtNome || rtPrincipal.nome,
+    cliente_rt_nome_upper: (clienteData.clienteRtNome || rtPrincipal.nome).toUpperCase(),
+    cliente_rt_profissao: clienteData.clienteRtProfissao || rtPrincipal.profissao,
     // Empty string when not filled — prevents AI from writing "não possui conselho"
-    cliente_rt_conselho: clienteData.clienteRtConselho || "",
+    cliente_rt_conselho: clienteData.clienteRtConselho || rtPrincipal.conselho,
+    cliente_rt_setor: rtPrincipal.setor,
+    cliente_rts_lista: buildResponsaveisTecnicosList(responsaveisTecnicos),
+    cliente_rts_assinaturas: buildResponsaveisTecnicosAssinaturas(responsaveisTecnicos),
     cliente_estrutura_fisica: clienteData.clienteEstrutura || "",
     cliente_memorial_descritivo_mbp: clienteData.clienteMemorialDescritivoMbp || "",
     cliente_servicos_lista: buildServicosList(clienteData.clienteServicos),
@@ -816,7 +894,9 @@ export async function gerarDocumento(
       ESTADO_PREPOSICAO[(clienteData.clienteEstado || "").toUpperCase()] || "do",
     // Booleano para condicionais docxtemplater:
     // {#cliente_tem_conselho}...{/cliente_tem_conselho} — oculta bloco quando vazio
-    cliente_tem_conselho: clienteData.clienteRtConselho ? "true" : "",
+    cliente_tem_conselho: (clienteData.clienteRtConselho || rtPrincipal.conselho) ? "true" : "",
+    cliente_tem_proprietario: clienteData.clienteProprietarioNome ? "true" : "",
+    cliente_tem_multiplos_rts: responsaveisTecnicos.length > 1 ? "true" : "",
     // Fallback: if injectLogoVariable didn't inject an image (no logo provided),
     // docxtemplater replaces {cliente_logo} with an empty string safely.
     cliente_logo: "",

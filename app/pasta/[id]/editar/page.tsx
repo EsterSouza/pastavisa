@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 interface Equipamento { nome: string; marca: string; modelo: string; registro_anvisa: string }
 interface ProdutoInsumo { nome: string; categoria: string; fabricante: string; registro_anvisa: string; uso: string }
 interface Funcionario { nome: string; funcao: string; conselho: string }
+interface ResponsavelTecnico { nome: string; profissao: string; conselho: string; setor: string }
 interface Terceirizado { servico: string; razao_social: string; cnpj: string }
 
 interface FormData {
@@ -19,9 +20,11 @@ interface FormData {
   clienteTelefone: string;
   clienteEmail: string;
   clienteHorario: string;
+  clienteProprietarioNome: string;
   clienteRtNome: string;
   clienteRtProfissao: string;
   clienteRtConselho: string;
+  clienteResponsaveisTecnicos: ResponsavelTecnico[];
   clienteEstrutura: string;
   clienteMemorialDescritivoMbp: string;
   clienteServicos: string[];
@@ -60,6 +63,7 @@ function buildPatchPayload(form: FormData) {
   return {
     ...form,
     clienteServicos: JSON.stringify(form.clienteServicos),
+    clienteResponsaveisTecnicos: JSON.stringify(form.clienteResponsaveisTecnicos),
     clienteFuncionarios: JSON.stringify(form.clienteFuncionarios),
     clienteEquipamentos: JSON.stringify(form.clienteEquipamentos),
     clienteProdutosInsumos: JSON.stringify(form.clienteProdutosInsumos),
@@ -92,9 +96,11 @@ export default function EditarPasta() {
           clienteTelefone: pasta.clienteTelefone || "",
           clienteEmail: pasta.clienteEmail || "",
           clienteHorario: pasta.clienteHorario || "",
+          clienteProprietarioNome: pasta.clienteProprietarioNome || "",
           clienteRtNome: pasta.clienteRtNome || "",
           clienteRtProfissao: pasta.clienteRtProfissao || "",
           clienteRtConselho: pasta.clienteRtConselho || "",
+          clienteResponsaveisTecnicos: pasta.clienteResponsaveisTecnicos ? JSON.parse(pasta.clienteResponsaveisTecnicos) : [],
           clienteEstrutura: pasta.clienteEstrutura || "",
           clienteMemorialDescritivoMbp: pasta.clienteMemorialDescritivoMbp || "",
           clienteServicos: pasta.clienteServicos ? JSON.parse(pasta.clienteServicos) : [],
@@ -213,10 +219,83 @@ export default function EditarPasta() {
         <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
           <h2 className="font-semibold text-gray-800">Responsável Técnico</h2>
           <div className="grid grid-cols-3 gap-4">
+            <Input label="ProprietÃ¡rio" value={form.clienteProprietarioNome} onChange={(v) => set("clienteProprietarioNome", v)} />
             <Input label="Nome" value={form.clienteRtNome} onChange={(v) => set("clienteRtNome", v)} />
             <Input label="Profissão" value={form.clienteRtProfissao} onChange={(v) => set("clienteRtProfissao", v)} />
             <Input label="Conselho (ex: COREN-PA 920468)" value={form.clienteRtConselho} onChange={(v) => set("clienteRtConselho", v)} />
           </div>
+        </section>
+
+        <section className="bg-white border border-gray-200 rounded-xl p-5">
+          <h2 className="font-semibold text-gray-800 mb-3">RTs por setor</h2>
+          {form.clienteResponsaveisTecnicos.length === 0 && (
+            <p className="text-xs text-gray-500 mb-3">Use quando houver responsÃ¡veis diferentes por Ã¡rea, como enfermagem, nutriÃ§Ã£o, estÃ©tica ou farmÃ¡cia.</p>
+          )}
+          {form.clienteResponsaveisTecnicos.map((rt, i) => (
+            <div key={i} className="grid grid-cols-4 gap-3 mb-2">
+              <input
+                type="text"
+                placeholder="Setor/Ã¡rea"
+                value={rt.setor}
+                onChange={(e) => {
+                  const updated = [...form.clienteResponsaveisTecnicos];
+                  updated[i] = { ...updated[i], setor: e.target.value };
+                  set("clienteResponsaveisTecnicos", updated);
+                }}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+              />
+              <input
+                type="text"
+                placeholder="Nome"
+                value={rt.nome}
+                onChange={(e) => {
+                  const updated = [...form.clienteResponsaveisTecnicos];
+                  updated[i] = { ...updated[i], nome: e.target.value };
+                  set("clienteResponsaveisTecnicos", updated);
+                }}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+              />
+              <input
+                type="text"
+                placeholder="ProfissÃ£o"
+                value={rt.profissao}
+                onChange={(e) => {
+                  const updated = [...form.clienteResponsaveisTecnicos];
+                  updated[i] = { ...updated[i], profissao: e.target.value };
+                  set("clienteResponsaveisTecnicos", updated);
+                }}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Conselho/registro"
+                  value={rt.conselho}
+                  onChange={(e) => {
+                    const updated = [...form.clienteResponsaveisTecnicos];
+                    updated[i] = { ...updated[i], conselho: e.target.value };
+                    set("clienteResponsaveisTecnicos", updated);
+                  }}
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+                />
+                <button
+                  onClick={() => set("clienteResponsaveisTecnicos", form.clienteResponsaveisTecnicos.filter((_, j) => j !== i))}
+                  className="text-red-400 hover:text-red-600 text-xs"
+                >
+                  âœ•
+                </button>
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={() => set("clienteResponsaveisTecnicos", [...form.clienteResponsaveisTecnicos, { nome: "", profissao: "", conselho: "", setor: "" }])}
+            className="text-xs text-blue-600 hover:underline"
+          >
+            + Adicionar RT por setor
+          </button>
+          <p className="text-xs text-gray-500 mt-2">
+            VariÃ¡veis: {"{cliente_rts_lista}"} e {"{cliente_rts_assinaturas}"}
+          </p>
         </section>
 
         {/* Estrutura */}

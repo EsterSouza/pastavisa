@@ -49,10 +49,22 @@ interface ReferenciaNaoCadastrada {
 }
 
 interface Equipamento {
+  tipo?: string;
   nome: string;
   marca: string;
   modelo: string;
   registro_anvisa: string;
+  categoria?: string;
+  fabricante?: string;
+  uso?: string;
+}
+
+interface ProdutoInsumo {
+  nome: string;
+  categoria: string;
+  fabricante: string;
+  registro_anvisa: string;
+  uso: string;
 }
 
 const STATUS_ICON: Record<string, string> = {
@@ -93,7 +105,7 @@ function normalizeForMatch(text: string): string {
 }
 
 function equipamentoKey(eq: Equipamento): string {
-  return [eq.nome, eq.marca, eq.modelo, eq.registro_anvisa]
+  return [eq.tipo || "equipamento", eq.nome, eq.marca, eq.modelo, eq.registro_anvisa, eq.categoria, eq.fabricante, eq.uso]
     .map((value) => (value || "").trim().toLowerCase())
     .join("|");
 }
@@ -112,6 +124,29 @@ function parseEquipamentos(value?: string | null): Equipamento[] {
   } catch {
     return [];
   }
+}
+
+function parseProdutosInsumos(value?: string | null): ProdutoInsumo[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function produtoInsumoToMaterial(item: ProdutoInsumo): Equipamento {
+  return {
+    tipo: "insumo",
+    nome: item.nome,
+    marca: "",
+    modelo: "",
+    registro_anvisa: item.registro_anvisa,
+    categoria: item.categoria,
+    fabricante: item.fabricante,
+    uso: item.uso,
+  };
 }
 
 function parseStringList(value?: string | null): string[] {
@@ -133,36 +168,6 @@ function isPopDocumento(doc: Documento, assignments: Record<string, string>, tem
   const tipo = normalizeForMatch(template?.tipo || "");
   const nome = normalizeForMatch(`${doc.nomeArquivo} ${template?.nome || ""}`);
   return tipo === "pop" || nome.startsWith("pop ") || nome.includes(" pop ");
-}
-
-function isPopTecnicoProcedimento(doc: Documento, assignments: Record<string, string>, templates: Template[]): boolean {
-  if (!isPopDocumento(doc, assignments, templates)) return false;
-
-  const template = getTemplateAtual(doc, assignments, templates);
-  const alvo = normalizeForMatch(`${doc.nomeArquivo} ${template?.nome || ""}`);
-  const geraisOuBiosseguranca = [
-    "biossegur",
-    "higieniz",
-    "limpeza",
-    "desinfec",
-    "esteriliz",
-    "processamento",
-    "residuo",
-    "residuos",
-    "pgrss",
-    "epi",
-    "lavagem",
-    "maos",
-    "acidente",
-    "emergencia",
-    "prontuario",
-    "recepcao",
-    "agenda",
-    "manutencao",
-    "controle de qualidade",
-  ];
-
-  return !geraisOuBiosseguranca.some((termo) => alvo.includes(termo));
 }
 
 function sugerirEquipamentosParaPop(doc: Documento, template: Template | null, equipamentos: Equipamento[]): Equipamento[] {
@@ -207,6 +212,7 @@ export default function ProcessarPasta() {
   const [templates,  setTemplates]  = useState<Template[]>([]);
   const [legislacoes,setLegislacoes]= useState<Legislacao[]>([]);
   const [clienteEquipamentos,setClienteEquipamentos]= useState<Equipamento[]>([]);
+  const [clienteProdutosInsumos, setClienteProdutosInsumos] = useState<ProdutoInsumo[]>([]);
   const [selectedLeg,setSelectedLeg]= useState<string[]>([]);
   const [assignments,setAssignments]= useState<Record<string, string>>({});
   const [equipmentAssignments,setEquipmentAssignments]= useState<Record<string, Equipamento[]>>({});
@@ -244,6 +250,7 @@ export default function ProcessarPasta() {
         const estado = pasta.clienteEstado || "";
         setEstadoCliente(estado);
         setClienteEquipamentos(parseEquipamentos(pasta.clienteEquipamentos));
+        setClienteProdutosInsumos(parseProdutosInsumos(pasta.clienteProdutosInsumos));
         const associadas = parseStringList(pasta.legislacaoIds);
         setSelectedLeg(associadas);
         if (!estado) return;
@@ -899,10 +906,11 @@ export default function ProcessarPasta() {
             const isSelecionado = selectedDocs.has(doc.id);
             const jaGerado      = doc.status === "gerado";
             const templateAtual = getTemplateAtual(doc, assignments, templates);
-            const isPopTecnico = isPopTecnicoProcedimento(doc, assignments, templates);
+            const isPop = isPopDocumento(doc, assignments, templates);
             const equipamentosDoc = equipmentAssignments[doc.id] || [];
             const equipamentosDocKeys = new Set(equipamentosDoc.map(equipamentoKey));
             const equipamentosAbertos = !!equipmentOptionsOpen[doc.id];
+            const insumosMateriais = clienteProdutosInsumos.map(produtoInsumoToMaterial);
 
             return (
               <li key={doc.id} className="px-5 py-3 flex flex-col gap-2">
@@ -1013,7 +1021,7 @@ export default function ProcessarPasta() {
                   </div>
                 )}
 
-                {isPopTecnico && clienteEquipamentos.length > 0 && (
+                {isPop && (clienteEquipamentos.length > 0 || insumosMateriais.length > 0) && (
                   <div className="ml-11">
                     <label className="inline-flex items-center gap-2 text-xs text-slate-700">
                       <input
@@ -1032,7 +1040,7 @@ export default function ProcessarPasta() {
                     {equipamentosAbertos && (
                       <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                         <div className="mb-2 flex items-center justify-between gap-3">
-                          <p className="text-xs font-semibold text-slate-700">Equipamentos na secao de materiais</p>
+                          <p className="text-xs font-semibold text-slate-700">Equipamentos e insumos na seÃ§Ã£o de materiais</p>
                           <div className="flex gap-2 text-xs">
                             <button
                               type="button"
@@ -1065,6 +1073,21 @@ export default function ProcessarPasta() {
                                   className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-blue-600 disabled:opacity-50"
                                 />
                                 <span>{equipamentoLabel(eq)}</span>
+                              </label>
+                            );
+                          })}
+                          {insumosMateriais.map((insumo) => {
+                            const key = equipamentoKey(insumo);
+                            return (
+                              <label key={key} className="flex items-start gap-2 text-xs text-slate-700">
+                                <input
+                                  type="checkbox"
+                                  checked={equipamentosDocKeys.has(key)}
+                                  disabled={processing}
+                                  onChange={() => toggleEquipamentoDoc(doc.id, insumo)}
+                                  className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-blue-600 disabled:opacity-50"
+                                />
+                                <span>{equipamentoLabel(insumo)}</span>
                               </label>
                             );
                           })}
