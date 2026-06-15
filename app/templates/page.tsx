@@ -46,6 +46,15 @@ interface TemplateVersion {
   criadaEm: string;
 }
 
+interface BulkImportResult {
+  nome: string;
+  status: string;
+  tipo?: string;
+  variaveis?: number;
+  errosValidacao?: number;
+  error?: string;
+}
+
 const TIPOS = ["MBP", "POP", "TCLE", "PGRSS", "FICHA", "PLANILHA", "GUIA", "TERMO", "RECEITUARIO", "OUTROS"];
 const PADROES = ["A", "B", "C", "D"];
 const PADROES_LABEL: Record<string, string> = {
@@ -212,32 +221,38 @@ export default function Templates() {
     }
     setImporting(true); setImportMsg(""); setImportResults([]);
     try {
-      const fd = new FormData();
-      bulkFiles.forEach((selectedFile) => fd.append("arquivos", selectedFile));
-      const res = await fetch("/api/templates/bulk-import", { method: "POST", body: fd });
-      const json = await readJsonResponse<{ results?: Array<{
-        nome: string;
-        status: string;
-        tipo?: string;
-        variaveis?: number;
-        errosValidacao?: number;
-        error?: string;
-      }> }>(res, "Erro ao importar templates.");
-    const results = (json.results || []) as Array<{
-      nome: string;
-      status: string;
-      tipo?: string;
-      variaveis?: number;
-      errosValidacao?: number;
-      error?: string;
-    }>;
-    setImportResults(results);
-    const importados = results.filter((r) => r.status === "importado").length;
-    const atualizados = results.filter((r) => r.status === "atualizado").length;
-    const erros = results.filter((r) => r.status === "erro").length;
-    setImportMsg(`Importação concluída: ${importados} novo(s), ${atualizados} atualizado(s), ${erros} com erro.`);
-    setBulkFiles([]);
-    await load();
+      const results: BulkImportResult[] = [];
+
+      for (let index = 0; index < bulkFiles.length; index += 1) {
+        const selectedFile = bulkFiles[index];
+        setImportMsg(`Importando ${index + 1}/${bulkFiles.length}: ${selectedFile.name}`);
+
+        try {
+          const fd = new FormData();
+          fd.append("arquivos", selectedFile);
+          const res = await fetch("/api/templates/bulk-import", { method: "POST", body: fd });
+          const json = await readJsonResponse<{ results?: BulkImportResult[] }>(
+            res,
+            `Erro ao importar ${selectedFile.name}.`
+          );
+          results.push(...(json.results || []));
+        } catch (err) {
+          results.push({
+            nome: selectedFile.name.replace(/\.docx$/i, ""),
+            status: "erro",
+            error: err instanceof Error ? err.message : "Erro ao importar template.",
+          });
+        }
+
+        setImportResults([...results]);
+      }
+
+      const importados = results.filter((r) => r.status === "importado").length;
+      const atualizados = results.filter((r) => r.status === "atualizado").length;
+      const erros = results.filter((r) => r.status === "erro").length;
+      setImportMsg(`Importação concluída: ${importados} novo(s), ${atualizados} atualizado(s), ${erros} com erro.`);
+      setBulkFiles([]);
+      await load();
     } catch (err) {
       setImportMsg(err instanceof Error ? err.message : "Erro ao importar templates.");
     } finally {
