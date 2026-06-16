@@ -66,9 +66,7 @@ export interface ClienteData {
   documentosAGerar?: Array<{ nome: string; tipo: string }>;
 }
 
-export type PdfInput =
-  | { type: "pdf_base64"; data: string }
-  | { type: "pdf_text"; text: string };
+export type PdfInput = { type: "pdf_base64"; data: string };
 
 export async function extractClienteData(
   pdfInput: PdfInput,
@@ -83,14 +81,8 @@ export async function extractClienteData(
       : "AVISO VAZIO — mammoth não extraiu nada do docx"
   );
 
-  const pdfTextSection =
-    pdfInput.type === "pdf_text"
-      ? `\nDOCUMENTO 1 — TEXTO EXTRAÍDO DO PDF DO FORMS.APP:\n${pdfInput.text || "(PDF sem texto extraível)"}\n`
-      : "";
-
-  const extractPrompt = `O DOCUMENTO 1 ${pdfInput.type === "pdf_text" ? "(texto abaixo)" : "(PDF anexo)"} é o formulário preenchido pelo cliente no forms.app.
+  const extractPrompt = `O DOCUMENTO 1 (PDF anexo) é o formulário preenchido pelo cliente no forms.app.
 O DOCUMENTO 2 (texto abaixo) foi extraído do arquivo .docx "Documentos em Elaboração" do cliente.
-${pdfTextSection}
 
 DOCUMENTO 2 — CONTEÚDO EXTRAÍDO DO DOCX:
 ${elaboracaoText || "(arquivo vazio ou não legível)"}
@@ -141,24 +133,16 @@ Retorne APENAS um JSON válido com a estrutura abaixo. Use null para campos não
   "documentos_a_gerar": [{"nome": "", "tipo": ""}]
 }`;
 
-  const content =
-    pdfInput.type === "pdf_base64"
-      ? [
-          {
-            type: "document",
-            source: { type: "base64", media_type: "application/pdf", data: pdfInput.data },
-          } satisfies DocumentBlockParam,
-          {
-            type: "text" as const,
-            text: extractPrompt,
-          },
-        ]
-      : [
-          {
-            type: "text" as const,
-            text: extractPrompt,
-          },
-        ];
+  const content = [
+    {
+      type: "document",
+      source: { type: "base64", media_type: "application/pdf", data: pdfInput.data },
+    } satisfies DocumentBlockParam,
+    {
+      type: "text" as const,
+      text: extractPrompt,
+    },
+  ];
 
   const response = await getClient().messages.create({
     model: "claude-haiku-4-5-20251001",

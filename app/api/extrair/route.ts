@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { extractDocxTextFromBuffer, extractPdfTextFromBuffer } from "@/lib/extractor";
+import { extractDocxTextFromBuffer } from "@/lib/extractor";
 import { extractClienteData, type PdfInput } from "@/lib/ai";
 import { associarLegislacoesDoDocumento } from "@/lib/legislation-matcher";
 import { detectarReferenciasNaoCadastradas } from "@/lib/reference-extractor";
@@ -14,9 +14,6 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
-
-const MAX_NATIVE_PDF_BYTES = 3 * 1024 * 1024;
-const MIN_EXTRACTED_PDF_TEXT_CHARS = 200;
 
 interface StoredUploadRequest {
   pdfPath?: string;
@@ -69,36 +66,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const [rawPdfText, elaboracaoText] = await Promise.all([
-      extractPdfTextFromBuffer(pdfBuffer).catch((err) => {
-        console.warn("[extrair] pdf-parse falhou; avaliando fallback nativo:", err);
-        return "";
-      }),
-      extractDocxTextFromBuffer(docxBuffer),
-    ]);
+    const elaboracaoText = await extractDocxTextFromBuffer(docxBuffer);
 
     console.log(`[extrair] docx extraído: ${elaboracaoText.length} chars`);
-    console.log(`[extrair] pdf: ${pdfBuffer.length} bytes, texto extraído: ${rawPdfText.length} chars`);
+    console.log(`[extrair] pdf: ${pdfBuffer.length} bytes`);
 
-    const pdfText = rawPdfText.trim();
-    let pdfInput: PdfInput;
-    if (pdfText.length >= MIN_EXTRACTED_PDF_TEXT_CHARS) {
-      pdfInput = { type: "pdf_text", text: pdfText };
-    } else {
-      if (pdfBuffer.length > MAX_NATIVE_PDF_BYTES) {
-        return NextResponse.json(
-          {
-            error:
-              "O PDF do forms.app está grande e não possui texto extraível suficiente. Exporte o formulário como PDF pesquisável ou reduza o arquivo antes de enviar.",
-          },
-          { status: 413 }
-        );
-      }
+    const pdfInput: PdfInput = { type: "pdf_base64", data: pdfBuffer.toString("base64") };
 
-      pdfInput = { type: "pdf_base64", data: pdfBuffer.toString("base64") };
-    }
-
-    // Call AI with the smallest safe PDF representation + docx text.
+    // Call AI with the original PDF document + docx text.
     const { data, tokensUsados } = await extractClienteData(pdfInput, elaboracaoText);
     const legislacoes = await prisma.legislacao.findMany({ where: { ativo: true } });
     const scope = { estadoUf: data.clienteEstado, municipio: data.clienteCidade };
