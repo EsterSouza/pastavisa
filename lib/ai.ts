@@ -88,7 +88,7 @@ DOCUMENTO 2 — CONTEÚDO EXTRAÍDO DO DOCX:
 ${elaboracaoText || "(arquivo vazio ou não legível)"}
 
 TAREFA:
-1. Extraia os dados do cliente a partir do PDF (DOCUMENTO 1).
+1. Extraia os dados do cliente a partir do PDF (DOCUMENTO 1). Quando o DOCUMENTO 2 também trouxer dados cadastrais do cliente, use-o como complemento para preencher campos que não estejam claros no PDF.
 2. A partir do DOCUMENTO 2, identifique ABSOLUTAMENTE TODOS os documentos sanitários listados para este cliente.
    REGRAS CRÍTICAS DE EXTRAÇÃO:
    - Extraia CADA linha/item individual — não agrupe, não resuma, não pule nenhum.
@@ -244,7 +244,7 @@ export async function adaptTrecho(
 
 DADOS DO NOVO CLIENTE:
 - Estabelecimento: ${clienteData.clienteNomeFantasia || ""}
-- ProprietÃ¡rio: ${clienteData.clienteProprietarioNome || ""}
+- Proprietário: ${clienteData.clienteProprietarioNome || ""}
 - RT: ${clienteData.clienteRtNome || ""} (${clienteData.clienteRtProfissao || ""})
 - Conselho: ${clienteData.clienteRtConselho || ""}
 - Cidade/Estado: ${clienteData.clienteCidade || ""}/${clienteData.clienteEstado || ""}
@@ -680,15 +680,15 @@ export async function processAdaptBlock(
   const responsaveisTecnicosList =
     clienteData.clienteResponsaveisTecnicos
       ?.map((rt) => [rt.setor, rt.nome, rt.profissao, rt.conselho].filter(Boolean).join(" | "))
-      .join("\n") || "NÃ£o informado";
+      .join("\n") || "Não informado";
 
   const clienteContext = [
     `Nome fantasia: ${clienteData.clienteNomeFantasia || ""}`,
     `Razão social: ${clienteData.clienteRazaoSocial || ""}`,
     `Cidade/Estado: ${clienteData.clienteCidade || ""}/${clienteData.clienteEstado || ""}`,
-    `ProprietÃ¡rio: ${clienteData.clienteProprietarioNome || ""}`,
+    `Proprietário: ${clienteData.clienteProprietarioNome || ""}`,
     `RT: ${clienteData.clienteRtNome || ""} (${clienteData.clienteRtProfissao || ""})`,
-    `ResponsÃ¡veis tÃ©cnicos por setor:\n${responsaveisTecnicosList}`,
+    `Responsáveis técnicos por setor:\n${responsaveisTecnicosList}`,
     // Omit conselho line entirely when absent — prevents AI from writing "não possui conselho"
     clienteData.clienteRtConselho
       ? `Conselho do RT: ${clienteData.clienteRtConselho}`

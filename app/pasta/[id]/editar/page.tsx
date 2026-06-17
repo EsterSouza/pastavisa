@@ -219,7 +219,7 @@ export default function EditarPasta() {
         <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
           <h2 className="font-semibold text-gray-800">Responsável Técnico</h2>
           <div className="grid grid-cols-3 gap-4">
-            <Input label="ProprietÃ¡rio" value={form.clienteProprietarioNome} onChange={(v) => set("clienteProprietarioNome", v)} />
+            <Input label="Proprietário" value={form.clienteProprietarioNome} onChange={(v) => set("clienteProprietarioNome", v)} />
             <Input label="Nome" value={form.clienteRtNome} onChange={(v) => set("clienteRtNome", v)} />
             <Input label="Profissão" value={form.clienteRtProfissao} onChange={(v) => set("clienteRtProfissao", v)} />
             <Input label="Conselho (ex: COREN-PA 920468)" value={form.clienteRtConselho} onChange={(v) => set("clienteRtConselho", v)} />
@@ -229,13 +229,13 @@ export default function EditarPasta() {
         <section className="bg-white border border-gray-200 rounded-xl p-5">
           <h2 className="font-semibold text-gray-800 mb-3">RTs por setor</h2>
           {form.clienteResponsaveisTecnicos.length === 0 && (
-            <p className="text-xs text-gray-500 mb-3">Use quando houver responsÃ¡veis diferentes por Ã¡rea, como enfermagem, nutriÃ§Ã£o, estÃ©tica ou farmÃ¡cia.</p>
+            <p className="text-xs text-gray-500 mb-3">Use quando houver responsáveis diferentes por área, como enfermagem, nutrição, estética ou farmácia.</p>
           )}
           {form.clienteResponsaveisTecnicos.map((rt, i) => (
             <div key={i} className="grid grid-cols-4 gap-3 mb-2">
               <input
                 type="text"
-                placeholder="Setor/Ã¡rea"
+                placeholder="Setor/área"
                 value={rt.setor}
                 onChange={(e) => {
                   const updated = [...form.clienteResponsaveisTecnicos];
@@ -257,7 +257,7 @@ export default function EditarPasta() {
               />
               <input
                 type="text"
-                placeholder="ProfissÃ£o"
+                placeholder="Profissão"
                 value={rt.profissao}
                 onChange={(e) => {
                   const updated = [...form.clienteResponsaveisTecnicos];
@@ -282,7 +282,7 @@ export default function EditarPasta() {
                   onClick={() => set("clienteResponsaveisTecnicos", form.clienteResponsaveisTecnicos.filter((_, j) => j !== i))}
                   className="text-red-400 hover:text-red-600 text-xs"
                 >
-                  âœ•
+                  ×
                 </button>
               </div>
             </div>
@@ -294,7 +294,7 @@ export default function EditarPasta() {
             + Adicionar RT por setor
           </button>
           <p className="text-xs text-gray-500 mt-2">
-            VariÃ¡veis: {"{cliente_rts_lista}"} e {"{cliente_rts_assinaturas}"}
+            Variáveis: {"{cliente_rts_lista}"} e {"{cliente_rts_assinaturas}"}
           </p>
         </section>
 
@@ -458,8 +458,8 @@ export default function EditarPasta() {
 
         {/* Produtos, insumos e ativos */}
         <section className="bg-white border border-gray-200 rounded-xl p-5">
-          <h2 className="font-semibold text-gray-800 mb-3">Produtos, insumos, medicamentos e cosm?ticos</h2>
-          <p className="text-xs text-gray-500 mb-3">Cadastre itens relevantes para POPs, MBP, PGRSS, protocolos e rela??o de servi?os.</p>
+          <h2 className="font-semibold text-gray-800 mb-3">Produtos, insumos, medicamentos e cosméticos</h2>
+          <p className="text-xs text-gray-500 mb-3">Cadastre itens relevantes para POPs, MBP, PGRSS, protocolos e relação de serviços.</p>
           <div className="space-y-2">
             {form.clienteProdutosInsumos.map((item, i) => (
               <div key={i} className="grid grid-cols-5 gap-2">
@@ -493,7 +493,7 @@ export default function EditarPasta() {
             + Adicionar produto/insumo
           </button>
           <p className="text-xs text-gray-500 mt-2">
-            Vari?vel para usar no template: {"{cliente_produtos_insumos_lista}"}
+            Variável para usar no template: {"{cliente_produtos_insumos_lista}"}
           </p>
         </section>
 

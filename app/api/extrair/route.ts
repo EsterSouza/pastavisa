@@ -7,6 +7,7 @@ import {
   extrairDocumentosDoTextoElaboracao,
   mesclarDocumentosExtraidos,
 } from "@/lib/document-list-extractor";
+import { complementarClienteComTextoElaboracao } from "@/lib/client-data-fallback";
 import { prisma } from "@/lib/prisma";
 import {
   isManagedStorageReference,
@@ -79,15 +80,16 @@ export async function POST(req: NextRequest) {
 
     // Call AI with the original PDF document + docx text.
     const { data, tokensUsados } = await extractClienteData(pdfInput, elaboracaoText);
+    const dataComplementada = complementarClienteComTextoElaboracao(data, elaboracaoText);
     const documentosIa = data.documentosAGerar || [];
     const documentosDetectadosNoDocx = extrairDocumentosDoTextoElaboracao(elaboracaoText);
-    data.documentosAGerar = mesclarDocumentosExtraidos(documentosIa, documentosDetectadosNoDocx);
+    dataComplementada.documentosAGerar = mesclarDocumentosExtraidos(documentosIa, documentosDetectadosNoDocx);
     console.log(
-      `[extrair] documentos: IA=${documentosIa.length}, fallback=${documentosDetectadosNoDocx.length}, total=${data.documentosAGerar.length}`
+      `[extrair] documentos: IA=${documentosIa.length}, fallback=${documentosDetectadosNoDocx.length}, total=${dataComplementada.documentosAGerar.length}`
     );
 
     const legislacoes = await prisma.legislacao.findMany({ where: { ativo: true } });
-    const scope = { estadoUf: data.clienteEstado, municipio: data.clienteCidade };
+    const scope = { estadoUf: dataComplementada.clienteEstado, municipio: dataComplementada.clienteCidade };
     const legislacoesAssociadas = associarLegislacoesDoDocumento(elaboracaoText, legislacoes, scope);
     const referenciasNaoCadastradas = detectarReferenciasNaoCadastradas(elaboracaoText, legislacoes, scope);
 
@@ -97,7 +99,7 @@ export async function POST(req: NextRequest) {
       sessionId,
       pdfPath,
       docxPath,
-      data,
+      data: dataComplementada,
       tokensUsados,
       legislacoesAssociadas,
       referenciasNaoCadastradas,
