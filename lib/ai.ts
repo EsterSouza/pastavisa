@@ -218,6 +218,117 @@ Retorne APENAS um JSON válido com a estrutura abaixo. Use null para campos não
   return { data, tokensUsados };
 }
 
+function mapRawClienteData(raw: Record<string, unknown>): ClienteData {
+  return {
+    clienteNomeFantasia: (raw.cliente_nome_fantasia as string) || undefined,
+    clienteRazaoSocial: (raw.cliente_razao_social as string) || undefined,
+    clienteCnpj: (raw.cliente_cnpj as string) || undefined,
+    clienteEndereco: (raw.cliente_endereco as string) || undefined,
+    clienteCidade: (raw.cliente_cidade as string) || undefined,
+    clienteEstado: (raw.cliente_estado as string) || undefined,
+    clienteEstadoExtenso: (raw.cliente_estado_extenso as string) || undefined,
+    clienteTelefone: (raw.cliente_telefone as string) || undefined,
+    clienteEmail: (raw.cliente_email as string) || undefined,
+    clienteHorario: (raw.cliente_horario as string) || undefined,
+    clienteProprietarioNome: (raw.cliente_proprietario_nome as string) || undefined,
+    clienteRtNome: (raw.cliente_rt_nome as string) || undefined,
+    clienteRtProfissao: (raw.cliente_rt_profissao as string) || undefined,
+    clienteRtConselho: (raw.cliente_rt_conselho as string) || undefined,
+    clienteResponsaveisTecnicos: Array.isArray(raw.cliente_responsaveis_tecnicos)
+      ? (raw.cliente_responsaveis_tecnicos as ClienteData["clienteResponsaveisTecnicos"])
+      : [],
+    clienteEstrutura: (raw.cliente_estrutura_fisica as string) || undefined,
+    clienteMemorialDescritivoMbp: (raw.cliente_memorial_descritivo_mbp as string) || undefined,
+    clienteServicos: Array.isArray(raw.cliente_servicos) ? (raw.cliente_servicos as string[]) : [],
+    clienteFuncionarios: Array.isArray(raw.cliente_funcionarios)
+      ? (raw.cliente_funcionarios as ClienteData["clienteFuncionarios"])
+      : [],
+    clienteEquipamentos: Array.isArray(raw.cliente_equipamentos)
+      ? (raw.cliente_equipamentos as ClienteData["clienteEquipamentos"])
+      : [],
+    clienteProdutosInsumos: Array.isArray(raw.cliente_produtos_insumos)
+      ? (raw.cliente_produtos_insumos as ClienteData["clienteProdutosInsumos"])
+      : [],
+    clienteTerceirizados: Array.isArray(raw.cliente_terceirizados)
+      ? (raw.cliente_terceirizados as ClienteData["clienteTerceirizados"])
+      : [],
+    clienteColetaRazao: (raw.cliente_coleta_razao_social as string) || undefined,
+    clienteColetaCnpj: (raw.cliente_coleta_cnpj as string) || undefined,
+    clienteResiduosA: (raw.cliente_residuos_grupo_a as string) || undefined,
+    clienteResiduosD: (raw.cliente_residuos_grupo_d as string) || undefined,
+    clienteResiduosE: (raw.cliente_residuos_grupo_e as string) || undefined,
+  };
+}
+
+export async function extractClienteDataFromElaboracaoText(
+  elaboracaoText: string
+): Promise<{ data: ClienteData; tokensUsados: number }> {
+  const prompt = `Extraia SOMENTE dados cadastrais e operacionais do cliente a partir do texto do documento de elaboração abaixo.
+
+REGRAS:
+- Preencha todos os campos que aparecerem no texto.
+- Extraia serviços/procedimentos como lista em "cliente_servicos".
+- Extraia funcionários/equipe quando houver. Se o texto disser que não possui funcionários, retorne [].
+- Extraia serviços terceirizados em "cliente_terceirizados"; quando houver coleta de lixo/resíduos, também preencha cliente_coleta_razao_social e cliente_coleta_cnpj.
+- Extraia equipamentos da tabela de equipamentos com nome, marca, modelo e registro ANVISA.
+- Extraia produtos, insumos, medicamentos e cosméticos da tabela de insumos com nome, categoria, fabricante/marca, registro ANVISA e uso quando houver.
+- Extraia estrutura física completa e dados comerciais/atividade comercial dentro de campos textuais existentes, especialmente cliente_estrutura_fisica e cliente_servicos.
+- Não invente dados. Se não houver, use null ou [].
+- Retorne SOMENTE JSON válido.
+
+JSON:
+{
+  "cliente_nome_fantasia": "",
+  "cliente_razao_social": "",
+  "cliente_cnpj": "",
+  "cliente_endereco": "",
+  "cliente_cidade": "",
+  "cliente_estado": "",
+  "cliente_estado_extenso": "",
+  "cliente_telefone": "",
+  "cliente_email": "",
+  "cliente_horario": "",
+  "cliente_proprietario_nome": "",
+  "cliente_rt_nome": "",
+  "cliente_rt_profissao": "",
+  "cliente_rt_conselho": "",
+  "cliente_responsaveis_tecnicos": [{"nome": "", "profissao": "", "conselho": "", "setor": ""}],
+  "cliente_estrutura_fisica": "",
+  "cliente_memorial_descritivo_mbp": "",
+  "cliente_servicos": [],
+  "cliente_funcionarios": [{"nome": "", "funcao": "", "conselho": ""}],
+  "cliente_equipamentos": [{"nome": "", "marca": "", "modelo": "", "registro_anvisa": ""}],
+  "cliente_produtos_insumos": [{"nome": "", "categoria": "", "fabricante": "", "registro_anvisa": "", "uso": ""}],
+  "cliente_terceirizados": [{"servico": "", "razao_social": "", "cnpj": ""}],
+  "cliente_coleta_razao_social": "",
+  "cliente_coleta_cnpj": "",
+  "cliente_residuos_grupo_a": "",
+  "cliente_residuos_grupo_d": "",
+  "cliente_residuos_grupo_e": ""
+}
+
+TEXTO DO DOCUMENTO DE ELABORAÇÃO:
+${elaboracaoText || "(arquivo vazio)"}`;
+
+  const response = await getClient().messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 8192,
+    system: "Você extrai dados estruturados de documentos sanitários brasileiros. Responda somente JSON válido.",
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const text = response.content[0].type === "text" ? response.content[0].text : "{}";
+  const tokensUsados = response.usage.input_tokens + response.usage.output_tokens;
+
+  try {
+    const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    return { data: mapRawClienteData(JSON.parse(cleaned)), tokensUsados };
+  } catch {
+    console.error("[extrair] JSON.parse falhou na extração focada do docx. Resposta bruta:\n", text);
+    return { data: {}, tokensUsados };
+  }
+}
+
 export async function adaptTrecho(
   trechoOriginal: string,
   clienteData: ClienteData,
