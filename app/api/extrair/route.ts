@@ -3,6 +3,10 @@ import { extractDocxTextFromBuffer } from "@/lib/extractor";
 import { extractClienteData, type PdfInput } from "@/lib/ai";
 import { associarLegislacoesDoDocumento } from "@/lib/legislation-matcher";
 import { detectarReferenciasNaoCadastradas } from "@/lib/reference-extractor";
+import {
+  extrairDocumentosDoTextoElaboracao,
+  mesclarDocumentosExtraidos,
+} from "@/lib/document-list-extractor";
 import { prisma } from "@/lib/prisma";
 import {
   isManagedStorageReference,
@@ -75,6 +79,13 @@ export async function POST(req: NextRequest) {
 
     // Call AI with the original PDF document + docx text.
     const { data, tokensUsados } = await extractClienteData(pdfInput, elaboracaoText);
+    const documentosIa = data.documentosAGerar || [];
+    const documentosDetectadosNoDocx = extrairDocumentosDoTextoElaboracao(elaboracaoText);
+    data.documentosAGerar = mesclarDocumentosExtraidos(documentosIa, documentosDetectadosNoDocx);
+    console.log(
+      `[extrair] documentos: IA=${documentosIa.length}, fallback=${documentosDetectadosNoDocx.length}, total=${data.documentosAGerar.length}`
+    );
+
     const legislacoes = await prisma.legislacao.findMany({ where: { ativo: true } });
     const scope = { estadoUf: data.clienteEstado, municipio: data.clienteCidade };
     const legislacoesAssociadas = associarLegislacoesDoDocumento(elaboracaoText, legislacoes, scope);
