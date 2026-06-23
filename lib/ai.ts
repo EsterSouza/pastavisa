@@ -30,7 +30,10 @@ function getClient(): Anthropic {
         "ANTHROPIC_API_KEY não encontrada. Verifique o arquivo .env na raiz do projeto."
       );
     }
-    _client = new Anthropic({ apiKey });
+    // Bound each request so a single hung call fails fast (and is retried)
+    // instead of hanging until the serverless gateway kills the whole function
+    // with a 504. maxRetries handles transient 429/5xx with backoff.
+    _client = new Anthropic({ apiKey, timeout: 90_000, maxRetries: 2 });
   }
   return _client;
 }

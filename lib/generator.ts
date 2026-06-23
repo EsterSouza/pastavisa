@@ -805,6 +805,33 @@ function buildGuiaDocumentInventoryOoxml(
   );
 }
 
+/**
+ * Runs `worker` over `items` with at most `limit` promises in flight at once,
+ * preserving result order. Used to process a document's independent AI_ADAPT
+ * blocks in parallel — each block is a separate API call and they don't depend
+ * on each other, so serializing them (as the old code did) made heavy documents
+ * like the MBP/PGRSS take long enough to hit the serverless 504 timeout.
+ */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const runners = new Array(Math.min(Math.max(1, limit), items.length || 1))
+    .fill(null)
+    .map(async () => {
+      while (true) {
+        const current = next++;
+        if (current >= items.length) break;
+        results[current] = await worker(items[current], current);
+      }
+    });
+  await Promise.all(runners);
+  return results;
+}
+
 export async function gerarDocumento(
   templatePath: string,
   outputDir: string,
@@ -913,17 +940,64 @@ export async function gerarDocumento(
     try {
       const modelo = modelForType(processingType);
 
-      // Process blocks one at a time. Each iteration:
-      //  1. Read current XML from the zip (updated by the previous iteration).
-      //  2. Strip tags → plain text for reliable marker detection.
-      //  3. Extract the first AI_ADAPT block found.
-      //  4. Resolve {variables} inside the block before sending to AI.
-      //  5. Detect block type and call AI.
-      //  6. Replace the block in the XML and write back to the zip.
-      // Repeat until no more blocks remain.
-
       let safetyCounter = 0;
       const MAX_BLOCKS = 50; // prevent infinite loop on malformed templates
+
+      // ── Phase 1: enumerate the AI_ADAPT blocks that need a model call ───────
+      // We walk the (immutable) template XML in document order and resolve each
+      // block's instruction, applying the SAME skip rules as the apply loop
+      // below: degenerate blocks (<5 chars), Guia-inventory blocks (built
+      // without AI) and HEADER_ONLY documents never call the model. What's left
+      // is, in order, exactly the blocks the apply loop will consume results for.
+      const resolveInstruction = (raw: string): string => {
+        let instruction = raw.replace(/\s+/g, " ").trim();
+        for (const [k, v] of Object.entries(variaveis)) {
+          instruction = instruction.replaceAll(`{${k}}`, v || "");
+        }
+        return instruction;
+      };
+
+      const aiTasks: Array<{ instruction: string; blockType: ReturnType<typeof detectBlockType> }> = [];
+      {
+        const initialXml = zip.files[docXmlFile]?.asText() || "";
+        const initialPlain = initialXml.replace(/<[^>]+>/g, "");
+        const blockRegex = /\[AI_ADAPT_START\]([\s\S]*?)\[AI_ADAPT_END\]/g;
+        let match: RegExpExecArray | null;
+        let enumerated = 0;
+        while ((match = blockRegex.exec(initialPlain)) && enumerated < MAX_BLOCKS) {
+          enumerated++;
+          const instruction = resolveInstruction(match[1]);
+          if (instruction.length < 5) continue;
+          if (isGuiaDocumentInventoryInstruction(instruction, options.documentoNome)) continue;
+          if (processingType === "HEADER_ONLY") continue;
+          aiTasks.push({ instruction, blockType: detectBlockType(instruction) });
+        }
+      }
+
+      // ── Phase 2: run the model calls in parallel (bounded concurrency) ──────
+      // A failed call returns null → the apply loop removes that block cleanly,
+      // matching the old per-block try/catch behaviour.
+      if (aiTasks.length > 0) {
+        onProgress?.(`Gerando ${aiTasks.length} bloco(s) de IA em paralelo…`);
+      }
+      const aiResults = await mapWithConcurrency(
+        aiTasks,
+        5,
+        async (task): Promise<{ texto: string; tokensUsados: number } | null> => {
+          try {
+            return await processAdaptBlock(task.instruction, clienteData, task.blockType, modelo);
+          } catch {
+            return null;
+          }
+        }
+      );
+      let aiIdx = 0;
+
+      // ── Phase 3: apply results to the XML (no model calls here) ─────────────
+      // Each iteration locates the first remaining block, classifies it with the
+      // same rules used during enumeration, and either builds it deterministically
+      // (Guia inventory), strips it (degenerate / HEADER_ONLY / failed call) or
+      // injects the pre-computed model output.
 
       while (safetyCounter++ < MAX_BLOCKS) {
         const xmlContent = zip.files[docXmlFile]?.asText();
@@ -934,11 +1008,8 @@ export async function gerarDocumento(
         const blockMatch = /\[AI_ADAPT_START\]([\s\S]*?)\[AI_ADAPT_END\]/.exec(plainText);
         if (!blockMatch) break; // no more blocks
 
-        // Resolve {variables} inside the instruction before handing to AI
-        let instruction = blockMatch[1].replace(/\s+/g, " ").trim();
-        for (const [k, v] of Object.entries(variaveis)) {
-          instruction = instruction.replaceAll(`{${k}}`, v || "");
-        }
+        // Resolve {variables} inside the instruction (same resolution as enum)
+        const instruction = resolveInstruction(blockMatch[1]);
 
         if (instruction.length < 5) {
           // Degenerate/empty block — remove the entire block (paragraphs + markers)
@@ -956,7 +1027,7 @@ export async function gerarDocumento(
           blockType === "instruction" ? "instrução"
           : blockType === "table" ? "tabela"
           : "adaptação";
-        onProgress?.(`Bloco IA ${safetyCounter} — ${blockLabel}…`);
+        onProgress?.(`Aplicando bloco ${safetyCounter} — ${blockLabel}…`);
 
         try {
           if (processingType === "HEADER_ONLY" && !guiaInventoryBlock) {
@@ -977,12 +1048,14 @@ export async function gerarDocumento(
             continue;
           }
 
-          const { texto, tokensUsados } = await processAdaptBlock(
-            instruction,
-            clienteData,
-            blockType,
-            modelo
-          );
+          const aiResult = aiResults[aiIdx++];
+          if (!aiResult) {
+            // Model call failed during phase 2 — remove the block so no
+            // instruction text leaks into the final document.
+            zip.file(docXmlFile, replaceFirstAdaptBlockInXml(xmlContent, ""));
+            continue;
+          }
+          const { texto, tokensUsados } = aiResult;
           tokensTotal += tokensUsados;
 
           // ── "No additional content" sentinel + AI refusal detection ─────────

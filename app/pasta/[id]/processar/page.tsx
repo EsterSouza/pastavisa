@@ -679,38 +679,18 @@ export default function ProcessarPasta() {
     setGenerationStartedAt(Date.now());
     setCurrentDocName("");
 
+    // Generate one document at a time. Each document is isolated in its own
+    // try/catch so a failure on ONE document (e.g. a 504 timeout on a heavy
+    // MBP/PGRSS) never aborts the whole batch — the loop marks that document as
+    // "erro" and moves on to the next one. Previously a single non-JSON error
+    // response (Vercel's "An error occurred" 504 page) threw on res.json() and
+    // killed the entire run, leaving later documents ungenerated and the UI
+    // silent.
     try {
       for (const doc of docsSelecionados) {
         setCurrentDocName(doc.nomeArquivo);
-        // 1. Save template assignment
-        await fetch(`/api/pastas/${id}/documentos`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            docId: doc.id,
-            templateId: assignments[doc.id],
-            equipamentosSelecionados: JSON.stringify(equipmentOptionsOpen[doc.id] ? (equipmentAssignments[doc.id] || []) : []),
-          }),
-        });
 
-        // 2. Mark as processing (immediate UI feedback)
-        setDocs((prev) =>
-          prev.map((d) => d.id === doc.id ? { ...d, status: "processando" } : d)
-        );
-
-        // 3. Generate this document only
-        const res = await fetch("/api/gerar", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pastaId: id,
-            documentoIds: [doc.id],
-            legislacaoIds: selectedLeg,
-          }),
-        });
-
-        const result = await res.json();
-        const r = result.results?.[0] as {
+        let r: {
           id: string;
           status: string;
           error?: string;
@@ -719,15 +699,67 @@ export default function ProcessarPasta() {
           tokensUsados?: number;
           outputPath?: string;
         } | undefined;
+        let erroDoc: string | null = null;
 
-        // 4. Update this document's status and increment batch counter
+        try {
+          // 1. Save template assignment
+          await fetch(`/api/pastas/${id}/documentos`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              docId: doc.id,
+              templateId: assignments[doc.id],
+              equipamentosSelecionados: JSON.stringify(equipmentOptionsOpen[doc.id] ? (equipmentAssignments[doc.id] || []) : []),
+            }),
+          });
+
+          // 2. Mark as processing (immediate UI feedback)
+          setDocs((prev) =>
+            prev.map((d) => d.id === doc.id ? { ...d, status: "processando" } : d)
+          );
+
+          // 3. Generate this document only
+          const res = await fetch("/api/gerar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pastaId: id,
+              documentoIds: [doc.id],
+              legislacaoIds: selectedLeg,
+            }),
+          });
+
+          // 4. Parse the response defensively. On a gateway timeout the body is
+          //    an HTML/text error page, not JSON, so res.json() would throw.
+          const rawBody = await res.text();
+          let result: { results?: unknown[] } | null = null;
+          try {
+            result = rawBody ? JSON.parse(rawBody) : null;
+          } catch {
+            result = null;
+          }
+
+          if (!res.ok || !result) {
+            erroDoc = res.status === 504 || res.status === 502 || res.status === 408
+              ? "Tempo excedido ao gerar este documento (provavelmente muito extenso). Tente gerá-lo sozinho."
+              : `Falha na geração (HTTP ${res.status}).`;
+          } else {
+            r = result.results?.[0] as typeof r;
+            if (!r) erroDoc = "Resposta inválida do servidor.";
+          }
+        } catch (err) {
+          // Network error / fetch aborted — record and continue with next doc.
+          erroDoc = err instanceof Error ? err.message : "Erro de rede ao gerar o documento.";
+        }
+
+        // 5. Update this document's status and increment batch counter
         setDocs((prev) =>
           prev.map((d) =>
             d.id === doc.id
               ? {
                   ...d,
                   status:          r?.status ?? "erro",
-                  mensagemErro:    r?.error || null,
+                  mensagemErro:    r?.error ?? erroDoc ?? null,
                   avisoRtNoCorpo:  r?.avisoRt ?? d.avisoRtNoCorpo,
                   logoSubstituida: r?.logoSubstituida ?? d.logoSubstituida,
                   tokensUsados:    r?.tokensUsados ?? d.tokensUsados,
@@ -738,8 +770,6 @@ export default function ProcessarPasta() {
         );
         setBatchDone((n) => n + 1);
       }
-    } catch (err) {
-      console.error("[processar] erro na geraÃ§Ã£o:", err);
     } finally {
       // Always release the processing lock so the UI never freezes
       setProcessing(false);
