@@ -110,6 +110,7 @@ Campos relevantes:
 - Dados operacionais: `clienteEstrutura`, `clienteMemorialDescritivoMbp`, `clienteServicos`, `clienteFuncionarios`, `clienteEquipamentos`, `clienteProdutosInsumos`, `clienteTerceirizados`.
 - Residuos/coleta: `clienteColetaRazao`, `clienteColetaCnpj`, `clienteResiduosA`, `clienteResiduosD`, `clienteResiduosE`.
 - Arquivos: `formsPdfPath`, `documentosElaboracaoPath`, `clienteLogoPath`.
+- Logo: `clienteLogoBgHex` (hex da cor de fundo da caixa da logo no cabecalho; opcional).
 - Legislacoes selecionadas: `legislacaoIds` JSON string.
 
 Listas complexas sao salvas como JSON string.
@@ -725,25 +726,94 @@ Arquivos:
 - `app/api/pastas/[id]/documentos/route.ts`
 - `lib/generator.ts`
 
+### Sessao 2026-06-23 — timeout em lote grande, paralelizacao e logo
+
+Contexto do problema: ao gerar uma pasta grande (ex: 74 docs), um documento
+pesado (MBP/PGRSS/Plano de Seguranca = `SONNET_REQUIRED`) estourava o tempo da
+funcao na Vercel e retornava 504. O cliente fazia `res.json()` na pagina de erro
+(HTML, nao JSON), lancava `SyntaxError` e **abortava o lote inteiro** — os docs
+seguintes nao eram gerados e a tela nao acusava nada.
+
+Mudancas feitas (commits `687c97e` e `c7b88e6`):
+
+1. Resiliencia do lote — `app/pasta/[id]/processar/page.tsx`:
+   - Cada documento tem seu proprio try/catch dentro do loop; uma falha (504,
+     rede, JSON invalido) marca SO aquele doc como "erro" com mensagem e o lote
+     continua. Resposta lida via `res.text()` + `JSON.parse` defensivo (nao
+     quebra mais em pagina de erro). Mensagem de erro aparece no tooltip do doc.
+   - Pratica recomendada para pastas grandes: gerar em lotes menores (10-15).
+
+2. Paralelizacao dos blocos de IA — `lib/generator.ts`:
+   - Os blocos `[AI_ADAPT]` de UM documento agora rodam com concorrencia limitada
+     (`mapWithConcurrency`, 5 por vez) em vez de um a um. Reduz muito o tempo dos
+     docs pesados e evita o 504 na origem.
+   - NAO afeta qualidade: os blocos sempre foram independentes (`processAdaptBlock`
+     recebe so a instrucao do bloco + `clienteData`, nunca a saida de outro bloco).
+     A ordem de insercao no XML e preservada. Fases: (1) enumerar blocos que pedem
+     IA com as MESMAS regras de skip do loop, (2) rodar em paralelo, (3) aplicar no
+     XML consumindo os resultados em ordem.
+
+3. Cliente Anthropic com timeout/retry — `lib/ai.ts`:
+   - `new Anthropic({ apiKey, timeout: 90_000, maxRetries: 2 })`. Uma chamada
+     travada falha rapido e e re-tentada (429/5xx) em vez de segurar a funcao ate
+     o gateway matar com 504.
+
+4. Logo no tamanho maximo da celula — `lib/logo-replacer.ts` (`injectLogoVariable`):
+   - Antes a logo injetada via `{cliente_logo}` era limitada a 1,5 cm fixo no
+     cabecalho (celula real tem ~2,74 cm / 1555 twips), entao ficava pequena.
+   - Agora `findLogoCellWidthTwips` le a largura real da celula que contem o
+     placeholder e dimensiona a logo para preencher essa largura (inset ~8%),
+     mantendo proporcao, sem upscale alem do natural, com teto de altura
+     (`HEADER_MAX_HEIGHT_EMU` ~1,9 cm) pra nao crescer a linha da tabela.
+   - Todos os templates usam `{cliente_logo}` (placeholder), sem imagem "baked";
+     `replaceLogo`/`capHeaderLogoDimensions` praticamente nao atuam neles.
+
+5. Cor de fundo da caixa da logo (feature nova):
+   - Campo `clienteLogoBgHex` na `Pasta` (ambos schemas). Migracao
+     `prisma/migrations/20260623120000_add_cliente_logo_bg_hex/` + coluna aplicada
+     no Supabase de producao (`ADD COLUMN IF NOT EXISTS`).
+   - UI: seletor de cor + input hex na secao "Logo do cliente" de
+     `app/pasta/[id]/editar/page.tsx`. Salvo via PATCH (campo no whitelist
+     `PASTA_EDIT_FIELDS` em `app/api/pastas/[id]/route.ts`).
+   - `/api/gerar` passa `logoBgHex: pasta.clienteLogoBgHex` para `GeneratorOptions`.
+   - `applyLogoCellBackground` (em `logo-replacer.ts`) injeta
+     `<w:shd w:fill="RRGGBB">` no `<w:tcPr>` da celula da logo (apos
+     `</w:tcBorders>` para respeitar a ordem do schema CT_TcPr). Identifica a
+     celula pelo nome `logo_cliente` (imagem injetada) ou pelo placeholder.
+   - Calibragem: se a logo ficar alta/baixa demais, ajustar `HEADER_CELL_INSET` e
+     `HEADER_MAX_HEIGHT_EMU` em `injectLogoVariable`.
+
+Importante sobre deploy/banco:
+- A Vercel roda `prisma generate` (postinstall) mas NAO roda migracoes. Colunas
+  novas precisam ser aplicadas no Supabase manualmente (MCP `apply_migration`,
+  projeto `imywcumdngkzkeszvyxv`), senao producao da 500 no campo novo.
+- Aviso de seguranca pendente: as tabelas `hotmart_vendas` e `manychat_leads`
+  (mesmo projeto Supabase, nao fazem parte da PastaVISA) estao com RLS desativado.
+
 ## 23. Estado local observado em 2026-06-23
 
-Ao criar este resumo, o workspace tinha alteracoes locais nao relacionadas:
+Ja commitado e publicado na `main` (commits `687c97e`, `c7b88e6`): correcoes de
+geracao em lote, paralelizacao de blocos IA, timeout do cliente Anthropic, logo
+preenchendo a celula, campo `clienteLogoBgHex` + UI + migracao, `PASTAVISA_CONTEXT.md`
+e ignore de arquivos de cliente. Ver Secao 22 (sessao 2026-06-23).
+
+Ainda NAO commitado (de proposito, revisar antes):
 
 ```text
- M .env.example
- M app/pasta/[id]/processar/page.tsx
- M lib/ai.ts
- M lib/generator.ts
- M scripts/sync-local-templates-to-supabase.js
-?? Documentos em Elaboracao - Alzira Mesquita.docx
-?? FORMS ALZIRA.pdf
+ M .env.example                                  (add TEMPLATE_SOURCE_DIR)
+ M scripts/sync-local-templates-to-supabase.js   (OneDrive hardcoded — ajustar antes)
 ```
+
+Arquivos de cliente (`FORMS ALZIRA.pdf`, `Documentos em Elaboracao - Alzira Mesquita.docx`)
+agora estao bloqueados no `.gitignore` (`/*.pdf`, `/*.docx` na raiz) — dados sensiveis,
+nunca commitar.
 
 Cuidados:
 
-- Nao commitar arquivos de cliente (`FORMS ALZIRA.pdf`, `Documentos em Elaboracao - Alzira Mesquita.docx`) sem pedido explicito.
 - Nao reverter alteracoes locais sem verificar se sao do usuario/outro trabalho.
 - Antes de commit, usar `git diff -- <arquivos>` e stagear somente o escopo.
+- O caminho fixo do OneDrive em `sync-local-templates-to-supabase.js` deve virar
+  so `TEMPLATE_SOURCE_DIR` + fallback antes de commitar.
 
 ## 24. Onde mexer para tarefas comuns
 
