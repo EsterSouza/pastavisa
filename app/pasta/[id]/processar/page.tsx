@@ -194,6 +194,47 @@ function sugerirEquipamentosParaPop(doc: Documento, template: Template | null, e
   });
 }
 
+// â”€â”€â”€ Material groups (equipamentos / insumos / medicamentos / cosmeticos / saneantes) â”€
+// Equipamentos e produtos da tabela de insumos sao especificados em GRUPOS separados
+// no POP, porque as tabelas sao entregues separadas no documento de planejamento.
+const MATERIAL_GROUPS: Array<{ id: string; label: string }> = [
+  { id: "equipamento", label: "Equipamentos" },
+  { id: "insumo",      label: "Insumos" },
+  { id: "medicamento", label: "Medicamentos" },
+  { id: "cosmetico",   label: "Cosméticos" },
+  { id: "saneante",    label: "Saneantes" },
+  { id: "produto",     label: "Outros produtos" },
+];
+
+const MATERIAL_GROUP_LABEL: Record<string, string> = Object.fromEntries(
+  MATERIAL_GROUPS.map((g) => [g.id, g.label])
+);
+
+function classificarMaterialGroup(item: Equipamento): string {
+  if ((item.tipo || "equipamento") !== "insumo") return "equipamento";
+  const texto = normalizeForMatch([item.categoria, item.uso, item.nome].filter(Boolean).join(" "));
+  if (/medicament|farmac|injetav|vacina|anestes|antibiot|\bsoro\b/.test(texto)) return "medicamento";
+  if (/cosmet/.test(texto)) return "cosmetico";
+  if (/saneant|desinfet|germicid|detergent|\blimpeza\b/.test(texto)) return "saneante";
+  if (/insumo|descartav|seringa|agulha|\bgaze\b|\bluva|material|curativ/.test(texto)) return "insumo";
+  return "produto";
+}
+
+function buildMaterialGroups(
+  equipamentos: Equipamento[],
+  insumos: Equipamento[],
+): Array<{ id: string; label: string; itens: Equipamento[] }> {
+  const todos = [...equipamentos, ...insumos];
+  return MATERIAL_GROUPS
+    .map((g) => ({ id: g.id, label: g.label, itens: todos.filter((item) => classificarMaterialGroup(item) === g.id) }))
+    .filter((g) => g.itens.length > 0);
+}
+
+// Composite key so a single Record holds the open/closed state of every group per doc.
+function grupoAbertoKey(docId: string, groupId: string): string {
+  return `${docId}::${groupId}`;
+}
+
 // â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function formatDuration(seconds: number): string {
@@ -288,7 +329,9 @@ export default function ProcessarPasta() {
         normalized.forEach((d) => {
           const equipamentos = parseEquipamentos(d.equipamentosSelecionados);
           equipmentInit[d.id] = equipamentos;
-          equipmentOpenInit[d.id] = equipamentos.length > 0;
+          Array.from(new Set(equipamentos.map(classificarMaterialGroup))).forEach((groupId) => {
+            equipmentOpenInit[grupoAbertoKey(d.id, groupId)] = true;
+          });
         });
         setEquipmentAssignments(equipmentInit);
         setEquipmentOptionsOpen(equipmentOpenInit);
@@ -564,7 +607,6 @@ export default function ProcessarPasta() {
       setAssignments((prev) => ({ ...prev, [novoDoc.id]: template.id }));
       setSelectedDocs((prev) => new Set([...Array.from(prev), novoDoc.id]));
       setEquipmentAssignments((prev) => ({ ...prev, [novoDoc.id]: [] }));
-      setEquipmentOptionsOpen((prev) => ({ ...prev, [novoDoc.id]: false }));
       setTemplateAddSearch("");
       setDocumentActionMessage(`Documento "${novoDoc.nomeArquivo}" adicionado e selecionado para geracao.`);
     } catch (error) {
@@ -598,18 +640,30 @@ export default function ProcessarPasta() {
   function aplicarSugestaoEquipamentos(doc: Documento) {
     const template = templates.find((t) => t.id === assignments[doc.id]) || doc.template || null;
     const sugeridos = sugerirEquipamentosParaPop(doc, template, clienteEquipamentos);
-    setEquipmentAssignments((prev) => ({ ...prev, [doc.id]: sugeridos }));
-    salvarEquipamentosDoDoc(doc.id, sugeridos);
+    setEquipmentAssignments((prev) => {
+      // Replace only the "equipamento" group, preserving selections from other groups
+      // (insumos, medicamentos, cosmeticos...) so suggesting equipment never wipes them.
+      const atuais = (prev[doc.id] || []).filter((eq) => classificarMaterialGroup(eq) !== "equipamento");
+      const next = [...atuais, ...sugeridos];
+      salvarEquipamentosDoDoc(doc.id, next);
+      return { ...prev, [doc.id]: next };
+    });
   }
 
-  function limparEquipamentosDoc(docId: string) {
-    setEquipmentAssignments((prev) => ({ ...prev, [docId]: [] }));
-    salvarEquipamentosDoDoc(docId, []);
+  // Remove every item belonging to a group from the doc's selection.
+  function limparGrupoMateriais(docId: string, itensDoGrupo: Equipamento[]) {
+    const remover = new Set(itensDoGrupo.map(equipamentoKey));
+    setEquipmentAssignments((prev) => {
+      const atuais = prev[docId] || [];
+      const next = atuais.filter((eq) => !remover.has(equipamentoKey(eq)));
+      salvarEquipamentosDoDoc(docId, next);
+      return { ...prev, [docId]: next };
+    });
   }
 
-  function toggleEquipamentosPop(doc: Documento, enabled: boolean) {
-    setEquipmentOptionsOpen((prev) => ({ ...prev, [doc.id]: enabled }));
-    if (!enabled) limparEquipamentosDoc(doc.id);
+  function toggleMaterialGroup(doc: Documento, groupId: string, itensDoGrupo: Equipamento[], enabled: boolean) {
+    setEquipmentOptionsOpen((prev) => ({ ...prev, [grupoAbertoKey(doc.id, groupId)]: enabled }));
+    if (!enabled) limparGrupoMateriais(doc.id, itensDoGrupo);
   }
 
   // â”€â”€ Generation â€” one document at a time for real-time progress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -648,7 +702,9 @@ export default function ProcessarPasta() {
       normalized.forEach((doc) => {
         const equipamentos = parseEquipamentos(doc.equipamentosSelecionados);
         nextEquipment[doc.id] = equipamentos;
-        nextEquipmentOpen[doc.id] = equipamentos.length > 0;
+        Array.from(new Set(equipamentos.map(classificarMaterialGroup))).forEach((groupId) => {
+          nextEquipmentOpen[grupoAbertoKey(doc.id, groupId)] = true;
+        });
       });
       setEquipmentAssignments(nextEquipment);
       setEquipmentOptionsOpen(nextEquipmentOpen);
@@ -709,7 +765,7 @@ export default function ProcessarPasta() {
             body: JSON.stringify({
               docId: doc.id,
               templateId: assignments[doc.id],
-              equipamentosSelecionados: JSON.stringify(equipmentOptionsOpen[doc.id] ? (equipmentAssignments[doc.id] || []) : []),
+              equipamentosSelecionados: JSON.stringify(equipmentAssignments[doc.id] || []),
             }),
           });
 
@@ -939,8 +995,8 @@ export default function ProcessarPasta() {
             const isPop = isPopDocumento(doc, assignments, templates);
             const equipamentosDoc = equipmentAssignments[doc.id] || [];
             const equipamentosDocKeys = new Set(equipamentosDoc.map(equipamentoKey));
-            const equipamentosAbertos = !!equipmentOptionsOpen[doc.id];
             const insumosMateriais = clienteProdutosInsumos.map(produtoInsumoToMaterial);
+            const materialGroups = buildMaterialGroups(clienteEquipamentos, insumosMateriais);
 
             return (
               <li key={doc.id} className="px-5 py-3 flex flex-col gap-2">
@@ -1051,79 +1107,76 @@ export default function ProcessarPasta() {
                   </div>
                 )}
 
-                {isPop && (clienteEquipamentos.length > 0 || insumosMateriais.length > 0) && (
-                  <div className="ml-11">
-                    <label className="inline-flex items-center gap-2 text-xs text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={equipamentosAbertos}
-                        disabled={processing}
-                        onChange={(e) => toggleEquipamentosPop(doc, e.target.checked)}
-                        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 disabled:opacity-50"
-                      />
-                      <span>Especificar equipamentos neste POP</span>
-                      {equipamentosDoc.length > 0 && (
-                        <span className="text-slate-400">({equipamentosDoc.length})</span>
-                      )}
-                    </label>
+                {isPop && materialGroups.length > 0 && (
+                  <div className="ml-11 flex flex-col gap-2">
+                    {materialGroups.map((grupo) => {
+                      const grupoItensKeys = new Set(grupo.itens.map(equipamentoKey));
+                      const selecionadosNoGrupo = equipamentosDoc.filter((eq) => grupoItensKeys.has(equipamentoKey(eq)));
+                      const grupoAberto = !!equipmentOptionsOpen[grupoAbertoKey(doc.id, grupo.id)];
+                      const labelLower = (MATERIAL_GROUP_LABEL[grupo.id] || grupo.label).toLowerCase();
+                      return (
+                        <div key={grupo.id}>
+                          <label className="inline-flex items-center gap-2 text-xs text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={grupoAberto}
+                              disabled={processing}
+                              onChange={(e) => toggleMaterialGroup(doc, grupo.id, grupo.itens, e.target.checked)}
+                              className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 disabled:opacity-50"
+                            />
+                            <span>Especificar {labelLower} neste POP</span>
+                            {selecionadosNoGrupo.length > 0 && (
+                              <span className="text-slate-400">({selecionadosNoGrupo.length})</span>
+                            )}
+                          </label>
 
-                    {equipamentosAbertos && (
-                      <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                        <div className="mb-2 flex items-center justify-between gap-3">
-                          <p className="text-xs font-semibold text-slate-700">Equipamentos e insumos na seÃ§Ã£o de materiais</p>
-                          <div className="flex gap-2 text-xs">
-                            <button
-                              type="button"
-                              onClick={() => aplicarSugestaoEquipamentos(doc)}
-                              disabled={processing || !templateAtual}
-                              className="text-blue-600 hover:underline disabled:text-gray-400 disabled:no-underline"
-                            >
-                              Sugerir
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => limparEquipamentosDoc(doc.id)}
-                              disabled={processing || equipamentosDoc.length === 0}
-                              className="text-gray-500 hover:underline disabled:text-gray-400 disabled:no-underline"
-                            >
-                              Limpar
-                            </button>
-                          </div>
+                          {grupoAberto && (
+                            <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                              <div className="mb-2 flex items-center justify-between gap-3">
+                                <p className="text-xs font-semibold text-slate-700">{grupo.label} na seção de materiais</p>
+                                <div className="flex gap-2 text-xs">
+                                  {grupo.id === "equipamento" && (
+                                    <button
+                                      type="button"
+                                      onClick={() => aplicarSugestaoEquipamentos(doc)}
+                                      disabled={processing || !templateAtual}
+                                      className="text-blue-600 hover:underline disabled:text-gray-400 disabled:no-underline"
+                                    >
+                                      Sugerir
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => limparGrupoMateriais(doc.id, grupo.itens)}
+                                    disabled={processing || selecionadosNoGrupo.length === 0}
+                                    className="text-gray-500 hover:underline disabled:text-gray-400 disabled:no-underline"
+                                  >
+                                    Limpar
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="grid gap-1.5 sm:grid-cols-2">
+                                {grupo.itens.map((item) => {
+                                  const key = equipamentoKey(item);
+                                  return (
+                                    <label key={key} className="flex items-start gap-2 text-xs text-slate-700">
+                                      <input
+                                        type="checkbox"
+                                        checked={equipamentosDocKeys.has(key)}
+                                        disabled={processing}
+                                        onChange={() => toggleEquipamentoDoc(doc.id, item)}
+                                        className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-blue-600 disabled:opacity-50"
+                                      />
+                                      <span>{equipamentoLabel(item)}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div className="grid gap-1.5 sm:grid-cols-2">
-                          {clienteEquipamentos.map((eq) => {
-                            const key = equipamentoKey(eq);
-                            return (
-                              <label key={key} className="flex items-start gap-2 text-xs text-slate-700">
-                                <input
-                                  type="checkbox"
-                                  checked={equipamentosDocKeys.has(key)}
-                                  disabled={processing}
-                                  onChange={() => toggleEquipamentoDoc(doc.id, eq)}
-                                  className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-blue-600 disabled:opacity-50"
-                                />
-                                <span>{equipamentoLabel(eq)}</span>
-                              </label>
-                            );
-                          })}
-                          {insumosMateriais.map((insumo) => {
-                            const key = equipamentoKey(insumo);
-                            return (
-                              <label key={key} className="flex items-start gap-2 text-xs text-slate-700">
-                                <input
-                                  type="checkbox"
-                                  checked={equipamentosDocKeys.has(key)}
-                                  disabled={processing}
-                                  onChange={() => toggleEquipamentoDoc(doc.id, insumo)}
-                                  className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-blue-600 disabled:opacity-50"
-                                />
-                                <span>{equipamentoLabel(insumo)}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })}
                   </div>
                 )}
               </li>
