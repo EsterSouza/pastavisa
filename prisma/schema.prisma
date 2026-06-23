@@ -28,6 +28,7 @@ model Pasta {
   clienteRtConselho        String?
   clienteResponsaveisTecnicos String?
   clienteLogoPath          String?
+  clienteLogoBgHex         String?
   clienteEstrutura         String?
   clienteMemorialDescritivoMbp String?
   clienteServicos          String?

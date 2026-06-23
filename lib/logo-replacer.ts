@@ -23,6 +23,27 @@ function findXmlFilesWithLogoVar(zip: PizZip): string[] {
 }
 
 /**
+ * Finds the width (in twips) of the table cell that contains the
+ * `{cliente_logo}` placeholder, so the injected logo can be sized to fill that
+ * cell instead of a fixed cap. Returns null when the placeholder is not inside
+ * a table cell (e.g. used in the body), in which case the caller falls back to
+ * the default caps.
+ *
+ * The non-greedy `<w:tc>…</w:tc>` match is safe here because the logo cells in
+ * these templates are simple (no nested tables).
+ */
+function findLogoCellWidthTwips(xml: string): number | null {
+  const cells = xml.match(/<w:tc[ >][\s\S]*?<\/w:tc>/g) || [];
+  for (const cell of cells) {
+    if (cell.replace(/<[^>]+>/g, "").includes("{cliente_logo}")) {
+      const match = cell.match(/<w:tcW\s+w:w="(\d+)"/);
+      if (match) return parseInt(match[1], 10);
+    }
+  }
+  return null;
+}
+
+/**
  * Returns the next available rId number for the given rels file.
  */
 function nextRid(relsXml: string): number {
@@ -106,20 +127,37 @@ export async function injectLogoVariable(
   ensureContentTypeDefault(zip, ext);
 
   // ── Base EMU dimensions (at natural pixel size, 100 DPI) ─────────────────
-  // EMU cap differs by location: headers must stay small (1.5 cm), body
-  // can be larger (5 cm).  capHeaderLogoDimensions patches EXISTING images in
-  // headers; this cap handles logos injected fresh via {cliente_logo}.
   const baseWidthEmu  = imgWidth  * 9144;
   const baseHeightEmu = imgHeight * 9144;
 
+  // 1 twip = 635 EMU. Header logos are sized to fill the width of their table
+  // cell (minus a small inset so they don't touch the borders), with a height
+  // cap so portrait logos don't blow the header up. The aspect ratio is always
+  // preserved and the image is never upscaled past its natural size.
+  const TWIP_TO_EMU = 635;
+  const HEADER_CELL_INSET = 0.92;       // ~8% inset from the cell borders
+  const HEADER_MAX_HEIGHT_EMU = 684_000; // ~1.9 cm — keeps the header row from growing
+
   // ── Process each XML file that contains the variable ─────────────────────
   for (const xmlFile of xmlFiles) {
-    // Per-file EMU cap: headers → 1.5 cm, body → 5 cm
     const isHeaderXml = /^word\/header/i.test(xmlFile);
-    const maxWidthEmu = isHeaderXml ? 540_000 : 1_800_000;
-    const scaleRatio  = Math.min(1, maxWidthEmu / baseWidthEmu);
-    const widthEmu    = Math.round(baseWidthEmu  * scaleRatio);
-    const heightEmu   = Math.round(baseHeightEmu * scaleRatio);
+    const fileXml = zip.files[xmlFile]?.asText() ?? "";
+
+    // Fit the logo to the actual cell width when possible (fills the header
+    // box); fall back to the previous fixed caps otherwise (1.5 cm header / 5 cm body).
+    const cellWidthTwips = isHeaderXml ? findLogoCellWidthTwips(fileXml) : null;
+    const maxWidthEmu = cellWidthTwips
+      ? Math.round(cellWidthTwips * TWIP_TO_EMU * HEADER_CELL_INSET)
+      : (isHeaderXml ? 540_000 : 1_800_000);
+    const maxHeightEmu = isHeaderXml ? HEADER_MAX_HEIGHT_EMU : 3_600_000;
+
+    const scaleRatio = Math.min(
+      1,
+      maxWidthEmu / baseWidthEmu,
+      maxHeightEmu / baseHeightEmu
+    );
+    const widthEmu  = Math.round(baseWidthEmu  * scaleRatio);
+    const heightEmu = Math.round(baseHeightEmu * scaleRatio);
 
     const relsPath = relsPathFor(xmlFile);
 
@@ -362,4 +400,86 @@ export async function replaceLogo(zip: PizZip, logoPath: string): Promise<boolea
   await capHeaderLogoDimensions(zip, logoBuffer);
 
   return true;
+}
+
+// ─── Logo cell background color ───────────────────────────────────────────────
+
+/**
+ * Normalizes a user-supplied color to a 6-digit uppercase hex (no leading #).
+ * Accepts "#abc", "abc", "#AABBCC", "aabbcc". Returns null when invalid.
+ */
+function normalizeHexColor(value?: string | null): string | null {
+  if (!value) return null;
+  let v = value.trim().replace(/^#/, "");
+  if (/^[0-9a-fA-F]{3}$/.test(v)) {
+    v = v.split("").map((c) => c + c).join("");
+  }
+  return /^[0-9a-fA-F]{6}$/.test(v) ? v.toUpperCase() : null;
+}
+
+/**
+ * Inserts (or replaces) a `<w:shd>` cell-shading element inside a single
+ * `<w:tc>` block, respecting the CT_TcPr child order required by the OOXML
+ * schema (shd must come right after tcBorders / vMerge / tcW). Word rejects
+ * out-of-order children as "conteúdo ilegível", so the anchor matters.
+ */
+function setCellShading(cell: string, fill: string): string {
+  const shd = `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`;
+
+  // Drop any existing shading first (both self-closing and paired forms).
+  const next = cell
+    .replace(/<w:shd\b[^>]*\/>/g, "")
+    .replace(/<w:shd\b[^>]*>[\s\S]*?<\/w:shd>/g, "");
+
+  if (/<w:tcPr\b/.test(next)) {
+    if (/<\/w:tcBorders>/.test(next)) {
+      return next.replace(/<\/w:tcBorders>/, `</w:tcBorders>${shd}`);
+    }
+    if (/<w:vMerge\b[^>]*\/>/.test(next)) {
+      return next.replace(/(<w:vMerge\b[^>]*\/>)/, `$1${shd}`);
+    }
+    if (/<w:tcW\b[^>]*\/>/.test(next)) {
+      return next.replace(/(<w:tcW\b[^>]*\/>)/, `$1${shd}`);
+    }
+    return next.replace(/<w:tcPr\b[^>]*>/, (m) => `${m}${shd}`);
+  }
+
+  // Cell has no <w:tcPr> — add a minimal one right after the opening tag.
+  return next.replace(/(<w:tc(?:\s[^>]*)?>)/, `$1<w:tcPr>${shd}</w:tcPr>`);
+}
+
+/**
+ * Paints the background of the header table cell that holds the client logo
+ * with the given hex color, across every Word XML file (headers + body).
+ *
+ * The logo cell is identified by the injected image name `logo_cliente` (set by
+ * injectLogoVariable) or by the still-present `{cliente_logo}` placeholder, so
+ * this works whether or not a logo image was actually injected.
+ *
+ * No-op when the color is empty/invalid.
+ */
+export function applyLogoCellBackground(zip: PizZip, logoBgHex?: string | null): void {
+  const fill = normalizeHexColor(logoBgHex);
+  if (!fill) return;
+
+  const xmlFiles = Object.keys(zip.files).filter(
+    (name) => name.startsWith("word/") && name.endsWith(".xml")
+  );
+
+  for (const name of xmlFiles) {
+    let xml: string;
+    try {
+      xml = zip.files[name].asText();
+    } catch {
+      continue;
+    }
+    if (!xml.includes("logo_cliente") && !xml.includes("{cliente_logo}")) continue;
+
+    const updated = xml.replace(/<w:tc(?:\s[^>]*)?>[\s\S]*?<\/w:tc>/g, (cell) => {
+      const isLogoCell = cell.includes("logo_cliente") || cell.includes("{cliente_logo}");
+      return isLogoCell ? setCellShading(cell, fill) : cell;
+    });
+
+    if (updated !== xml) zip.file(name, updated);
+  }
 }

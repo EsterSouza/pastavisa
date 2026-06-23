@@ -2,7 +2,7 @@ import path from "path";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import { ClienteData, detectBlockType, processAdaptBlock } from "./ai";
-import { replaceLogo, injectLogoVariable } from "./logo-replacer";
+import { replaceLogo, injectLogoVariable, applyLogoCellBackground } from "./logo-replacer";
 import { textToOoxmlParagraphs, sanitizeXmlFromMarkdown } from "./text-to-ooxml";
 import { ProcessingType, modelForType } from "./classifier";
 import { assertValidDocxBuffer } from "./docx-validator";
@@ -581,6 +581,7 @@ export interface DocumentoGuiaItem {
 export interface GeneratorOptions {
   processingType?: ProcessingType;
   logoPath?: string | null;
+  logoBgHex?: string | null;
   criadaEm?: Date;
   documentosListados?: string;
   documentosDaPasta?: DocumentoGuiaItem[];
@@ -1132,6 +1133,13 @@ export async function gerarDocumento(
   // available the variaveis fallback ("") will clear the placeholder.
   if (resolvedLogoPath) {
     await injectLogoVariable(zip, resolvedLogoPath);
+  }
+
+  // ── Paint the logo cell background (header "caixinha") ────────────────────
+  // Runs after logo injection so it can target the cell that now holds the
+  // image. No-op when no color was set for the folder.
+  if (options.logoBgHex) {
+    applyLogoCellBackground(zip, options.logoBgHex);
   }
 
   // ── Strip any remaining {%...} tags (legacy templates) ───────────────────

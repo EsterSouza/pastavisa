@@ -34,6 +34,10 @@ yarn-error.log*
 # local templates/source assets
 /TODOS_OS_TEMPLATES_PastaVISA/
 
+# client data / test files dropped in the repo root (never commit — sensitive)
+/*.pdf
+/*.docx
+
 # local app data and backups
 /backups/
 /dev.db

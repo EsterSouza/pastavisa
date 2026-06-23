@@ -22,6 +22,7 @@ const PASTA_EDIT_FIELDS = [
   "clienteRtProfissao",
   "clienteRtConselho",
   "clienteResponsaveisTecnicos",
+  "clienteLogoBgHex",
   "clienteEstrutura",
   "clienteMemorialDescritivoMbp",
   "clienteServicos",

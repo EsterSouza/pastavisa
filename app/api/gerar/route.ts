@@ -177,6 +177,7 @@ export async function POST(req: NextRequest) {
         {
           processingType: (doc.template.processingType as ProcessingType) || "LIGHT_HAIKU",
           logoPath: pasta.clienteLogoPath,
+          logoBgHex: pasta.clienteLogoBgHex,
           criadaEm: pasta.criadaEm,
           documentosListados,
           documentosDaPasta,

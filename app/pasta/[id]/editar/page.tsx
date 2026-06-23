@@ -37,6 +37,7 @@ interface FormData {
   clienteResiduosA: string;
   clienteResiduosD: string;
   clienteResiduosE: string;
+  clienteLogoBgHex: string;
   clienteInfoAdicionais: string;
   docElaborador: string;
   docMesExtenso: string;
@@ -113,6 +114,7 @@ export default function EditarPasta() {
           clienteResiduosA: pasta.clienteResiduosA || "",
           clienteResiduosD: pasta.clienteResiduosD || "",
           clienteResiduosE: pasta.clienteResiduosE || "",
+          clienteLogoBgHex: pasta.clienteLogoBgHex || "",
           clienteInfoAdicionais: pasta.clienteInfoAdicionais || "",
           docElaborador: pasta.docElaborador || "",
           docMesExtenso: pasta.docMesExtenso || "",
@@ -570,6 +572,39 @@ export default function EditarPasta() {
           <input type="file" accept=".png,.jpg,.jpeg"
             onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
             className="block text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Cor de fundo da logo no cabeçalho (opcional)
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              Pinta o quadrado atrás da logo, no cabeçalho de todos os documentos. Use o seletor ou cole o código hex (ex.: #1B4332). Deixe em branco para manter o fundo do template.
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={/^#?[0-9a-fA-F]{6}$/.test(form.clienteLogoBgHex.trim())
+                  ? (form.clienteLogoBgHex.trim().startsWith("#") ? form.clienteLogoBgHex.trim() : `#${form.clienteLogoBgHex.trim()}`)
+                  : "#1b4332"}
+                onChange={(e) => set("clienteLogoBgHex", e.target.value)}
+                className="h-10 w-14 cursor-pointer rounded border border-gray-300 bg-white p-1"
+                aria-label="Seletor de cor de fundo da logo"
+              />
+              <input
+                type="text"
+                value={form.clienteLogoBgHex}
+                onChange={(e) => set("clienteLogoBgHex", e.target.value)}
+                placeholder="#1B4332"
+                className="w-44 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+              />
+              {form.clienteLogoBgHex.trim() && (
+                <button type="button" onClick={() => set("clienteLogoBgHex", "")}
+                  className="text-xs text-gray-500 hover:underline">
+                  Limpar
+                </button>
+              )}
+            </div>
+          </div>
         </section>
 
         {/* Informações adicionais */}
