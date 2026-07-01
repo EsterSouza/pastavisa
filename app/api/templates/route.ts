@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { detectProcessingType } from "@/lib/classifier";
+import { countAiAdaptBlocks } from "@/lib/ai-adapt-blocks";
 import { safeStorageFileName, saveStorageBuffer } from "@/lib/file-storage";
 
 export const runtime = "nodejs";
@@ -30,16 +31,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
     }
 
+    const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = safeStorageFileName(`${Date.now()}_${file.name}`);
     const filePath = await saveStorageBuffer(
       "templates",
       fileName,
-      Buffer.from(await file.arrayBuffer()),
+      buffer,
       file.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     );
 
+    // A template with zero [AI_ADAPT_START] blocks never calls the AI model
+    // regardless of its label (see lib/generator.ts) — force it to HEADER_ONLY
+    // so the cost/effort badge shown to the user matches reality. Never
+    // auto-upgrade/downgrade among the other levels: that depends on content
+    // judgement the name-based guess or the user's manual pick already covers.
+    const blockCount = countAiAdaptBlocks(buffer);
+    const finalProcessingType = blockCount === 0 ? "HEADER_ONLY" : processingType;
+
     const template = await prisma.template.create({
-      data: { nome, tipo, padraoHeader, processingType, arquivoPath: filePath },
+      data: { nome, tipo, padraoHeader, processingType: finalProcessingType, arquivoPath: filePath },
     });
 
     return NextResponse.json(template, { status: 201 });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { detectProcessingType } from "@/lib/classifier";
+import { countAiAdaptBlocks } from "@/lib/ai-adapt-blocks";
 import { safeStorageFileName, saveStorageBuffer } from "@/lib/file-storage";
 import { validateTemplateBuffer } from "@/lib/template-validator";
 import { snapshotTemplateVersion } from "@/lib/template-versions";
@@ -86,7 +87,11 @@ export async function POST(req: NextRequest) {
       const buffer = Buffer.from(await file.arrayBuffer());
       const report = validateTemplateBuffer(buffer);
       const meta = inferMeta(file.name);
-      const processingType = detectProcessingType(file.name);
+      // A template with zero [AI_ADAPT_START] blocks never calls the AI model
+      // regardless of its label (see lib/generator.ts) — force it to HEADER_ONLY
+      // so the cost/effort badge shown to the user matches reality.
+      const blockCount = countAiAdaptBlocks(buffer);
+      const processingType = blockCount === 0 ? "HEADER_ONLY" : detectProcessingType(file.name);
       const fileName = safeStorageFileName(`${Date.now()}_${file.name}`);
       const arquivoPath = await saveStorageBuffer(
         "templates",

@@ -128,6 +128,7 @@ export default function Templates() {
   const [bulkFiles, setBulkFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [recalculando, setRecalculando] = useState(false);
   const [error, setError] = useState("");
   const [importMsg, setImportMsg] = useState("");
   const [importResults, setImportResults] = useState<Array<{
@@ -178,6 +179,29 @@ export default function Templates() {
   }
 
   useEffect(() => { load(); }, []);
+
+  async function handleRecalcularTipo() {
+    setRecalculando(true);
+    setError("");
+    setImportMsg("");
+    try {
+      const res = await fetch("/api/templates/recalcular-tipo", { method: "POST" });
+      const data = await readJsonResponse<{ verificados: number; corrigidos: string[]; semAcesso: string[] }>(
+        res,
+        "Erro ao recalcular tipo de IA"
+      );
+      setImportMsg(
+        data.corrigidos.length > 0
+          ? `${data.corrigidos.length} de ${data.verificados} template(s) corrigido(s) para "Sem IA" (não tinham bloco de IA): ${data.corrigidos.join(", ")}.`
+          : `Nenhuma correção necessária — todos os ${data.verificados} templates verificados já estão com o tipo de IA correto.`
+      );
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao recalcular tipo de IA");
+    } finally {
+      setRecalculando(false);
+    }
+  }
 
   function handleFileChange(f: File | null) {
     setFile(f);
@@ -462,6 +486,15 @@ export default function Templates() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Templates</h1>
+        <button
+          type="button"
+          onClick={() => { void handleRecalcularTipo(); }}
+          disabled={recalculando}
+          title="Verifica todos os templates e corrige para 'Sem IA' aqueles que não têm nenhum bloco de IA, mesmo que o nome sugira um documento complexo."
+          className="border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-50"
+        >
+          {recalculando ? "Verificando..." : "Recalcular tipo de IA"}
+        </button>
       </div>
 
       {importMsg && (

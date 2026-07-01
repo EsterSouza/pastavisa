@@ -86,11 +86,17 @@ const STATUS_COLOR: Record<string, string> = {
 // Blended estimate: ~70% input, 30% output â€” Haiku-dominant workloads.
 // Haiku:  $0.80/M input + $4.00/M output â†’ blended â‰ˆ $1.76/M
 // We use $2.00/M as a conservative upper bound.
+// Each doc is billed at the rate of the model its template actually uses
+// (see lib/classifier.ts modelForType) — mixing every doc into a single
+// Haiku-only rate was underestimating spend on SONNET_REQUIRED documents
+// (POP, TCLE, MBP, PGRSS...) by several times.
+// Haiku:  $0.80/M input + $4.00/M output  -> blended ~= $1.76/M -> use $2.00/M
+// Sonnet: $3.00/M input + $15.00/M output -> blended ~= $6.60/M -> use $7.00/M
 const USD_PER_TOKEN = 2.0 / 1_000_000;
+const USD_PER_TOKEN_SONNET = 7.0 / 1_000_000;
 const BRL_PER_USD   = 5.80; // approximate fixed rate
 
-function formatCost(tokens: number): { usd: string; brl: string } {
-  const usd = tokens * USD_PER_TOKEN;
+function formatCost(usd: number): { usd: string; brl: string } {
   const brl = usd * BRL_PER_USD;
   return {
     usd: usd < 0.01 ? `< US$ 0,01` : `~US$ ${usd.toFixed(2).replace(".", ",")}`,
@@ -716,8 +722,8 @@ export default function ProcessarPasta() {
     }
   }
 
-  async function handleGerar(ignorarJaGerados = false) {
-    const docsSelecionados = docs.filter((d) => selectedDocs.has(d.id) && assignments[d.id]);
+  async function handleGerar(ignorarJaGerados = false, docsOverride?: Documento[]) {
+    const docsSelecionados = docsOverride ?? docs.filter((d) => selectedDocs.has(d.id) && assignments[d.id]);
 
     if (!ignorarJaGerados) {
       const jaGeradosNomes = docsSelecionados
@@ -775,20 +781,32 @@ export default function ProcessarPasta() {
             prev.map((d) => d.id === doc.id ? { ...d, status: "processando" } : d)
           );
 
-          // 3. Generate this document only
-          const res = await fetch("/api/gerar", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              pastaId: id,
-              documentoIds: [doc.id],
-              legislacaoIds: selectedLeg,
-            }),
-          });
+          // 3. Generate this document, with one automatic retry on transient
+          //    gateway errors (502/503/504/408) — these are infra hiccups,
+          //    not content problems, and recover on their own most of the
+          //    time without needing the operator to notice and re-run it.
+          const TRANSIENT_STATUS = [502, 503, 504, 408];
+          let res: Response;
+          let rawBody: string;
+          let attempt = 0;
+          while (true) {
+            res = await fetch("/api/gerar", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                pastaId: id,
+                documentoIds: [doc.id],
+                legislacaoIds: selectedLeg,
+              }),
+            });
+            rawBody = await res.text();
+            if (res.ok || !TRANSIENT_STATUS.includes(res.status) || attempt >= 1) break;
+            attempt++;
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+          }
 
           // 4. Parse the response defensively. On a gateway timeout the body is
           //    an HTML/text error page, not JSON, so res.json() would throw.
-          const rawBody = await res.text();
           let result: { results?: unknown[] } | null = null;
           try {
             result = rawBody ? JSON.parse(rawBody) : null;
@@ -797,8 +815,8 @@ export default function ProcessarPasta() {
           }
 
           if (!res.ok || !result) {
-            erroDoc = res.status === 504 || res.status === 502 || res.status === 408
-              ? "Tempo excedido ao gerar este documento (provavelmente muito extenso). Tente gerá-lo sozinho."
+            erroDoc = TRANSIENT_STATUS.includes(res.status)
+              ? `Tempo excedido ao gerar este documento${attempt > 0 ? " mesmo após nova tentativa" : ""} (provavelmente muito extenso). Tente gerá-lo sozinho.`
               : `Falha na geração (HTTP ${res.status}).`;
           } else {
             r = result.results?.[0] as typeof r;
@@ -833,6 +851,13 @@ export default function ProcessarPasta() {
       setCurrentDocName("");
       setDone(true);
     }
+  }
+
+  function regenerarComErro() {
+    const comErro = docs.filter((d) => d.status === "erro" && assignments[d.id]);
+    if (comErro.length === 0) return;
+    setSelectedDocs(new Set(comErro.map((d) => d.id)));
+    void handleGerar(true, comErro);
   }
 
   // â”€â”€ Derived values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -875,7 +900,13 @@ export default function ProcessarPasta() {
     .slice(0, 8);
   const prontoParaGerar = docs.filter((d) => selectedDocs.has(d.id) && assignments[d.id]).length;
   const totalTokens  = docs.reduce((s, d) => s + (d.tokensUsados ?? 0), 0);
-  const custo        = formatCost(totalTokens);
+  const custoUsd = docs.reduce((sum, d) => {
+    const tokens = d.tokensUsados ?? 0;
+    if (tokens === 0) return sum;
+    const rate = d.template?.processingType === "SONNET_REQUIRED" ? USD_PER_TOKEN_SONNET : USD_PER_TOKEN;
+    return sum + tokens * rate;
+  }, 0);
+  const custo        = formatCost(custoUsd);
   const lotePercent = batchTotal > 0 ? Math.round((batchDone / batchTotal) * 100) : 0;
   const elapsedSeconds = generationStartedAt ? Math.max(0, Math.round((now - generationStartedAt) / 1000)) : 0;
   const averageSeconds = batchDone > 0 ? elapsedSeconds / batchDone : 0;
@@ -1348,6 +1379,22 @@ export default function ProcessarPasta() {
               <span>Restante: <strong className="text-gray-800">{remainingSeconds === null ? "calculando..." : formatDuration(remainingSeconds)}</strong></span>
             </div>
           )}
+          {!processing && done && batchTotal > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-600">
+              <span>
+                Tempo de execução: <strong className="text-gray-800">{formatDuration(elapsedSeconds)}</strong> para {batchTotal} documento{batchTotal !== 1 ? "s" : ""}
+              </span>
+              {erros > 0 && (
+                <button
+                  type="button"
+                  onClick={regenerarComErro}
+                  className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
+                >
+                  Regerar {erros} com erro
+                </button>
+              )}
+            </div>
+          )}
           {!processing && concluidos < total && (
             <p className="text-xs text-amber-700">
               Ainda há {total - concluidos} documento{total - concluidos !== 1 ? "s" : ""} pendente{total - concluidos !== 1 ? "s" : ""}. Selecione pendentes/erros para continuar.
@@ -1378,7 +1425,7 @@ export default function ProcessarPasta() {
               <span className="font-medium text-blue-700">{custo.usd}</span>
               <span className="text-gray-300">·</span>
               <span className="font-medium text-green-700">{custo.brl}</span>
-              <span className="text-gray-400 ml-auto">(estimativa - taxa blended Haiku)</span>
+              <span className="text-gray-400 ml-auto">(estimativa - Haiku ou Sonnet conforme o template)</span>
             </div>
           )}
         </div>
