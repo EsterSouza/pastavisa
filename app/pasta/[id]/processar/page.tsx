@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
+import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import { findBestTemplateMatch } from "@/lib/template-matcher";
 
 interface Documento {
@@ -885,7 +886,19 @@ export default function ProcessarPasta() {
   // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Gerar documentos</h1>
+      <ScrollToTopButton />
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-gray-900">Gerar documentos</h1>
+        <button
+          onClick={() => { void handleGerar(); }}
+          disabled={processing || prontoParaGerar === 0}
+          className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {processing
+            ? `Gerando... ${batchDone}/${batchTotal}`
+            : `Gerar ${prontoParaGerar} documento${prontoParaGerar !== 1 ? "s" : ""}`}
+        </button>
+      </div>
 
       {regenerarAposEdicao && (
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">

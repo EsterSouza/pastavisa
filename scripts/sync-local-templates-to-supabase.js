@@ -7,7 +7,15 @@ require("dotenv").config({ path: ".env" });
 require("dotenv").config({ path: ".env.local" });
 
 const root = process.cwd();
-const sourceDir = path.join(root, "TODOS_OS_TEMPLATES_PastaVISA");
+const defaultSourceDir = path.join(
+  "C:",
+  "Users",
+  "enfes",
+  "OneDrive - MSFT",
+  "TreinaVISA",
+  "TODOS_OS_TEMPLATES_PastaVISA"
+);
+const legacySourceDir = path.join(root, "TODOS_OS_TEMPLATES_PastaVISA");
 const bucket = process.env.SUPABASE_STORAGE_BUCKET || "pasta-visa";
 const templatePrefix = "storage/templates";
 
@@ -40,6 +48,16 @@ function safeStorageFileName(fileName) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
+function resolveSourceDir() {
+  const configured = process.env.TEMPLATE_SOURCE_DIR;
+  const candidates = [
+    configured ? path.resolve(configured) : "",
+    defaultSourceDir,
+    legacySourceDir,
+  ].filter(Boolean);
+  return candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
+}
+
 function storageBaseName(ref) {
   if (!ref) return "";
   return String(ref).split("/").pop() || "";
@@ -50,6 +68,35 @@ function storagePathFromRef(ref) {
   const withoutProtocol = String(ref).replace(/^supabase:\/\//, "");
   const slash = withoutProtocol.indexOf("/");
   return slash === -1 ? "" : withoutProtocol.slice(slash + 1);
+}
+
+function storageErrorMessage(action, error) {
+  if (!error || typeof error !== "object") return action;
+  const details = [
+    error.statusCode || error.status ? `status ${error.statusCode || error.status}` : "",
+    error.code ? `code ${error.code}` : "",
+    error.error && error.error !== error.message ? error.error : "",
+  ].filter(Boolean);
+  const suffix = details.length > 0 ? ` (${details.join(", ")})` : "";
+  return `${action}: ${error.message || error.name || "erro desconhecido"}${suffix}`;
+}
+
+function storagePathForTemplateFile(currentRef, file) {
+  const safeFile = safeStorageFileName(file);
+  const currentPath = storagePathFromRef(currentRef).replace(/\\/g, "/");
+
+  if (!currentPath) {
+    return `${templatePrefix}/bulk_${Date.now()}_${safeFile}`;
+  }
+
+  const dir = path.posix.dirname(currentPath);
+  const base = path.posix.basename(currentPath);
+  if (base === safeFile || base.endsWith(`_${safeFile}`)) {
+    return currentPath;
+  }
+
+  const bulkPrefix = base.match(/^bulk_\d+_/i)?.[0] || `bulk_${Date.now()}_`;
+  return `${dir}/${bulkPrefix}${safeFile}`;
 }
 
 function inferMeta(filename) {
@@ -83,6 +130,7 @@ function detectProcessingType(filename) {
 }
 
 async function main() {
+  const sourceDir = resolveSourceDir();
   if (!fs.existsSync(sourceDir)) throw new Error(`Pasta local nao encontrada: ${sourceDir}`);
 
   const databaseUrl = required("DATABASE_URL");
@@ -103,10 +151,9 @@ async function main() {
   async function uploadTemplateFile(row, file) {
     const sourcePath = path.join(sourceDir, file);
     const buffer = fs.readFileSync(sourcePath);
-    let storagePath = storagePathFromRef(row.arquivoPath);
+    const storagePath = storagePathForTemplateFile(row.arquivoPath, file);
 
-    if (!storagePath) {
-      storagePath = `${templatePrefix}/bulk_${Date.now()}_${safeStorageFileName(file)}`;
+    if (row.arquivoPath !== `supabase://${bucket}/${storagePath}`) {
       await pool.query(
         'update "Template" set "arquivoPath"=$1 where "id"=$2',
         [`supabase://${bucket}/${storagePath}`, row.id]
@@ -117,7 +164,7 @@ async function main() {
       contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       upsert: true,
     });
-    if (upload.error) throw new Error(`Falha ao atualizar ${file}: ${upload.error.message}`);
+    if (upload.error) throw new Error(storageErrorMessage(`Falha ao atualizar ${file}`, upload.error));
     updated.push(row.nome);
   }
 
@@ -188,7 +235,7 @@ async function main() {
       contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       upsert: true,
     });
-    if (upload.error) throw new Error(`Falha ao subir ${file}: ${upload.error.message}`);
+    if (upload.error) throw new Error(storageErrorMessage(`Falha ao subir ${file}`, upload.error));
 
     const { tipo, padraoHeader } = inferMeta(file);
     const processingType = detectProcessingType(file);
@@ -202,7 +249,7 @@ async function main() {
 
   const count = await pool.query('select count(*)::int as count from "Template"');
   await pool.end();
-  console.log(JSON.stringify({ local: files.length, skipped: skipped.length, updated: updated.length, repaired, synced, remote: count.rows[0].count }, null, 2));
+  console.log(JSON.stringify({ sourceDir, local: files.length, skipped: skipped.length, updated: updated.length, repaired, synced, remote: count.rows[0].count }, null, 2));
 }
 
 main().catch((error) => {

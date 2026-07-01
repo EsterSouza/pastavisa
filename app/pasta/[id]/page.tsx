@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
+import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 
 interface Pasta {
   id: string;
@@ -145,6 +146,7 @@ export default function PastaDetalhe() {
 
   return (
     <div>
+      <ScrollToTopButton />
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-3">
