@@ -841,7 +841,7 @@ export default function ProcessarPasta() {
   const concluidos   = gerados + erros;
   const progress     = total > 0 ? Math.round((concluidos / total) * 100) : 0;
   const normalizedDocumentSearch = normalizeForMatch(documentSearch.trim());
-  const visibleDocs = normalizedDocumentSearch
+  const docsFiltrados = normalizedDocumentSearch
     ? docs.filter((doc) => {
         const templateAtual = getTemplateAtual(doc, assignments, templates);
         const searchable = normalizeForMatch([
@@ -854,6 +854,12 @@ export default function ProcessarPasta() {
         return searchable.includes(normalizedDocumentSearch);
       })
     : docs;
+  const visibleDocs = [...docsFiltrados].sort((a, b) => {
+    const aGerado = a.status === "gerado" ? 1 : 0;
+    const bGerado = b.status === "gerado" ? 1 : 0;
+    if (aGerado !== bGerado) return aGerado - bGerado;
+    return a.nomeArquivo.localeCompare(b.nomeArquivo, "pt-BR", { sensitivity: "base" });
+  });
   const normalizedTemplateAddSearch = normalizeForMatch(templateAddSearch.trim());
   const templatesParaAdicionar = templates
     .filter((template) => {

@@ -82,6 +82,12 @@ export default function PastaDetalhe() {
     semTemplate === 0 &&
     camposPendentes.length === 0;
   const pastaStatus = PASTA_STATUS_LABELS[pasta.status] || PASTA_STATUS_LABELS.rascunho;
+  const documentosOrdenados = [...pasta.documentos].sort((a, b) => {
+    const aGerado = a.status === "gerado" ? 1 : 0;
+    const bGerado = b.status === "gerado" ? 1 : 0;
+    if (aGerado !== bGerado) return aGerado - bGerado;
+    return a.nomeArquivo.localeCompare(b.nomeArquivo, "pt-BR", { sensitivity: "base" });
+  });
 
   async function visualizarDocumento(doc: { id: string; nomeArquivo: string }, versaoId?: string) {
     const title = versaoId ? `${doc.nomeArquivo} - versao anterior` : doc.nomeArquivo;
@@ -246,7 +252,7 @@ export default function PastaDetalhe() {
           <p className="px-5 py-6 text-gray-600 text-sm">Nenhum documento listado ainda.</p>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {pasta.documentos.map((doc) => {
+            {documentosOrdenados.map((doc) => {
               const st = STATUS_LABELS[doc.status] || STATUS_LABELS.pendente;
               const versoesAnteriores = doc.versoes.filter((versao) => versao.outputPath !== doc.outputPath);
               return (
