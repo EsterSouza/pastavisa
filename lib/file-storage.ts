@@ -127,6 +127,21 @@ function supabaseStorageErrorMessage(prefix: string, error: unknown): string {
   return `${prefix}: ${details.message || details.name || "erro desconhecido"}${suffix}`;
 }
 
+/**
+ * Builds a safe `Content-Disposition` header value for a download response.
+ * Raw HTTP header values must be Latin-1/ByteString — filenames with
+ * characters outside that range (accents are fine, but an em dash "—",
+ * curly quotes, etc. are not) throw when the runtime tries to set the header,
+ * turning the whole download into a 500. The ASCII fallback keeps older
+ * clients working, while `filename*=UTF-8''...` gives modern browsers the
+ * real, accented name.
+ */
+export function contentDispositionHeader(fileName: string): string {
+  // eslint-disable-next-line no-control-regex
+  const asciiFallback = fileName.replace(/[^\x20-\x7E]/g, "_").replace(/"/g, "'");
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+}
+
 export function fileNameFromStorageRef(ref: string): string {
   try {
     const url = new URL(ref);

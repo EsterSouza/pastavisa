@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createOutputDocxFileName } from "@/lib/generator";
-import { readStorageBuffer, storageFileExists } from "@/lib/file-storage";
+import { contentDispositionHeader, readStorageBuffer, storageFileExists } from "@/lib/file-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export async function GET(
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "Content-Disposition": `attachment; filename="${fileName}"`,
+      "Content-Disposition": contentDispositionHeader(fileName),
     },
   });
 }

@@ -57,6 +57,52 @@ function encodeXmlEntities(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function escapeReplacement(value: string): string {
+  // "$" has special meaning ($&, $1, $$...) as a String.replace replacement
+  // when the pattern is a RegExp — escape literal "$" so "para" is inserted verbatim.
+  return value.replace(/\$/g, "$$$$");
+}
+
+/**
+ * Builds a regex that matches `de` literally except for whitespace: any run
+ * of spaces/tabs/newlines/non-breaking-space ( , common when pasting
+ * from Word) in `de` matches any run of whitespace in the document. This is
+ * still an exact match on content — it only tolerates the kind of whitespace
+ * noise Word introduces (extra spaces, tabs vs spaces, NBSP), never guesses
+ * at different wording.
+ */
+function buildFlexibleWhitespacePattern(de: string): RegExp {
+  const escaped = escapeRegExp(de);
+  // "*" (zero or more), not "+" \u2014 the pasted text may have spaces around
+  // punctuation (e.g. "CNPJ : 123") that simply aren't there in the actual
+  // run text ("CNPJ: 123"), so the tolerant match must also accept none.
+  const flexible = escaped.replace(/[ \t\n\r\u00A0]+/g, "\\s*");
+  return new RegExp(flexible, "g");
+}
+
+/** Extracts a run's visible text, representing `<w:tab/>`/`<w:br/>` as literal
+ * whitespace characters so substitutions can match text that spans across
+ * them (e.g. "CNPJ: X" <tab> "Endereço: Y" inside the same paragraph). */
+function extractRunText(runXml: string): string {
+  const parts: string[] = [];
+  const tokenRegex = /<w:t\b[^>]*>([\s\S]*?)<\/w:t>|<w:tab\b[^>]*\/>|<w:(?:br|cr)\b[^>]*\/>/g;
+  let match: RegExpExecArray | null;
+  while ((match = tokenRegex.exec(runXml)) !== null) {
+    if (match[0].startsWith("<w:t")) {
+      parts.push(decodeXmlEntities(match[1] ?? ""));
+    } else if (match[0].startsWith("<w:tab")) {
+      parts.push("\t");
+    } else {
+      parts.push("\n");
+    }
+  }
+  return parts.join("");
+}
+
 /**
  * Applies every substitution that fits inside a single `<w:t>` run of this
  * paragraph. Returns the updated paragraph XML and which substitution indexes
@@ -74,8 +120,11 @@ function applySingleRunSubstitutions(
       let text = decodeXmlEntities(inner);
       let changed = false;
       substituicoes.forEach((sub, i) => {
-        if (!sub.de || !text.includes(sub.de)) return;
-        text = text.split(sub.de).join(sub.para);
+        if (!sub.de) return;
+        const pattern = buildFlexibleWhitespacePattern(sub.de);
+        const replaced = text.replace(pattern, escapeReplacement(sub.para));
+        if (replaced === text) return;
+        text = replaced;
         appliedIdx.add(i);
         changed = true;
       });
@@ -110,16 +159,17 @@ function applyMergedRunSubstitutions(
 
   const runs = runMatches.map((m) => {
     const runXml = m[0];
-    const tMatch = runXml.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/);
-    return { runXml, text: tMatch ? decodeXmlEntities(tMatch[1]) : "" };
+    return { runXml, text: extractRunText(runXml) };
   });
 
   let mergedText = runs.map((r) => r.text).join("");
   const appliedIdx = new Set<number>();
 
   for (const { sub, i } of remaining) {
-    if (mergedText.includes(sub.de)) {
-      mergedText = mergedText.split(sub.de).join(sub.para);
+    const pattern = buildFlexibleWhitespacePattern(sub.de);
+    const replaced = mergedText.replace(pattern, escapeReplacement(sub.para));
+    if (replaced !== mergedText) {
+      mergedText = replaced;
       appliedIdx.add(i);
     }
   }
@@ -137,6 +187,13 @@ function applyMergedRunSubstitutions(
     if (idx === 0) return newFirstRun;
     if (/<w:t[^>]*>[\s\S]*?<\/w:t>/.test(runXml)) {
       return runXml.replace(/<w:t([^>]*)>[\s\S]*?<\/w:t>/, "<w:t$1></w:t>");
+    }
+    // Standalone <w:tab/>/<w:br/> markers are represented as a literal
+    // "\t"/"\n" character inside the merged first run's text (see
+    // extractRunText) — strip the original element here too, otherwise the
+    // gap would render twice (once as a real tab stop, once as the character).
+    if (/<w:(?:tab|br|cr)\b[^>]*\/>/.test(runXml)) {
+      return runXml.replace(/<w:(?:tab|br|cr)\b[^>]*\/>/g, "");
     }
     return runXml;
   });

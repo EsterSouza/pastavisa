@@ -81,8 +81,12 @@ export default function CorrigirLotePasta() {
   const [pares, setPares] = useState<Par[]>([{ de: "", para: "" }]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [applying, setApplying] = useState(false);
+  const [batchDone, setBatchDone] = useState(0);
+  const [batchTotal, setBatchTotal] = useState(0);
+  const [currentDocName, setCurrentDocName] = useState("");
   const [resultados, setResultados] = useState<Record<string, ResultadoRodada>>({});
   const [applyError, setApplyError] = useState("");
+  const [applySummary, setApplySummary] = useState("");
   const [preview, setPreview] = useState<DocumentPreviewState | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
@@ -189,6 +193,13 @@ export default function CorrigirLotePasta() {
     setPares((prev) => prev.map((par, i) => (i === index ? { ...par, [field]: value } : par)));
   }
 
+  // Processes one document per request (not the whole batch in a single call).
+  // This gives real per-document progress and, on folders with many documents,
+  // avoids a single request running long enough to hit the serverless function
+  // time limit with no feedback at all — the same resilience pattern used by
+  // the main "Gerar documentos" flow: one automatic retry on transient gateway
+  // errors, defensive JSON parsing, and a failure on one document never stops
+  // the rest of the batch.
   async function aplicar() {
     const paresValidos = pares.filter((p) => p.de.trim().length > 0);
     if (selectedDocs.size === 0) {
@@ -200,39 +211,101 @@ export default function CorrigirLotePasta() {
       return;
     }
 
+    const docIds = Array.from(selectedDocs);
+    const TRANSIENT_STATUS = [502, 503, 504, 408];
+
     setApplying(true);
     setApplyError("");
+    setApplySummary("");
+    setBatchDone(0);
+    setBatchTotal(docIds.length);
+
+    const nextResultados: Record<string, ResultadoRodada> = { ...resultados };
+    let processados = 0;
+    let comErro = 0;
+
     try {
-      const formData = new FormData();
-      formData.append("docIds", JSON.stringify(Array.from(selectedDocs)));
-      formData.append("substituicoes", JSON.stringify(paresValidos));
-      if (logoFile) formData.append("logo", logoFile);
+      for (const docId of docIds) {
+        const doc = docs.find((d) => d.id === docId);
+        setCurrentDocName(doc?.nomeArquivo || "");
+        setDocs((prev) => prev.map((d) => (d.id === docId ? { ...d, status: "processando" } : d)));
 
-      const res = await fetch(`/api/pastas/${id}/uploads-corrigidos/aplicar`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await readApiResponse<{ resultados: Array<{ docId: string } & ResultadoRodada> }>(
-        res,
-        "Erro ao aplicar correções"
+        let resultado: ({ docId: string } & ResultadoRodada) | null = null;
+        let erroLocal: string | null = null;
+
+        try {
+          const formData = new FormData();
+          formData.append("docId", docId);
+          formData.append("substituicoes", JSON.stringify(paresValidos));
+          if (logoFile) formData.append("logo", logoFile);
+
+          let res: Response;
+          let rawBody: string;
+          let attempt = 0;
+          while (true) {
+            res = await fetch(`/api/pastas/${id}/uploads-corrigidos/aplicar`, { method: "POST", body: formData });
+            rawBody = await res.text();
+            if (res.ok || !TRANSIENT_STATUS.includes(res.status) || attempt >= 1) break;
+            attempt++;
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+          }
+
+          let parsed: (({ docId: string } & ResultadoRodada) & { error?: string }) | null = null;
+          try {
+            parsed = rawBody ? JSON.parse(rawBody) : null;
+          } catch {
+            parsed = null;
+          }
+
+          if (!res.ok || !parsed) {
+            erroLocal = TRANSIENT_STATUS.includes(res.status)
+              ? `Tempo excedido${attempt > 0 ? " mesmo após nova tentativa" : ""}. Tente este documento sozinho.`
+              : parsed?.error || `Falha ao aplicar (HTTP ${res.status}).`;
+          } else {
+            resultado = { ...parsed, docId };
+          }
+        } catch (err) {
+          erroLocal = err instanceof Error ? err.message : "Erro de rede ao aplicar.";
+        }
+
+        if (resultado) {
+          nextResultados[docId] = {
+            status: resultado.status,
+            aplicadas: resultado.aplicadas,
+            naoEncontradas: resultado.naoEncontradas,
+            logoSubstituida: resultado.logoSubstituida,
+            erro: resultado.erro,
+          };
+          if (resultado.status === "erro") comErro++; else processados++;
+        } else {
+          nextResultados[docId] = { status: "erro", erro: erroLocal || "Erro desconhecido" };
+          comErro++;
+        }
+        setResultados({ ...nextResultados });
+
+        setDocs((prev) =>
+          prev.map((d) =>
+            d.id === docId
+              ? {
+                  ...d,
+                  status: resultado?.status ?? "erro",
+                  mensagemErro: resultado?.erro ?? erroLocal ?? null,
+                }
+              : d
+          )
+        );
+        setBatchDone((n) => n + 1);
+      }
+
+      setApplySummary(
+        comErro > 0
+          ? `${processados} processado(s), ${comErro} com erro.`
+          : `${processados} documento(s) processado(s) com sucesso.`
       );
-
-      const nextResultados: Record<string, ResultadoRodada> = { ...resultados };
-      data.resultados.forEach((r) => {
-        nextResultados[r.docId] = {
-          status: r.status,
-          aplicadas: r.aplicadas,
-          naoEncontradas: r.naoEncontradas,
-          logoSubstituida: r.logoSubstituida,
-          erro: r.erro,
-        };
-      });
-      setResultados(nextResultados);
-      await carregarDocs();
-    } catch (error) {
-      setApplyError(error instanceof Error ? error.message : "Erro ao aplicar correções");
     } finally {
+      setCurrentDocName("");
       setApplying(false);
+      await carregarDocs();
     }
   }
 
@@ -313,9 +386,21 @@ export default function CorrigirLotePasta() {
 
       {/* Selection + filter */}
       <div className="bg-white border border-gray-200 rounded-xl mb-6">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
           <h2 className="font-semibold text-gray-800">2. Selecionar documentos</h2>
-          <span className="text-xs text-gray-500">{selectedDocs.size} selecionado(s) de {docs.length}</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-500">{selectedDocs.size} selecionado(s) de {docs.length}</span>
+            {docs.length > 0 && (
+              <a
+                href={`/api/pastas/${id}/uploads-corrigidos/download${
+                  selectedDocs.size > 0 ? `?ids=${Array.from(selectedDocs).join(",")}` : ""
+                }`}
+                className="text-xs font-medium text-green-700 hover:underline shrink-0"
+              >
+                Baixar {selectedDocs.size > 0 ? "selecionados" : "tudo"} (ZIP)
+              </a>
+            )}
+          </div>
         </div>
         <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <input
@@ -510,8 +595,28 @@ export default function CorrigirLotePasta() {
           disabled={applying}
           className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
         >
-          {applying ? "Aplicando..." : `Aplicar aos ${selectedDocs.size} selecionado(s)`}
+          {applying ? `Aplicando... ${batchDone}/${batchTotal}` : `Aplicar aos ${selectedDocs.size} selecionado(s)`}
         </button>
+
+        {applying && (
+          <div className="mt-3">
+            <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+              <div
+                className="h-full bg-blue-600 transition-all"
+                style={{ width: `${batchTotal > 0 ? Math.round((batchDone / batchTotal) * 100) : 0}%` }}
+              />
+            </div>
+            {currentDocName && (
+              <p className="text-xs text-gray-500 mt-1">Processando: {currentDocName}</p>
+            )}
+          </div>
+        )}
+
+        {!applying && applySummary && (
+          <p className="mt-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+            {applySummary}
+          </p>
+        )}
       </div>
 
       <DocumentPreviewModal preview={preview} onClose={() => setPreview(null)} />
