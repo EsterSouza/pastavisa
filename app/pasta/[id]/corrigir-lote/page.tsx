@@ -108,6 +108,11 @@ export default function CorrigirLotePasta() {
     return docs.filter((doc) => normalizeForMatch(doc.nomeArquivo).includes(normalizedSearch));
   }, [docs, normalizedSearch]);
 
+  const zipDownloadHref = `/api/pastas/${id}/uploads-corrigidos/download${
+    selectedDocs.size > 0 ? `?ids=${Array.from(selectedDocs).join(",")}` : ""
+  }`;
+  const zipDownloadLabel = `Baixar ${selectedDocs.size > 0 ? "selecionados" : "tudo"} (ZIP)`;
+
   function toggleDoc(docId: string) {
     setSelectedDocs((prev) => {
       const next = new Set(prev);
@@ -391,13 +396,8 @@ export default function CorrigirLotePasta() {
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-500">{selectedDocs.size} selecionado(s) de {docs.length}</span>
             {docs.length > 0 && (
-              <a
-                href={`/api/pastas/${id}/uploads-corrigidos/download${
-                  selectedDocs.size > 0 ? `?ids=${Array.from(selectedDocs).join(",")}` : ""
-                }`}
-                className="text-xs font-medium text-green-700 hover:underline shrink-0"
-              >
-                Baixar {selectedDocs.size > 0 ? "selecionados" : "tudo"} (ZIP)
+              <a href={zipDownloadHref} className="text-xs font-medium text-green-700 hover:underline shrink-0">
+                {zipDownloadLabel}
               </a>
             )}
           </div>
@@ -527,6 +527,17 @@ export default function CorrigirLotePasta() {
             );
           })}
         </ul>
+
+        {docs.length > 0 && (
+          <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60 flex justify-end">
+            <a
+              href={zipDownloadHref}
+              className="text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg px-4 py-2"
+            >
+              {zipDownloadLabel}
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Define round */}

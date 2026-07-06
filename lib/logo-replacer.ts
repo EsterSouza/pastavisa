@@ -382,18 +382,34 @@ export async function replaceLogo(zip: PizZip, logoPath: string): Promise<boolea
 
   const logoBuffer = fs.readFileSync(logoPath);
 
-  for (const { zipPath, format } of logoPaths) {
+  for (const { zipPath } of logoPaths) {
     try {
-      let convertedBuffer: Buffer;
-      if (format === "jpeg") {
-        convertedBuffer = await sharp(logoBuffer).jpeg({ quality: 95 }).toBuffer();
-      } else {
-        convertedBuffer = await sharp(logoBuffer).png().toBuffer();
-      }
+      // Always write PNG, regardless of the slot's original format. Logos
+      // are frequently transparent PNGs, and converting to JPEG (no alpha
+      // channel) forces sharp to flatten transparent pixels onto an opaque
+      // background — it defaults to black, turning a transparent logo into
+      // one with a solid black background. If the slot was a .jpeg/.jpg,
+      // retarget every header relationship pointing at it to a same-named
+      // .png file instead of forcing PNG bytes into a file the package
+      // still declares as JPEG.
+      const convertedBuffer = await sharp(logoBuffer).png().toBuffer();
+      const isPngSlot = zipPath.toLowerCase().endsWith(".png");
+      const newZipPath = isPngSlot ? zipPath : zipPath.replace(/\.[^./]+$/, ".png");
 
-      // Replace the image in the zip
-      zip.file(zipPath, convertedBuffer, { binary: true });
-      ensureContentTypeDefault(zip, format);
+      zip.file(newZipPath, convertedBuffer, { binary: true });
+      ensureContentTypeDefault(zip, "png");
+
+      if (newZipPath !== zipPath) {
+        const oldTarget = zipPath.replace(/^word\//, "");
+        const newTarget = newZipPath.replace(/^word\//, "");
+        for (const relPath of HEADER_RELS) {
+          const relsFile = zip.files[relPath];
+          if (!relsFile) continue;
+          const relsXml = relsFile.asText();
+          if (!relsXml.includes(`Target="${oldTarget}"`)) continue;
+          zip.file(relPath, relsXml.split(`Target="${oldTarget}"`).join(`Target="${newTarget}"`));
+        }
+      }
     } catch (err) {
       console.error(`[logo-replacer] Falha ao substituir ${zipPath}:`, err);
       // Continue with other paths even if one fails
