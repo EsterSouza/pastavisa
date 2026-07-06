@@ -264,6 +264,15 @@ function findPartImageReference(relsXml: string): { rId: string; target: string 
   return { rId: `rId${images[0].id}`, target: images[0].target };
 }
 
+/** Rewrites the `Target` attribute of the `<Relationship>` with the given `rId`. */
+function retargetRelationship(relsXml: string, rId: string, newTarget: string): string {
+  return relsXml.replace(/<Relationship\b[^>]*\/>/g, (rel) => {
+    const idMatch = rel.match(/Id="([^"]+)"/);
+    if (!idMatch || idMatch[1] !== rId) return rel;
+    return rel.replace(/Target="[^"]*"/, `Target="${newTarget}"`);
+  });
+}
+
 /** Finds the width (in twips) of the table cell whose drawing embeds `rId`. */
 function findImageCellWidthTwips(xml: string, rId: string): number | null {
   const cells = xml.match(/<w:tc[ >][\s\S]*?<\/w:tc>/g) || [];
@@ -317,14 +326,23 @@ export async function replaceLogoInHeadersAndFooters(
     const zipPath = ref.target.startsWith("media/") ? `word/${ref.target}` : ref.target;
     if (!zip.files[zipPath]) continue;
 
-    const format = zipPath.toLowerCase().endsWith(".png") ? "png" : "jpeg";
+    // Always write PNG, regardless of the slot's original format. Logos are
+    // frequently transparent PNGs, and converting to JPEG (no alpha channel)
+    // forces sharp to flatten transparent pixels onto an opaque background —
+    // it defaults to black, which is how a transparent logo turned into one
+    // with a solid black background. If the slot was a .jpeg/.jpg, retarget
+    // the relationship to a same-named .png file instead of forcing PNG
+    // bytes into a file the package still declares as JPEG.
+    const isPngSlot = zipPath.toLowerCase().endsWith(".png");
+    const newZipPath = isPngSlot ? zipPath : zipPath.replace(/\.[^./]+$/, ".png");
     try {
-      const converted =
-        format === "png"
-          ? await sharp(logoBuffer).png().toBuffer()
-          : await sharp(logoBuffer).jpeg({ quality: 95 }).toBuffer();
-      zip.file(zipPath, converted, { binary: true });
-      ensureContentTypeDefault(zip, format);
+      const converted = await sharp(logoBuffer).png().toBuffer();
+      zip.file(newZipPath, converted, { binary: true });
+      ensureContentTypeDefault(zip, "png");
+      if (newZipPath !== zipPath) {
+        const newTarget = ref.target.replace(/\.[^./]+$/, ".png");
+        zip.file(relsPath, retargetRelationship(zip.files[relsPath].asText(), ref.rId, newTarget));
+      }
       substituida = true;
     } catch (err) {
       console.error(`[header-footer-replace] Falha ao substituir ${zipPath}:`, err);
