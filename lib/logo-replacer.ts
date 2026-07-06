@@ -46,7 +46,7 @@ function findLogoCellWidthTwips(xml: string): number | null {
 /**
  * Returns the next available rId number for the given rels file.
  */
-function nextRid(relsXml: string): number {
+export function nextRid(relsXml: string): number {
   const ids = Array.from(relsXml.matchAll(/Id="rId(\d+)"/g)).map((m) =>
     parseInt(m[1])
   );
@@ -58,13 +58,13 @@ function nextRid(relsXml: string): number {
  * e.g. "word/document.xml" → "word/_rels/document.xml.rels"
  *      "word/header1.xml"  → "word/_rels/header1.xml.rels"
  */
-function relsPathFor(xmlPath: string): string {
+export function relsPathFor(xmlPath: string): string {
   const dir = path.posix.dirname(xmlPath); // e.g. "word"
   const base = path.posix.basename(xmlPath); // e.g. "document.xml"
   return `${dir}/_rels/${base}.rels`;
 }
 
-function ensureContentTypeDefault(zip: PizZip, ext: string): void {
+export function ensureContentTypeDefault(zip: PizZip, ext: string): void {
   const contentType =
     ext === "png" ? "image/png" :
     ext === "jpeg" || ext === "jpg" ? "image/jpeg" :
@@ -230,18 +230,22 @@ export async function injectLogoVariable(
   }
 }
 
+const HEADER_RELS = [
+  "word/_rels/header1.xml.rels",
+  "word/_rels/header2.xml.rels",
+  "word/_rels/header3.xml.rels",
+];
+
 /**
- * Finds the logo image path inside a docx zip by inspecting header rels.
+ * Finds the logo image path inside a docx zip by inspecting header rels
+ * (or whichever rels files are passed in via `relsPaths`).
  * Returns the zip-internal path (e.g. "word/media/image2.jpeg") and the format.
  */
-function findLogoInZip(zip: PizZip): { zipPath: string; format: "jpeg" | "png" } | null {
-  const headerRels = [
-    "word/_rels/header1.xml.rels",
-    "word/_rels/header2.xml.rels",
-    "word/_rels/header3.xml.rels",
-  ];
-
-  for (const relPath of headerRels) {
+function findLogoInZip(
+  zip: PizZip,
+  relsPaths: string[] = HEADER_RELS
+): { zipPath: string; format: "jpeg" | "png" } | null {
+  for (const relPath of relsPaths) {
     if (!zip.files[relPath]) continue;
     const relsXml = zip.files[relPath].asText();
 
@@ -270,25 +274,25 @@ function findLogoInZip(zip: PizZip): { zipPath: string; format: "jpeg" | "png" }
 }
 
 /**
- * Given all header rels, finds ALL unique logo paths (the same logo can appear
- * in multiple headers — all need to be replaced).
+ * Given all header (or header+footer) rels, finds ALL unique logo paths (the
+ * same logo can appear in multiple headers/footers — all need to be replaced).
+ * Pass `relsPaths` to widen the search beyond the default (headers only) —
+ * e.g. batch corrections that also touch footers.
  */
-function findAllLogoPathsInZip(zip: PizZip): Array<{ zipPath: string; format: "jpeg" | "png" }> {
+export function findAllLogoPathsInZip(
+  zip: PizZip,
+  relsPaths: string[] = HEADER_RELS
+): Array<{ zipPath: string; format: "jpeg" | "png" }> {
   // First, find the canonical logo using the priority heuristic
-  const canonical = findLogoInZip(zip);
+  const canonical = findLogoInZip(zip, relsPaths);
   if (!canonical) return [];
 
   const results: Array<{ zipPath: string; format: "jpeg" | "png" }> = [canonical];
 
-  // Scan all header rels — if the same base filename appears, include it
+  // Scan all rels — if the same base filename appears, include it
   const canonicalBase = path.basename(canonical.zipPath);
-  const headerRels = [
-    "word/_rels/header1.xml.rels",
-    "word/_rels/header2.xml.rels",
-    "word/_rels/header3.xml.rels",
-  ];
 
-  for (const relPath of headerRels) {
+  for (const relPath of relsPaths) {
     if (!zip.files[relPath]) continue;
     const relsXml = zip.files[relPath].asText();
     const targets = Array.from(relsXml.matchAll(/Target="(media\/[^"]+)"/g)).map((m) => m[1]);

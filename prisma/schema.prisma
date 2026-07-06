@@ -51,6 +51,7 @@ model Pasta {
   legislacaoIds            String?
 
   documentos               DocumentoGerado[]
+  documentosUpload         DocumentoUpload[]
 }
 
 model DocumentoGerado {
@@ -82,6 +83,30 @@ model DocumentoVersao {
   criadaEm        DateTime         @default(now())
 
   @@index([documentoId, criadaEm])
+}
+
+model DocumentoUpload {
+  id            String    @id @default(cuid())
+  pastaId       String
+  pasta         Pasta     @relation(fields: [pastaId], references: [id], onDelete: Cascade)
+  nomeArquivo   String
+  uploadPath    String
+  outputPath    String?
+  status        String    @default("pendente")
+  mensagemErro  String?
+  criadoEm      DateTime  @default(now())
+  versoes       DocumentoUploadVersao[]
+}
+
+model DocumentoUploadVersao {
+  id                String          @id @default(cuid())
+  documentoUploadId String
+  documentoUpload   DocumentoUpload @relation(fields: [documentoUploadId], references: [id], onDelete: Cascade)
+  outputPath        String
+  substituicoes     String?
+  criadaEm          DateTime        @default(now())
+
+  @@index([documentoUploadId, criadaEm])
 }
 
 model Template {

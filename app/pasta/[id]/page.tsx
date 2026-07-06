@@ -185,6 +185,12 @@ export default function PastaDetalhe() {
             {duplicating ? "Duplicando..." : "Duplicar pasta"}
           </button>
           <Link
+            href={`/pasta/${id}/corrigir-lote`}
+            className="border border-purple-200 text-purple-700 px-4 py-2 rounded-lg text-sm hover:bg-purple-50"
+          >
+            Corrigir documentos em lote
+          </Link>
+          <Link
             href={`/pasta/${id}/processar`}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"
           >

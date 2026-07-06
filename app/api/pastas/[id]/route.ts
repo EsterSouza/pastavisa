@@ -87,12 +87,19 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   try {
     const pasta = await prisma.pasta.findUnique({
       where: { id: params.id },
-      include: { documentos: { include: { versoes: true } } },
+      include: {
+        documentos: { include: { versoes: true } },
+        documentosUpload: { include: { versoes: true } },
+      },
     });
     if (!pasta) return NextResponse.json({ error: "Não encontrada" }, { status: 404 });
 
     const outputPaths = new Set<string>();
     pasta.documentos.forEach((doc) => {
+      if (doc.outputPath) outputPaths.add(doc.outputPath);
+      doc.versoes.forEach((versao) => outputPaths.add(versao.outputPath));
+    });
+    pasta.documentosUpload.forEach((doc) => {
       if (doc.outputPath) outputPaths.add(doc.outputPath);
       doc.versoes.forEach((versao) => outputPaths.add(versao.outputPath));
     });
