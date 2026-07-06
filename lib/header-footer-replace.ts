@@ -1,10 +1,6 @@
 import sharp from "sharp";
 import PizZip from "pizzip";
-import {
-  relsPathFor,
-  ensureContentTypeDefault,
-  findAllLogoPathsInZip,
-} from "./logo-replacer";
+import { relsPathFor, ensureContentTypeDefault } from "./logo-replacer";
 import { assertValidDocxBuffer } from "./docx-validator";
 
 const HEADER_FOOTER_PARTS = [
@@ -15,10 +11,6 @@ const HEADER_FOOTER_PARTS = [
   "word/footer2.xml",
   "word/footer3.xml",
 ];
-
-const HEADER_FOOTER_RELS = HEADER_FOOTER_PARTS.map(relsPathFor);
-
-const MAX_LOGO_WIDTH_EMU = 540_000; // ~1.5cm, same cap used for header logos today
 
 export interface Substituicao {
   de: string;
@@ -244,17 +236,62 @@ export function replaceTextInParts(
   return { aplicadas, naoEncontradas };
 }
 
+const TWIP_TO_EMU = 635;
+const HEADER_CELL_INSET = 0.92; // ~8% inset from the cell borders, same as the main generation flow
+const HEADER_MAX_HEIGHT_EMU = 684_000; // ~1.9cm — keeps the header row from growing
+
 /**
- * Caps <wp:extent>/<a:ext> cx/cy in the given XML parts to a max width,
- * scaled from the new logo's natural size (keeps aspect ratio, never upscales
- * further than the cap). Scoped to explicit parts so it never touches
- * drawings unrelated to the logo we just swapped.
+ * Parses every `<Relationship .../>` in a rels file independently of
+ * attribute order and returns the image with the lowest rId — real-world
+ * documents (hand-edited in Word over time) don't always keep `Id`/`Type`/
+ * `Target` in the same order the main generation flow produces.
  */
-async function capLogoDimensionsInParts(
+function findPartImageReference(relsXml: string): { rId: string; target: string } | null {
+  const relationships = Array.from(relsXml.matchAll(/<Relationship\b[^>]*\/>/g)).map((m) => m[0]);
+  const images: Array<{ id: number; target: string }> = [];
+
+  for (const rel of relationships) {
+    const typeMatch = rel.match(/Type="([^"]*)"/);
+    if (!typeMatch || !/\/image$/.test(typeMatch[1])) continue;
+    const idMatch = rel.match(/Id="rId(\d+)"/);
+    const targetMatch = rel.match(/Target="([^"]+)"/);
+    if (!idMatch || !targetMatch) continue;
+    images.push({ id: parseInt(idMatch[1], 10), target: targetMatch[1] });
+  }
+
+  if (images.length === 0) return null;
+  images.sort((a, b) => a.id - b.id);
+  return { rId: `rId${images[0].id}`, target: images[0].target };
+}
+
+/** Finds the width (in twips) of the table cell whose drawing embeds `rId`. */
+function findImageCellWidthTwips(xml: string, rId: string): number | null {
+  const cells = xml.match(/<w:tc[ >][\s\S]*?<\/w:tc>/g) || [];
+  for (const cell of cells) {
+    if (cell.includes(`r:embed="${rId}"`)) {
+      const match = cell.match(/<w:tcW\s+w:w="(\d+)"/);
+      if (match) return parseInt(match[1], 10);
+    }
+  }
+  return null;
+}
+
+/**
+ * Replaces the logo image referenced from each header/footer of this docx,
+ * one part at a time (not one "canonical" image shared across every part —
+ * real finalized documents can have a different image per part, e.g. a
+ * first-page header referencing something else entirely while the default
+ * header has the actual logo cell; picking one canonical basename missed
+ * the others). For each part, resizes the drawing to exactly fill the table
+ * cell that holds it (upscaling on purpose — the goal is to match the
+ * pre-made cell size, not preserve the uploaded photo's native resolution).
+ * Parts whose image isn't inside a table cell are left at their original
+ * size, since there's no box to measure against.
+ */
+export async function replaceLogoInHeadersAndFooters(
   zip: PizZip,
-  parts: string[],
   logoBuffer: Buffer
-): Promise<void> {
+): Promise<{ substituida: boolean }> {
   let naturalW: number;
   let naturalH: number;
   try {
@@ -262,44 +299,25 @@ async function capLogoDimensionsInParts(
     naturalW = meta.width ?? 200;
     naturalH = meta.height ?? 100;
   } catch {
-    return;
+    return { substituida: false };
   }
-
   const naturalWEmu = naturalW * 9144;
   const naturalHEmu = naturalH * 9144;
-  const scale = Math.min(1, MAX_LOGO_WIDTH_EMU / naturalWEmu);
-  const targetCx = Math.round(naturalWEmu * scale);
-  const targetCy = Math.round(naturalHEmu * scale);
 
-  for (const partName of parts) {
-    const file = zip.files[partName];
-    if (!file) continue;
-    try {
-      let xml = file.asText();
-      xml = xml.replace(/(wp:extent[^>]*?\scx=")[^"]*(")/g, `$1${targetCx}$2`);
-      xml = xml.replace(/(wp:extent[^>]*?\scy=")[^"]*(")/g, `$1${targetCy}$2`);
-      xml = xml.replace(/(a:ext[^>]*?\scx=")[^"]*(")/g, `$1${targetCx}$2`);
-      xml = xml.replace(/(a:ext[^>]*?\scy=")[^"]*(")/g, `$1${targetCy}$2`);
-      zip.file(partName, xml);
-    } catch {
-      // non-critical — skip this part
-    }
-  }
-}
+  let substituida = false;
 
-/**
- * Replaces the logo image referenced from any header/footer of this docx
- * (generalizes `replaceLogo` from logo-replacer.ts, which only looks at
- * headers, to also cover footers for the batch-correction flow).
- */
-export async function replaceLogoInHeadersAndFooters(
-  zip: PizZip,
-  logoBuffer: Buffer
-): Promise<{ substituida: boolean }> {
-  const logoPaths = findAllLogoPathsInZip(zip, HEADER_FOOTER_RELS);
-  if (logoPaths.length === 0) return { substituida: false };
+  for (const partName of HEADER_FOOTER_PARTS) {
+    if (!zip.files[partName]) continue;
+    const relsPath = relsPathFor(partName);
+    if (!zip.files[relsPath]) continue;
 
-  for (const { zipPath, format } of logoPaths) {
+    const ref = findPartImageReference(zip.files[relsPath].asText());
+    if (!ref) continue;
+
+    const zipPath = ref.target.startsWith("media/") ? `word/${ref.target}` : ref.target;
+    if (!zip.files[zipPath]) continue;
+
+    const format = zipPath.toLowerCase().endsWith(".png") ? "png" : "jpeg";
     try {
       const converted =
         format === "png"
@@ -307,14 +325,30 @@ export async function replaceLogoInHeadersAndFooters(
           : await sharp(logoBuffer).jpeg({ quality: 95 }).toBuffer();
       zip.file(zipPath, converted, { binary: true });
       ensureContentTypeDefault(zip, format);
+      substituida = true;
     } catch (err) {
       console.error(`[header-footer-replace] Falha ao substituir ${zipPath}:`, err);
+      continue;
     }
+
+    const partXml = zip.files[partName].asText();
+    const cellWidthTwips = findImageCellWidthTwips(partXml, ref.rId);
+    if (!cellWidthTwips) continue; // no table cell around this image — leave its size untouched
+
+    const maxWidthEmu = Math.round(cellWidthTwips * TWIP_TO_EMU * HEADER_CELL_INSET);
+    const scale = Math.min(maxWidthEmu / naturalWEmu, HEADER_MAX_HEIGHT_EMU / naturalHEmu);
+    const targetCx = Math.round(naturalWEmu * scale);
+    const targetCy = Math.round(naturalHEmu * scale);
+
+    let resizedXml = partXml;
+    resizedXml = resizedXml.replace(/(wp:extent[^>]*?\scx=")[^"]*(")/g, `$1${targetCx}$2`);
+    resizedXml = resizedXml.replace(/(wp:extent[^>]*?\scy=")[^"]*(")/g, `$1${targetCy}$2`);
+    resizedXml = resizedXml.replace(/(a:ext[^>]*?\scx=")[^"]*(")/g, `$1${targetCx}$2`);
+    resizedXml = resizedXml.replace(/(a:ext[^>]*?\scy=")[^"]*(")/g, `$1${targetCy}$2`);
+    zip.file(partName, resizedXml);
   }
 
-  await capLogoDimensionsInParts(zip, HEADER_FOOTER_PARTS, logoBuffer);
-
-  return { substituida: true };
+  return { substituida };
 }
 
 /**
