@@ -435,20 +435,25 @@ export async function replaceLogoInHeadersAndFooters(
 /**
  * Orchestrates one round of batch correction on an already-finalized .docx
  * buffer: optionally swaps the logo, optionally applies text substitutions
- * across headers/footers, validates the result, and returns the new buffer
- * plus a per-pair report.
+ * across headers/footers and the document body, validates the result, and
+ * returns the new buffer plus a per-pair report.
  */
 export async function applyBatchChanges(
   buffer: Buffer,
   opts: { logoBuffer?: Buffer; substituicoes?: Substituicao[] }
 ): Promise<AplicarBatchResult> {
   const zip = new PizZip(buffer);
-  // Text substitution only targets parts actually wired into the document via
-  // sectPr references — falls back to every part that merely exists in the
-  // zip when that reference graph can't be resolved. See
+  // Text substitution targets the parts actually wired into the document via
+  // sectPr references — falls back to every header/footer part that merely
+  // exists in the zip when that reference graph can't be resolved. See
   // listActiveHeaderFooterParts for why this matters (orphaned header/footer
-  // parts from an earlier revision reporting a false "aplicada").
-  const activeParts = listActiveHeaderFooterParts(zip) ?? listHeaderFooterParts(zip);
+  // parts from an earlier revision reporting a false "aplicada"). The main
+  // body (word/document.xml) is always included: it's the one part that's
+  // never ambiguous about being "the" active copy.
+  const activeHeaderFooterParts = listActiveHeaderFooterParts(zip) ?? listHeaderFooterParts(zip);
+  const textParts = zip.files["word/document.xml"]
+    ? [...activeHeaderFooterParts, "word/document.xml"]
+    : activeHeaderFooterParts;
 
   let logoSubstituida = false;
   if (opts.logoBuffer) {
@@ -459,7 +464,7 @@ export async function applyBatchChanges(
   let aplicadas: string[] = [];
   let naoEncontradas: string[] = [];
   if (opts.substituicoes && opts.substituicoes.length > 0) {
-    const result = replaceTextInParts(zip, activeParts, opts.substituicoes);
+    const result = replaceTextInParts(zip, textParts, opts.substituicoes);
     aplicadas = result.aplicadas;
     naoEncontradas = result.naoEncontradas;
   }
