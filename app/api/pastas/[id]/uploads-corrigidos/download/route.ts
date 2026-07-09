@@ -65,6 +65,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     headers: {
       "Content-Type": "application/zip",
       "Content-Disposition": `attachment; filename="Correcoes_${nomeCliente}.zip"`,
+      "Cache-Control": "no-store",
     },
   });
 }

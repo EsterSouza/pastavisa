@@ -163,7 +163,7 @@ export function textToOoxmlParagraphs(
  */
 export function sanitizeXmlFromMarkdown(xmlContent: string): string {
   return xmlContent.replace(
-    /(<w:t[^>]*>)([\s\S]*?)(<\/w:t>)/g,
+    /(<w:t\b[^>]*>)([\s\S]*?)(<\/w:t>)/g,
     (_match, open: string, content: string, close: string) => {
       return `${open}${stripMarkdown(content)}${close}`;
     }

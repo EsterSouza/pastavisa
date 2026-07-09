@@ -29,6 +29,69 @@ export function listHeaderFooterParts(zip: PizZip): string[] {
   return HEADER_FOOTER_PARTS.filter((name) => !!zip.files[name]);
 }
 
+/** Resolves a relationship Id to its Target inside a `.rels` file's raw XML. */
+function resolveRelsTarget(relsXml: string, rId: string): string | null {
+  const relationships = Array.from(relsXml.matchAll(/<Relationship\b[^>]*\/>/g)).map((m) => m[0]);
+  for (const rel of relationships) {
+    const idMatch = rel.match(/Id="([^"]+)"/);
+    if (!idMatch || idMatch[1] !== rId) continue;
+    const targetMatch = rel.match(/Target="([^"]+)"/);
+    return targetMatch ? targetMatch[1] : null;
+  }
+  return null;
+}
+
+/**
+ * Which header/footer parts are actually wired into the document (referenced
+ * by a `<w:headerReference>`/`<w:footerReference>` in some `<w:sectPr>`),
+ * as opposed to merely present as a zip entry. Real-world finalized .docx
+ * files (repeatedly hand-edited, sections added/removed) can carry orphaned
+ * header/footer parts left over from an earlier revision — e.g. an old
+ * header2.xml still containing the previous CNPJ that's no longer referenced
+ * by any section. Applying substitutions there would report success while
+ * the document Word actually renders (a different, still-referenced part)
+ * stays untouched. Returns null when the reference graph can't be resolved
+ * (missing/unreadable document.xml or rels, or no references found at all),
+ * so the caller can fall back to scanning every part that merely exists.
+ */
+export function listActiveHeaderFooterParts(zip: PizZip): string[] | null {
+  const docFile = zip.files["word/document.xml"];
+  const relsFile = zip.files["word/_rels/document.xml.rels"];
+  if (!docFile || !relsFile) return null;
+
+  let docXml: string;
+  let relsXml: string;
+  try {
+    docXml = docFile.asText();
+    relsXml = relsFile.asText();
+  } catch {
+    return null;
+  }
+
+  const sectPrBlocks = Array.from(docXml.matchAll(/<w:sectPr\b[^>]*>[\s\S]*?<\/w:sectPr>/g)).map((m) => m[0]);
+  if (sectPrBlocks.length === 0) return null;
+
+  const rIds = new Set<string>();
+  for (const block of sectPrBlocks) {
+    const refs = Array.from(block.matchAll(/<w:(?:header|footer)Reference\b[^>]*\/>/g));
+    for (const ref of refs) {
+      const idMatch = ref[0].match(/r:id="([^"]+)"/);
+      if (idMatch) rIds.add(idMatch[1]);
+    }
+  }
+  if (rIds.size === 0) return null;
+
+  const parts = new Set<string>();
+  rIds.forEach((rId) => {
+    const target = resolveRelsTarget(relsXml, rId);
+    if (!target) return;
+    const zipPath = target.startsWith("word/") ? target : `word/${target}`;
+    if (zip.files[zipPath]) parts.add(zipPath);
+  });
+
+  return parts.size > 0 ? Array.from(parts) : null;
+}
+
 function normalizeSelfClosingParagraphs(xml: string): string {
   // Same fix as logo-replacer.ts: <w:p ... /> must become <w:p ...></w:p> before
   // running a non-greedy <w:p>...</w:p> regex, otherwise it can swallow table
@@ -107,7 +170,7 @@ function applySingleRunSubstitutions(
   const appliedIdx = new Set<number>();
 
   const xml = paragraphXml.replace(
-    /<w:t([^>]*)>([\s\S]*?)<\/w:t>/g,
+    /<w:t\b([^>]*)>([\s\S]*?)<\/w:t>/g,
     (match, attrs: string, inner: string) => {
       let text = decodeXmlEntities(inner);
       let changed = false;
@@ -177,8 +240,8 @@ function applyMergedRunSubstitutions(
   const xml = paragraphXml.replace(/<w:r\b[^>]*>[\s\S]*?<\/w:r>/g, (runXml) => {
     const idx = runIndex++;
     if (idx === 0) return newFirstRun;
-    if (/<w:t[^>]*>[\s\S]*?<\/w:t>/.test(runXml)) {
-      return runXml.replace(/<w:t([^>]*)>[\s\S]*?<\/w:t>/, "<w:t$1></w:t>");
+    if (/<w:t\b[^>]*>[\s\S]*?<\/w:t>/.test(runXml)) {
+      return runXml.replace(/<w:t\b([^>]*)>[\s\S]*?<\/w:t>/, "<w:t$1></w:t>");
     }
     // Standalone <w:tab/>/<w:br/> markers are represented as a literal
     // "\t"/"\n" character inside the merged first run's text (see
@@ -380,7 +443,12 @@ export async function applyBatchChanges(
   opts: { logoBuffer?: Buffer; substituicoes?: Substituicao[] }
 ): Promise<AplicarBatchResult> {
   const zip = new PizZip(buffer);
-  const parts = listHeaderFooterParts(zip);
+  // Text substitution only targets parts actually wired into the document via
+  // sectPr references — falls back to every part that merely exists in the
+  // zip when that reference graph can't be resolved. See
+  // listActiveHeaderFooterParts for why this matters (orphaned header/footer
+  // parts from an earlier revision reporting a false "aplicada").
+  const activeParts = listActiveHeaderFooterParts(zip) ?? listHeaderFooterParts(zip);
 
   let logoSubstituida = false;
   if (opts.logoBuffer) {
@@ -391,7 +459,7 @@ export async function applyBatchChanges(
   let aplicadas: string[] = [];
   let naoEncontradas: string[] = [];
   if (opts.substituicoes && opts.substituicoes.length > 0) {
-    const result = replaceTextInParts(zip, parts, opts.substituicoes);
+    const result = replaceTextInParts(zip, activeParts, opts.substituicoes);
     aplicadas = result.aplicadas;
     naoEncontradas = result.naoEncontradas;
   }

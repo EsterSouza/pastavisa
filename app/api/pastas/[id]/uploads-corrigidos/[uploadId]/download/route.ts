@@ -38,6 +38,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "Content-Disposition": contentDispositionHeader(fileName),
+      "Cache-Control": "no-store",
     },
   });
 }
