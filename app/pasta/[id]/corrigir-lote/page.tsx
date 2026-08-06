@@ -230,6 +230,16 @@ export default function CorrigirLotePasta() {
     let comErro = 0;
 
     try {
+      if (logoFile) {
+        const logoFormData = new FormData();
+        logoFormData.append("logo", logoFile);
+        const logoResponse = await fetch(`/api/pastas/${id}/logo`, {
+          method: "POST",
+          body: logoFormData,
+        });
+        await readApiResponse(logoResponse, "Nao foi possivel salvar a nova logo como logo principal da pasta.");
+      }
+
       for (const docId of docIds) {
         const doc = docs.find((d) => d.id === docId);
         setCurrentDocName(doc?.nomeArquivo || "");
@@ -307,6 +317,8 @@ export default function CorrigirLotePasta() {
           ? `${processados} processado(s), ${comErro} com erro.`
           : `${processados} documento(s) processado(s) com sucesso.`
       );
+    } catch (error) {
+      setApplyError(error instanceof Error ? error.message : "Erro ao aplicar as correcoes.");
     } finally {
       setCurrentDocName("");
       setApplying(false);

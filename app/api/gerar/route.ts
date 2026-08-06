@@ -167,7 +167,15 @@ export async function POST(req: NextRequest) {
       }
 
       // Check if RT appears in body
-      const rtNoCorpo = await hasRtInBody(doc.template.arquivoPath);
+      let rtNoCorpo: boolean;
+      try {
+        rtNoCorpo = await hasRtInBody(doc.template.arquivoPath);
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : "erro desconhecido";
+        throw new Error(
+          `Nao foi possivel carregar o template de "${doc.nomeArquivo}". Verifique o arquivo do template e tente novamente. Detalhe: ${detail}`
+        );
+      }
 
       const { outputPath, tokensTotal, logoSubstituida } = await gerarDocumento(
         doc.template.arquivoPath,

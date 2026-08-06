@@ -1121,7 +1121,17 @@ export async function gerarDocumento(
 
   // ── Logo substitution (header image) ─────────────────────────────────────
   let logoSubstituida = false;
-  const resolvedLogoPath = await materializeStorageFile(options.logoPath);
+  let resolvedLogoPath = "";
+  if (options.logoPath) {
+    try {
+      resolvedLogoPath = await materializeStorageFile(options.logoPath);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "erro desconhecido";
+      throw new Error(
+        `Nao foi possivel carregar a logo da pasta. Reenvie a logo em "Editar pasta" e tente novamente. Detalhe: ${detail}`
+      );
+    }
+  }
   if (resolvedLogoPath) {
     onProgress?.("Substituindo logo...");
     logoSubstituida = await replaceLogo(zip, resolvedLogoPath);
