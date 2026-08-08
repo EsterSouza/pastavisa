@@ -77,28 +77,47 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = await req.json();
-    if (!id) {
-      return NextResponse.json({ error: "Documento obrigatorio" }, { status: 400 });
+    const body = (await req.json()) as { id?: unknown; ids?: unknown };
+    const rawIds: unknown[] = Array.isArray(body.ids) ? body.ids : [body.id];
+    const ids: string[] = Array.from(
+      new Set<string>(
+        rawIds
+          .filter((value): value is string => typeof value === "string")
+          .map((value) => value.trim())
+          .filter(Boolean)
+      )
+    );
+    if (ids.length === 0) {
+      return NextResponse.json({ error: "Selecione ao menos um documento" }, { status: 400 });
+    }
+    if (ids.length > 100) {
+      return NextResponse.json({ error: "Remova no maximo 100 documentos por vez" }, { status: 400 });
     }
 
-    const doc = await prisma.documentoUpload.findFirst({
-      where: { id, pastaId: params.id },
+    const docs = await prisma.documentoUpload.findMany({
+      where: { id: { in: ids }, pastaId: params.id },
       select: { id: true, outputPath: true, versoes: { select: { outputPath: true } } },
     });
-    if (!doc) {
-      return NextResponse.json({ error: "Documento nao encontrado" }, { status: 404 });
+    if (docs.length !== ids.length) {
+      return NextResponse.json(
+        { error: "Um ou mais documentos nao pertencem a esta pasta. Atualize a lista e tente novamente." },
+        { status: 404 }
+      );
     }
 
     // uploadPath lives under "uploads", not "output", so it's intentionally left
     // alone here (deleteGeneratedDocx only allows removing files under storage/output).
-    const outputPaths = new Set([
-      ...(doc.outputPath ? [doc.outputPath] : []),
-      ...doc.versoes.map((versao) => versao.outputPath),
-    ]);
+    const outputPaths = new Set(
+      docs.flatMap((doc) => [
+        ...(doc.outputPath ? [doc.outputPath] : []),
+        ...doc.versoes.map((versao) => versao.outputPath),
+      ])
+    );
     await Promise.all(Array.from(outputPaths).map((outputPath) => deleteGeneratedDocx(outputPath)));
-    await prisma.documentoUpload.delete({ where: { id: doc.id } });
-    return NextResponse.json({ ok: true });
+    const removed = await prisma.documentoUpload.deleteMany({
+      where: { id: { in: ids }, pastaId: params.id },
+    });
+    return NextResponse.json({ ok: true, removidos: removed.count });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erro ao remover documento" },

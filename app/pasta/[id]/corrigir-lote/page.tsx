@@ -89,6 +89,7 @@ export default function CorrigirLotePasta() {
   const [applySummary, setApplySummary] = useState("");
   const [preview, setPreview] = useState<DocumentPreviewState | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [removingBatch, setRemovingBatch] = useState(false);
 
   function carregarDocs() {
     return fetch(`/api/pastas/${id}/uploads-corrigidos`)
@@ -368,6 +369,35 @@ export default function CorrigirLotePasta() {
     }
   }
 
+  async function removerSelecionados() {
+    const ids = Array.from(selectedDocs);
+    const selectedIds = new Set(ids);
+    if (ids.length === 0) return;
+    if (!window.confirm(`Excluir ${ids.length} documento(s) selecionado(s) deste lote?`)) return;
+
+    setRemovingBatch(true);
+    setUploadMessage("");
+    try {
+      const res = await fetch(`/api/pastas/${id}/uploads-corrigidos`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      const result = await readApiResponse<{ removidos: number }>(res, "Erro ao excluir os documentos selecionados");
+      setDocs((prev) => prev.filter((doc) => !selectedIds.has(doc.id)));
+      setSelectedDocs(new Set());
+      setUploadMessage(`${result.removidos} documento(s) excluido(s) do lote.`);
+    } catch (error) {
+      setUploadMessage(
+        error instanceof Error
+          ? `${error.message} Atualize a lista e tente novamente.`
+          : "Erro ao excluir os documentos selecionados. Atualize a lista e tente novamente."
+      );
+    } finally {
+      setRemovingBatch(false);
+    }
+  }
+
   return (
     <div className="max-w-5xl mx-auto">
       <ScrollToTopButton />
@@ -423,11 +453,29 @@ export default function CorrigirLotePasta() {
             className="w-full sm:max-w-md rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
           />
           <div className="flex gap-2 items-center shrink-0">
-            <button onClick={selecionarFiltrados} className="text-xs text-blue-600 hover:underline">
+            <button
+              onClick={selecionarFiltrados}
+              disabled={removingBatch}
+              className="text-xs text-blue-600 hover:underline disabled:text-gray-400 disabled:no-underline"
+            >
               Selecionar {normalizedSearch ? "filtrados" : "todos"}
             </button>
             <span className="text-gray-300">|</span>
-            <button onClick={desselecionarTodos} className="text-xs text-gray-500 hover:underline">Nenhum</button>
+            <button
+              onClick={desselecionarTodos}
+              disabled={removingBatch}
+              className="text-xs text-gray-500 hover:underline disabled:text-gray-400 disabled:no-underline"
+            >
+              Nenhum
+            </button>
+            <button
+              type="button"
+              onClick={() => { void removerSelecionados(); }}
+              disabled={selectedDocs.size === 0 || removingBatch || applying}
+              className="ml-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 disabled:hover:bg-white"
+            >
+              {removingBatch ? "Excluindo..." : `Excluir selecionados (${selectedDocs.size})`}
+            </button>
           </div>
         </div>
 
@@ -450,6 +498,8 @@ export default function CorrigirLotePasta() {
                     type="checkbox"
                     checked={selectedDocs.has(doc.id)}
                     onChange={() => toggleDoc(doc.id)}
+                    aria-label={`Selecionar ${doc.nomeArquivo}`}
+                    disabled={removingBatch}
                     className="w-4 h-4 rounded border-gray-300 text-blue-600 shrink-0"
                   />
                   <span className="min-w-[16rem] flex-[1_1_24rem] text-sm text-gray-900 break-words">
@@ -479,7 +529,7 @@ export default function CorrigirLotePasta() {
                   <button
                     type="button"
                     onClick={() => { void removerDocumento(doc); }}
-                    disabled={removingId === doc.id}
+                    disabled={removingId === doc.id || removingBatch || applying}
                     className="text-xs text-red-500 hover:underline disabled:text-gray-400 shrink-0"
                   >
                     Remover
