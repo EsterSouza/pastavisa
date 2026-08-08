@@ -1,6 +1,6 @@
 # Handoff único — PASTAVISA
 
-**Última atualização:** 08/08/2026 (BRT), ao concluir o PV-000
+**Última atualização:** 08/08/2026 (BRT), ao concluir o PV-006 e a exclusão múltipla autorizada
 **Repositório:** `EsterSouza/pastavisa`
 **Checkout oficial:** `C:\Saas\PASTAVISA`
 **Branch:** `main`
@@ -199,7 +199,7 @@ pagamento ou envio automático.
 | PV-003 | Supabase Auth, papéis e QA | gpt-5.6-sol | alto | P0 segurança | PV-001, PV-002 | Pendente |
 | PV-004 | Motor seguro de substituição | gpt-5.6-sol | xhigh | P1 principal | PV-001, PV-003 | Pendente |
 | PV-005 | Fluxo visual de correção | gpt-5.6-terra | alto | P1 principal | PV-004 | Pendente |
-| PV-006 | Motor sanitário do planner | gpt-5.6-sol | xhigh | P1 sanitário | PV-001 | Pendente |
+| PV-006 | Motor sanitário do planner | gpt-5.6-sol | xhigh | P1 sanitário | PV-001 | Concluído |
 | PV-007 | API pública, preços e proteção | gpt-5.6-sol | alto | P1 segurança | PV-003, PV-006 | Pendente |
 | PV-008 | Manual de marca e design system | gpt-5.6-terra | alto | P1 visual | Manual | Pendente |
 | PV-009 | Planner público e PDF | gpt-5.6-sol | alto | P1 comercial | PV-007, PV-008 | Pendente |
@@ -491,6 +491,16 @@ Commit de implementação: `c0d072a`.
 
 `feat: improve corrected document workflow`
 
+### Entrega antecipada autorizada — exclusão múltipla — 08/08/2026
+
+- A seleção já existente na correção em lote passou a oferecer `Excluir selecionados (N)`, com
+  confirmação, estado desabilitado durante processamento e mensagem explícita de sucesso ou falha.
+- O `DELETE` aceita um ou vários IDs, remove no máximo 100 por chamada e valida que todos pertencem
+  à pasta antes de apagar saídas e registros; mistura de IDs não produz exclusão parcial.
+- Teste focado: 2 cenários de lote aprovados. Suíte completa, lint, TypeScript e build também passaram.
+- Commit publicado na `main`: `2a31f1e` (`feat: add bulk deletion to correction workflow`).
+- O restante do PV-005 continua pendente e não foi antecipado.
+
 ---
 
 ## PV-006 — Motor sanitário do planner
@@ -523,6 +533,28 @@ Commit de implementação: `c0d072a`.
 ### Commit
 
 `feat: add commercial planning engine`
+
+### Resultado — 08/08/2026
+
+- Criados módulos separados para tipos, validação, extração explícita, mapa de cobertura, conjunto
+  mínimo, saída pública e prompts, além do carregador de catálogo e orquestrador `server-only`.
+- O motor reaproveita o cliente Anthropic de `lib/ai.ts`, usa somente o catálogo ativo carregado no
+  servidor e não persiste pedido, análise ou resultado.
+- A validação exige evidência literal, elimina produto, marca, ativo, indicação, equipamento e etapa,
+  consolida somente pelo nome técnico canônico e mantém técnicas materialmente distintas.
+- O mapa troca sugestões pelos nomes reais do catálogo, exige equivalência para documento que cobre
+  várias técnicas e cria item provisório com alerta quando não encontra cobertura segura.
+- TCLE amplo não absorve específicos sem equivalência; esterilização exige reutilização e autoclave;
+  documento de gestão de equipamento exige equipamento informado.
+- A saída pública contém somente procedimentos, documentos, alertas, resumo e o aviso oficial; IDs,
+  catálogo, modo de cobertura, pontuação e prompts permanecem internos.
+- Testes sanitários: 12 aprovados. Suíte completa: 5 arquivos e 16 testes aprovados. `next lint` sem
+  avisos, `tsc --noEmit` sem erros e `next build` concluído com código 0.
+- Limitação observada no build local: após concluir as páginas, um processo paralelo de inicialização
+  do SQLite registrou `duplicate column name: clienteProdutosInsumos`; não houve alteração de schema
+  nem migration neste card, e o build permaneceu aprovado.
+- Commit publicado na `main`: `a60cc73` (`feat: add commercial planning engine`).
+- Fora de escopo preservado: API pública, preço, PDF, pasta definitiva e revisão técnica final.
 
 ---
 
@@ -713,3 +745,5 @@ Commit de implementação: `c0d072a`.
 |---|---|---|---|---|---|
 | 08/08/2026 | PV-000 | Concluído | `146b73c` | Vercel `success`; sem ação funcional | Handoff único publicado; temporários removidos. |
 | 08/08/2026 | PV-001 | Concluído | `c0d072a` | Nenhuma ação remota | Vitest configurado; build, lint e 2 testes passaram. |
+| 08/08/2026 | Ajuste correção em lote | Concluído | `2a31f1e` | Push em `origin/main` | Exclusão múltipla estrita; restante do PV-005 continua pendente. |
+| 08/08/2026 | PV-006 | Concluído | `a60cc73` | Push em `origin/main`; deployment não verificado | Motor sanitário server-only; 12 testes focados e saída pública sanitizada. |
