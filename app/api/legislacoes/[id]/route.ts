@@ -31,8 +31,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const current = await prisma.legislacao.findUnique({ where: { id: params.id } });
     if (!current) return NextResponse.json({ error: "Referência não encontrada." }, { status: 404 });
 
-    const changesIdentity = ["estadoUf", "municipio", "titulo", "referenciaAbnt"]
-      .some((field) => Object.prototype.hasOwnProperty.call(body, field));
+    const changesIdentity = (["estadoUf", "municipio", "titulo", "referenciaAbnt"] as const)
+      .some((field) => Object.prototype.hasOwnProperty.call(body, field) && body[field] !== current[field]);
     const data = { ...current, ...body };
     if (changesIdentity) {
       const existing = await prisma.legislacao.findMany();
