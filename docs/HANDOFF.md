@@ -194,7 +194,7 @@ pagamento ou envio automático.
 | Card | Entrega | Modelo | Esforço | Prioridade | Depende de | Estado |
 |---|---|---|---|---|---|---|
 | PV-000 | Checkout e handoff único | gpt-5.6-terra | médio | P0 | — | Concluído |
-| PV-001 | Fundação de testes | gpt-5.6-terra | médio | P0 | PV-000 | Pendente |
+| PV-001 | Fundação de testes | gpt-5.6-terra | médio | P0 | PV-000 | Concluído |
 | PV-002 | Fechamento de tabelas expostas | gpt-5.6-sol | alto | P0 segurança | PV-000 | Pendente |
 | PV-003 | Supabase Auth, papéis e QA | gpt-5.6-sol | alto | P0 segurança | PV-001, PV-002 | Pendente |
 | PV-004 | Motor seguro de substituição | gpt-5.6-sol | xhigh | P1 principal | PV-001, PV-003 | Pendente |
@@ -327,6 +327,34 @@ pagamento ou envio automático.
 ### Commit
 
 `test: establish PastaVISA test baseline`
+
+### Resultado — 08/08/2026
+
+**Concluído.** Vitest foi configurado como base de testes sem alterar código de produção ou
+comportamento da aplicação.
+
+Commit de implementação: `c0d072a`.
+
+#### Alterações entregues
+
+- Adicionados Vitest, jsdom, Testing Library React e `@testing-library/jest-dom` como dependências de desenvolvimento, com lockfile atualizado.
+- Disponibilizados `npm run test`, `npm run test:run` e `npm run test:watch`.
+- `vitest.config.ts` mantém ambiente Node por padrão, resolve o alias `@` e deixa jsdom como opt-in
+  explícito para testes de componente com `@vitest-environment jsdom`.
+- Criado `tests/setup.ts` com os matchers jest-dom e a primeira matriz de `env-readiness`: desenvolvimento local e produção completamente configurada. Os testes usam apenas marcadores locais e não imprimem nem registram valores de ambiente.
+
+#### Baseline e validação
+
+- Antes do runner: não havia script nem suíte automatizada de testes.
+- `npm.cmd run test:run`: passou, 1 arquivo e 2 testes, exit code 0.
+- `npm.cmd run build`: passou, com 9 páginas geradas.
+- `npm.cmd run lint`: passou, **0 erros e 0 avisos preexistentes**.
+- `npm audit`, após a instalação das dependências do card, informou 17 vulnerabilidades no grafo
+  atual (6 moderadas, 10 altas e 1 crítica). Nenhum `npm audit fix` foi executado.
+
+#### Deliberadamente fora de escopo
+
+- Playwright, screenshots, testes de produção e qualquer alteração funcional.
 
 ---
 
@@ -684,3 +712,4 @@ pagamento ou envio automático.
 | Data | Card | Estado | Commit | Produção | Observação |
 |---|---|---|---|---|---|
 | 08/08/2026 | PV-000 | Concluído | `146b73c` | Vercel `success`; sem ação funcional | Handoff único publicado; temporários removidos. |
+| 08/08/2026 | PV-001 | Concluído | `c0d072a` | Nenhuma ação remota | Vitest configurado; build, lint e 2 testes passaram. |
