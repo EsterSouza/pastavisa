@@ -1,6 +1,6 @@
 # Handoff único — PASTAVISA
 
-**Última atualização:** 08/08/2026 (BRT), durante o PV-000
+**Última atualização:** 08/08/2026 (BRT), ao concluir o PV-000
 **Repositório:** `EsterSouza/pastavisa`
 **Checkout oficial:** `C:\Saas\PASTAVISA`
 **Branch:** `main`
@@ -80,6 +80,10 @@ A Ester troca o modelo no seletor; o agente nunca afirma ter feito essa troca.
 | Arquivos | filesystem local ou Supabase Storage |
 | Geração | DOCX, docxtemplater/PizZip, Mammoth, Sharp e Anthropic |
 | Testes no início | sem runner automatizado configurado |
+
+`npm.cmd ci` instalou 607 pacotes e o audit do npm informou 18 vulnerabilidades no grafo atual:
+6 moderadas, 11 altas e 1 crítica. O PV-000 não executou `npm audit fix` nem alterou dependências;
+o PV-001 deve registrar o baseline detalhado antes de qualquer correção seletiva.
 
 Scripts: `dev`, `build`, `start`, `check:deploy`, `backup:local`, `migrate:local-to-supabase`,
 `migrate:storage-to-supabase`, `repair:docx`, `lint` e `sync:templates`.
@@ -189,7 +193,7 @@ pagamento ou envio automático.
 
 | Card | Entrega | Modelo | Esforço | Prioridade | Depende de | Estado |
 |---|---|---|---|---|---|---|
-| PV-000 | Checkout e handoff único | gpt-5.6-terra | médio | P0 | — | Em execução |
+| PV-000 | Checkout e handoff único | gpt-5.6-terra | médio | P0 | — | Concluído |
 | PV-001 | Fundação de testes | gpt-5.6-terra | médio | P0 | PV-000 | Pendente |
 | PV-002 | Fechamento de tabelas expostas | gpt-5.6-sol | alto | P0 segurança | PV-000 | Pendente |
 | PV-003 | Supabase Auth, papéis e QA | gpt-5.6-sol | alto | P0 segurança | PV-001, PV-002 | Pendente |
@@ -235,11 +239,11 @@ pagamento ou envio automático.
 
 ### Critérios de aceite
 
-- [ ] Checkout fora do OneDrive e sincronizado.
-- [ ] Único handoff operacional, sem segredo.
-- [ ] Build preservado.
-- [ ] Manual local preservado e não rastreado.
-- [ ] Temporários do card removidos.
+- [x] Checkout fora do OneDrive e sincronizado.
+- [x] Único handoff operacional, sem segredo.
+- [x] Build preservado.
+- [x] Manual local preservado e não rastreado.
+- [x] Temporários do card removidos.
 
 ### Fora de escopo
 
@@ -248,6 +252,50 @@ pagamento ou envio automático.
 ### Commit
 
 `docs: add canonical PastaVISA handoff`
+
+### Resultado — 08/08/2026
+
+**Concluído.** O checkout oficial foi preparado em `C:\Saas\PASTAVISA`, fora do OneDrive, com
+`main` sincronizada. O manual de marca que já estava na raiz permaneceu local, ignorado e intocado.
+
+#### Alterações entregues
+
+- Criado o handoff único com estado verificado, contexto mínimo, decisões, mapa e cards executáveis.
+- `README.md` e `LEIAME.md` passaram a apontar para este documento.
+- `PASTAVISA_CONTEXT.md` foi removido depois da consolidação; as menções remanescentes ao nome são
+  somente históricas ou pertencem ao próprio critério de auditoria do PV-000.
+- Commit de implementação: `146b73ceda54b720ef7e326235e96a10e5fd7329`.
+
+#### Evidência de validação
+
+- `npm.cmd ci`: passou; Prisma Client 7.8 gerado; 607 pacotes instalados.
+- `npm.cmd run build`: passou. A primeira tentativa foi bloqueada pelo sandbox ao baixar Inter; a
+  repetição autorizada com rede compilou, tipou e gerou 9 páginas sem erro.
+- `npm.cmd run check:deploy`: passou integralmente.
+- `git fsck --full`: passou sem saída de erro.
+- `git diff --cached --check`: passou depois da remoção de espaços finais.
+- Busca de padrões de segredo nos arquivos do card: nenhum valor encontrado.
+- `origin/main`: confirmado no commit de implementação antes deste registro.
+- Check Vercel do commit de implementação: `success`. Não houve smoke funcional autenticado, pois
+  contas Supabase Auth pertencem ao PV-003.
+
+#### Produção e dados
+
+- Nenhuma migration, seed, usuário, dado, objeto Storage, env ou regra Vercel foi alterado.
+- O único efeito remoto foi o push documental na `main` e seu deployment automático.
+
+#### Limpeza
+
+- Removidos `C:\Saas\PASTAVISA\.next` e `C:\Saas\PASTAVISA\prisma\dev.db`, ambos gerados pelo build.
+- Mantidos `node_modules` e o Prisma Client gerado porque serão reutilizados pelo PV-001.
+- Nenhuma imagem, PDF ou ativo oficial foi removido.
+
+#### Deliberadamente fora de escopo
+
+- Vulnerabilidades de dependências apenas registradas, sem correção automática.
+- RLS, Auth, contas QA, correção DOCX, planner, manual de marca e frontend permanecem nos cards próprios.
+
+**Próximo card liberado:** PV-001 — Fundação de testes, com `gpt-5.6-terra` em esforço médio.
 
 ---
 
@@ -635,4 +683,4 @@ pagamento ou envio automático.
 
 | Data | Card | Estado | Commit | Produção | Observação |
 |---|---|---|---|---|---|
-| 08/08/2026 | PV-000 | Em execução | — | Sem alteração funcional | Checkout preparado; validações pendentes. |
+| 08/08/2026 | PV-000 | Concluído | `146b73c` | Vercel `success`; sem ação funcional | Handoff único publicado; temporários removidos. |
