@@ -1,5 +1,9 @@
 # PastaVISA — Como usar
 
+> **Continuidade técnica:** o estado atual, as decisões e os cards ficam somente em
+> [`docs/HANDOFF.md`](docs/HANDOFF.md). Este arquivo descreve o uso operacional existente e não deve
+> ser usado como handoff de desenvolvimento.
+
 ## Primeiro uso
 
 1. Abra o arquivo `.env` e substitua `sua-chave-aqui` pela sua chave da Anthropic API:
