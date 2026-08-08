@@ -38,6 +38,28 @@ function getClient(): Anthropic {
   return _client;
 }
 
+export async function runCommercialPlannerAnalysis(
+  systemPrompt: string,
+  userPrompt: string
+): Promise<{ data: unknown; tokensUsed: number }> {
+  const response = await getClient().messages.create({
+    model: "claude-sonnet-4-5-20250929",
+    max_tokens: 8192,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
+  });
+  const raw = response.content[0].type === "text" ? response.content[0].text : "{}";
+  const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  try {
+    return {
+      data: JSON.parse(cleaned),
+      tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+    };
+  } catch {
+    throw new Error("A análise sanitária retornou JSON inválido. Tente novamente.");
+  }
+}
+
 export interface ClienteData {
   clienteNomeFantasia?: string;
   clienteRazaoSocial?: string;
