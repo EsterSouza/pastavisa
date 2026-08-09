@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { deleteGeneratedDocx } from "@/lib/file-storage";
 import { findBestTemplateMatch } from "@/lib/template-matcher";
+import { requireAdmin } from "@/lib/auth/authorization";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -78,6 +79,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const authorization = await requireAdmin();
+  if (authorization) return authorization;
+
   try {
     const { docId } = await req.json();
     if (!docId) {

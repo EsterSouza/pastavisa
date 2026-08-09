@@ -26,7 +26,10 @@ export async function POST(req: NextRequest) {
     }
 
     const publicUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const publicKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const publicKey =
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      process.env.SUPABASE_ANON_KEY;
     if (!publicUrl || !publicKey) {
       return NextResponse.json(
         { error: "Configure SUPABASE_ANON_KEY para habilitar uploads grandes em producao." },

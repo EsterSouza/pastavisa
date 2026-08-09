@@ -30,7 +30,7 @@ function checkPackage() {
     else fail(`script ${script} ausente`);
   }
 
-  for (const dependency of ["@supabase/supabase-js", "@prisma/adapter-pg", "pg"]) {
+  for (const dependency of ["@supabase/ssr", "@supabase/supabase-js", "@prisma/adapter-pg", "pg"]) {
     if (pkg.dependencies?.[dependency]) ok(`dependencia ${dependency} existe`);
     else fail(`dependencia ${dependency} ausente`);
   }
@@ -77,14 +77,48 @@ function checkEnvExample() {
     "NEXT_PUBLIC_SUPABASE_URL",
     "SUPABASE_URL",
     "SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     "SUPABASE_SERVICE_ROLE_KEY",
     "SUPABASE_STORAGE_BUCKET",
-    "APP_BASIC_AUTH_USER",
-    "APP_BASIC_AUTH_PASSWORD",
   ]) {
     if (env.includes(key)) ok(`.env.example contem ${key}`);
     else fail(`.env.example nao contem ${key}`);
   }
+}
+
+function checkAuthentication() {
+  for (const file of [
+    "lib/supabase/browser.ts",
+    "lib/supabase/server.ts",
+    "lib/supabase/middleware.ts",
+    "lib/auth/authorization.ts",
+  ]) {
+    if (fs.existsSync(path.join(root, file))) ok(`${file} existe`);
+    else fail(`${file} ausente`);
+  }
+
+  if (!fs.existsSync(path.join(root, "lib/session-auth.ts"))) ok("sessao temporaria removida");
+  else fail("remova lib/session-auth.ts");
+
+  const middleware = read("middleware.ts");
+  if (middleware.includes("updateSession") && middleware.includes("isAdminOnlyPath")) {
+    ok("middleware usa Supabase Auth e RBAC");
+  } else {
+    fail("middleware deve validar Supabase Auth e RBAC");
+  }
+
+  for (const file of routeFiles(path.join(root, "app", "api"))) {
+    const content = fs.readFileSync(file, "utf8");
+    if (!content.includes("export async function DELETE")) continue;
+    const rel = path.relative(root, file).replace(/\\/g, "/");
+    if (content.includes("requireAdmin")) ok(`${rel} protege DELETE no handler`);
+    else fail(`${rel} deve proteger DELETE no handler`);
+  }
+
+  const loginSources = [read("app/login/page.tsx"), read("app/api/auth/login/route.ts")].join("\n");
+  if (!/sign\s?up/i.test(loginSources)) ok("cadastro publico ausente");
+  else fail("login interno nao pode oferecer cadastro");
 }
 
 function checkSupabaseStorageDriver() {
@@ -126,6 +160,7 @@ checkGitignore();
 checkRoutes();
 checkEnvExample();
 checkSupabaseStorageDriver();
+checkAuthentication();
 
 if (process.exitCode) {
   console.error("Readiness check encontrou problemas.");

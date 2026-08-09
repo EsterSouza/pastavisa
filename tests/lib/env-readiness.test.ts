@@ -7,10 +7,11 @@ const readinessEnvironment = [
   "FILE_STORAGE_DRIVER",
   "SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_URL",
+  "SUPABASE_ANON_KEY",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
   "VERCEL",
-  "APP_BASIC_AUTH_USER",
-  "APP_BASIC_AUTH_PASSWORD",
 ] as const;
 
 function setReadinessEnvironment(overrides: Record<string, string> = {}) {
@@ -33,7 +34,7 @@ describe("getReadinessSummary", () => {
         { name: "anthropic", ok: false },
         { name: "database", ok: true },
         { name: "storage", ok: true },
-        { name: "access_gate", ok: true },
+        { name: "authentication", ok: false },
       ],
     });
   });
@@ -45,9 +46,8 @@ describe("getReadinessSummary", () => {
       DATABASE_URL: "postgres",
       FILE_STORAGE_DRIVER: "supabase",
       SUPABASE_URL: "configured",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "configured",
       SUPABASE_SERVICE_ROLE_KEY: "configured",
-      APP_BASIC_AUTH_USER: "configured",
-      APP_BASIC_AUTH_PASSWORD: "configured",
     });
 
     expect(getReadinessSummary()).toMatchObject({
@@ -56,7 +56,7 @@ describe("getReadinessSummary", () => {
         { name: "anthropic", ok: true },
         { name: "database", ok: true },
         { name: "storage", ok: true },
-        { name: "access_gate", ok: true },
+        { name: "authentication", ok: true },
       ],
     });
   });

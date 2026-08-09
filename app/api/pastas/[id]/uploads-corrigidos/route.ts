@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { deleteGeneratedDocx, saveStorageBuffer, safeStorageFileName } from "@/lib/file-storage";
+import { requireAdmin } from "@/lib/auth/authorization";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -76,6 +77,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const authorization = await requireAdmin();
+  if (authorization) return authorization;
+
   try {
     const body = (await req.json()) as { id?: unknown; ids?: unknown };
     const rawIds: unknown[] = Array.isArray(body.ids) ? body.ids : [body.id];

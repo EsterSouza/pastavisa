@@ -22,6 +22,8 @@ vi.mock("@/lib/file-storage", () => ({
   safeStorageFileName: (value: string) => value,
 }));
 
+vi.mock("@/lib/auth/authorization", () => ({ requireAdmin: vi.fn().mockResolvedValue(null) }));
+
 import { DELETE } from "@/app/api/pastas/[id]/uploads-corrigidos/route";
 
 function request(body: unknown) {

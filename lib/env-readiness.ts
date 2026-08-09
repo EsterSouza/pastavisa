@@ -17,6 +17,15 @@ function hasSupabaseStorageEnv(): boolean {
   );
 }
 
+function hasSupabaseAuthEnv(): boolean {
+  return (
+    (hasEnv("NEXT_PUBLIC_SUPABASE_URL") || hasEnv("SUPABASE_URL")) &&
+    (hasEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") ||
+      hasEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY") ||
+      hasEnv("SUPABASE_ANON_KEY"))
+  );
+}
+
 function isProductionRuntime(): boolean {
   return process.env.NODE_ENV === "production" || !!process.env.VERCEL;
 }
@@ -48,11 +57,9 @@ export function getReadinessChecks(): ReadinessCheck[] {
         : "Usando storage local; configure FILE_STORAGE_DRIVER=supabase para producao",
     },
     {
-      name: "access_gate",
-      ok:
-        process.env.NODE_ENV !== "production" ||
-        (hasEnv("APP_BASIC_AUTH_USER") && hasEnv("APP_BASIC_AUTH_PASSWORD")),
-      message: "Basic Auth opcional para proteger o app antes do login completo",
+      name: "authentication",
+      ok: hasSupabaseAuthEnv(),
+      message: "Supabase Auth configurado com chave publicavel ou anon legada",
     },
   ];
 

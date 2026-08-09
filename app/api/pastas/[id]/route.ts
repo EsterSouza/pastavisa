@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { deleteGeneratedDocx } from "@/lib/file-storage";
+import { requireAdmin } from "@/lib/auth/authorization";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,6 +85,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const authorization = await requireAdmin();
+  if (authorization) return authorization;
+
   try {
     const pasta = await prisma.pasta.findUnique({
       where: { id: params.id },

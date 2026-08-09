@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { criarChaveReferencia, encontrarReferenciaDuplicada } from "@/lib/reference-deduplication";
+import { requireAdmin } from "@/lib/auth/authorization";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,6 +59,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const authorization = await requireAdmin();
+  if (authorization) return authorization;
+
   await prisma.legislacao.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });
 }

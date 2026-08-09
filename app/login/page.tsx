@@ -2,10 +2,11 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { safeNextPath } from "@/lib/supabase/browser";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [user, setUser] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,22 +16,26 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user, password }),
-    });
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    setLoading(false);
+      if (!response.ok) {
+        setError("E-mail ou senha invalidos.");
+        return;
+      }
 
-    if (!response.ok) {
-      setError("Usuario ou senha invalidos.");
-      return;
+      const nextPath = safeNextPath(new URLSearchParams(window.location.search).get("next"));
+      router.replace(nextPath);
+      router.refresh();
+    } catch {
+      setError("Nao foi possivel entrar. Tente novamente.");
+    } finally {
+      setLoading(false);
     }
-
-    const nextPath = new URLSearchParams(window.location.search).get("next") || "/";
-    router.replace(nextPath);
-    router.refresh();
   }
 
   return (
@@ -43,13 +48,14 @@ export default function LoginPage() {
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="username" className="mb-1 block text-xs font-medium text-gray-700">Usuario</label>
+            <label htmlFor="email" className="mb-1 block text-xs font-medium text-gray-700">E-mail</label>
             <input
-              id="username"
-              name="username"
+              id="email"
+              name="email"
+              type="email"
               autoComplete="username"
-              value={user}
-              onChange={(event) => setUser(event.target.value)}
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300"
               required
             />
