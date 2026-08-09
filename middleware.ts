@@ -25,7 +25,13 @@ function unauthorized(req: NextRequest, sessionResponse?: NextResponse) {
 
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
-  if (isPublicPath(path)) return NextResponse.next();
+  if (isPublicPath(path)) {
+    const response = NextResponse.next();
+    if (path === "/planner" || path.startsWith("/planner/") || path.startsWith("/api/planejamento-comercial/")) {
+      response.headers.set("Cache-Control", "no-store");
+    }
+    return response;
+  }
 
   if (!isSupabaseAuthConfigured()) {
     if (req.nextUrl.pathname.startsWith("/api/")) {

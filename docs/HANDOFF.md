@@ -1,6 +1,6 @@
 # Handoff único — PASTAVISA
 
-**Última atualização:** 08/08/2026 (BRT), ao concluir o PV-006 e a exclusão múltipla autorizada
+**Última atualização:** 09/08/2026 (BRT), durante a implementação do PV-007
 **Repositório:** `EsterSouza/pastavisa`
 **Checkout oficial:** `C:\Saas\PASTAVISA`
 **Branch:** `main`
@@ -200,7 +200,7 @@ pagamento ou envio automático.
 | PV-004 | Motor seguro de substituição | gpt-5.6-sol | xhigh | P1 principal | PV-001, PV-003 | Pendente |
 | PV-005 | Fluxo visual de correção | gpt-5.6-terra | alto | P1 principal | PV-004 | Pendente |
 | PV-006 | Motor sanitário do planner | gpt-5.6-sol | xhigh | P1 sanitário | PV-001 | Concluído |
-| PV-007 | API pública, preços e proteção | gpt-5.6-sol | alto | P1 segurança | PV-003, PV-006 | Pendente |
+| PV-007 | API pública, preços e proteção | gpt-5.6-sol | alto | P1 segurança | PV-003, PV-006 | Em implementação; WAF bloqueado pelo plano |
 | PV-008 | Manual de marca e design system | gpt-5.6-terra | alto | P1 visual | Manual | Pendente |
 | PV-009 | Planner público e PDF | gpt-5.6-sol | alto | P1 comercial | PV-007, PV-008 | Pendente |
 | PV-010 | Redesign interno principal | gpt-5.6-terra | alto | P2 visual | PV-005, PV-008 | Pendente |
@@ -590,6 +590,36 @@ Commit de implementação: `c0d072a`.
 
 `feat: expose secure public planning analysis`
 
+### Resultado de implementação — 09/08/2026
+
+- Criada `POST /api/planejamento-comercial/analisar`, única API de análise liberada pelo middleware,
+  com JSON de até 12 KB, procedimentos de até 8 KB, método estrito, `Cache-Control: no-store`,
+  request ID próprio e respostas 400/422/503 sem detalhes internos.
+- Preço implementado como função pura para digital, preto e branco + digital e colorida + digital.
+  Os limites 99/100/101/150/151/200/201 foram cobertos e qualquer preço enviado pelo navegador é
+  ignorado; o servidor recalcula base, adicional e total.
+- O plano público e seu preço são assinados com HMAC SHA-256 por `PLANNER_SIGNING_SECRET`, com validade
+  fixa de duas horas. Token alterado, expirado ou com preço modificado é recusado.
+- A fronteira pública não importa Prisma, Storage, Supabase ou service role. O motor sanitário continua
+  podendo consultar o catálogo ativo somente por sua camada interna e não executa escrita ou retenção.
+- Logs da rota contêm exclusivamente request ID, duração, status e quantidades de bytes, procedimentos e
+  documentos; cliente, local, texto, alerta, preço e token não são registrados.
+- Readiness, `.env.example` e `check:deploy` passaram a exigir a assinatura do planner e auditar rota,
+  imports proibidos, método, limites e a especificação versionada das regras WAF.
+- Evidência local: `npm.cmd run test:run` passou com 14 arquivos e 54 testes; `next lint` sem avisos;
+  `npx.cmd tsc --noEmit`, `npm.cmd run check:deploy` e `npm.cmd run build` passaram.
+- Vercel: a regra de análise 10 POST/5 min/IP foi preparada como rascunho, sem publicação. A regra de PDF
+  20 POST/5 min/IP foi recusada com `Rate limiting is not available for this plan (401)`. O diff remoto
+  contém somente a regra de análise e não altera produção até publicação. Para concluir o aceite 429,
+  habilitar um plano com WAF rate limiting, preparar a segunda regra, revisar ambas e publicar.
+- DesignMD MCP foi configurado no projeto por `.codex/config.toml`, com credencial gratuita somente na
+  variável de usuário `DESIGNMD_TOKEN`; nenhum valor foi gravado no repositório ou log. O endpoint direto
+  com `www` evita perder o cabeçalho no redirecionamento. Reiniciar o Codex e validar a conexão antes do PV-009.
+- O PV-003 foi isolado e versionado antes deste card no commit `b7d1272`, preservando a dependência e sem
+  misturar seus arquivos com o commit de implementação do PV-007.
+- Nenhuma migration, escrita em banco/Storage, lead, CRM, e-mail, histórico, deploy ou regra WAF publicada
+  foi executada.
+
 ---
 
 ## PV-008 — Manual de marca e design system
@@ -637,6 +667,9 @@ Commit de implementação: `c0d072a`.
 ### Implementação
 
 - Cliente/local → operação → revisão → formato/preço → PDF.
+- Usar o MCP DesignMD desde o início para definir o design system, os blocos do link público e a composição
+  visual do PDF com estética profissional e premium; não substituir essa etapa silenciosamente por referência
+  visual improvisada.
 - Retirada recalcula documentos/adicional; comparar três formatos.
 - PDF A4 em memória com logo/marca d’água, cliente, data, incluídos/retirados, documentos, contagem,
   preços, adicional, total, prazo e ressalva oficial.

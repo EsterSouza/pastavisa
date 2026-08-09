@@ -24,7 +24,10 @@ describe("authorization", () => {
 
   it("mantem planner e autenticacao publicos, mas nao administracao", () => {
     expect(isPublicPath("/planner/novo")).toBe(true);
-    expect(isPublicPath("/api/planner/analisar")).toBe(true);
+    expect(isPublicPath("/api/planejamento-comercial/analisar")).toBe(true);
+    expect(isPublicPath("/api/planejamento-comercial/pdf")).toBe(true);
+    expect(isPublicPath("/api/planejamento-comercial/interno")).toBe(false);
+    expect(isPublicPath("/api/planner/analisar")).toBe(false);
     expect(isPublicPath("/api/auth/login")).toBe(true);
     expect(isPublicPath("/api/pastas")).toBe(false);
     expect(isAdminOnlyPath("/api/templates/123")).toBe(true);

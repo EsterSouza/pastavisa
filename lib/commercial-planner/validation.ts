@@ -28,6 +28,9 @@ const documentRoles = new Set<DocumentRole>([
   "equipment",
 ]);
 
+export const MAX_PLANNER_BODY_BYTES = 12 * 1024;
+export const MAX_PROCEDURES_BYTES = 8 * 1024;
+
 export class PlannerValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -43,7 +46,7 @@ export function validatePlannerInput(value: unknown): CommercialPlannerInput {
   if (!value || typeof value !== "object") throw new PlannerValidationError("Dados do planejamento ausentes.");
   const raw = value as Record<string, unknown>;
   const cliente = text(raw.cliente, 160);
-  const procedimentos = text(raw.procedimentos, 8_000);
+  const procedimentos = text(raw.procedimentos, MAX_PROCEDURES_BYTES);
   if (!cliente) throw new PlannerValidationError("Informe o nome do cliente.");
   if (!procedimentos) throw new PlannerValidationError("Informe os procedimentos declarados.");
 

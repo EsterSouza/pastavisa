@@ -11,6 +11,7 @@ const readinessEnvironment = [
   "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
+  "PLANNER_SIGNING_SECRET",
   "VERCEL",
 ] as const;
 
@@ -35,6 +36,7 @@ describe("getReadinessSummary", () => {
         { name: "database", ok: true },
         { name: "storage", ok: true },
         { name: "authentication", ok: false },
+        { name: "planner-signing", ok: false },
       ],
     });
   });
@@ -48,6 +50,7 @@ describe("getReadinessSummary", () => {
       SUPABASE_URL: "configured",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "configured",
       SUPABASE_SERVICE_ROLE_KEY: "configured",
+      PLANNER_SIGNING_SECRET: "configured",
     });
 
     expect(getReadinessSummary()).toMatchObject({
@@ -57,6 +60,7 @@ describe("getReadinessSummary", () => {
         { name: "database", ok: true },
         { name: "storage", ok: true },
         { name: "authentication", ok: true },
+        { name: "planner-signing", ok: true },
       ],
     });
   });

@@ -1,0 +1,4 @@
+[mcp_servers.designmd]
+url = "https://www.designmd.co/api/mcp"
+bearer_token_env_var = "DESIGNMD_TOKEN"
+startup_timeout_sec = 20

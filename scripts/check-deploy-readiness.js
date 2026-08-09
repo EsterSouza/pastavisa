@@ -72,6 +72,7 @@ function checkEnvExample() {
   const env = read(".env.example");
   for (const key of [
     "ANTHROPIC_API_KEY",
+    "PLANNER_SIGNING_SECRET",
     "DATABASE_URL",
     "FILE_STORAGE_DRIVER",
     "NEXT_PUBLIC_SUPABASE_URL",
@@ -84,6 +85,78 @@ function checkEnvExample() {
   ]) {
     if (env.includes(key)) ok(`.env.example contem ${key}`);
     else fail(`.env.example nao contem ${key}`);
+  }
+}
+
+function checkPublicPlanner() {
+  for (const file of [
+    "app/api/planejamento-comercial/analisar/route.ts",
+    "lib/commercial-planner/pricing.ts",
+    "lib/commercial-planner/signed-plan.ts",
+    "lib/commercial-planner/safe-logging.ts",
+    "scripts/planner-firewall-rules.json",
+  ]) {
+    if (fs.existsSync(path.join(root, file))) ok(`${file} existe`);
+    else fail(`${file} ausente`);
+  }
+
+  const route = read("app/api/planejamento-comercial/analisar/route.ts");
+  const validation = read("lib/commercial-planner/validation.ts");
+  if (
+    validation.includes("12 * 1024") &&
+    validation.includes("8 * 1024") &&
+    route.includes('"Cache-Control": "no-store"') &&
+    route.includes("export async function POST") &&
+    !/export async function (GET|PUT|PATCH|DELETE)/.test(route)
+  ) {
+    ok("rota publica limita payload, desabilita cache e aceita somente POST");
+  } else {
+    fail("rota publica deve limitar payload, usar no-store e aceitar somente POST");
+  }
+
+  if (!/@\/lib\/(prisma|file-storage|supabase)/.test(route) && !/service.?role/i.test(route)) {
+    ok("fronteira publica nao importa persistencia nem service role");
+  } else {
+    fail("fronteira publica nao pode importar Prisma, Storage, Supabase ou service role");
+  }
+
+  const authorization = read("lib/auth/authorization.ts");
+  if (
+    authorization.includes('pathname === "/api/planejamento-comercial/analisar"') &&
+    authorization.includes('pathname === "/api/planejamento-comercial/pdf"') &&
+    !authorization.includes('matchesPrefix(pathname, "/api/planejamento-comercial")') &&
+    !authorization.includes('matchesPrefix(pathname, "/api/planner")')
+  ) {
+    ok("middleware libera somente as APIs publicas previstas do planner");
+  } else {
+    fail("middleware deve liberar somente analisar e PDF, sem prefixo amplo de API");
+  }
+
+  const firewall = JSON.parse(read("scripts/planner-firewall-rules.json"));
+  const expected = new Map([
+    ["/api/planejamento-comercial/analisar", 10],
+    ["/api/planejamento-comercial/pdf", 20],
+  ]);
+  const validFirewall =
+    Array.isArray(firewall.rules) &&
+    firewall.rules.length === expected.size &&
+    firewall.rules.every(
+      (rule) =>
+        expected.get(rule.path) === rule.requests &&
+        rule.method === "POST" &&
+        rule.windowSeconds === 300 &&
+        rule.key === "ip" &&
+        rule.action === "rate_limit" &&
+        rule.status === 429
+    );
+  if (validFirewall) ok("especificacao WAF limita analise e PDF por IP");
+  else fail("especificacao WAF do planner esta incompleta");
+
+  const readiness = read("lib/env-readiness.ts");
+  if (readiness.includes('name: "planner-signing"') && readiness.includes('hasEnv("PLANNER_SIGNING_SECRET")')) {
+    ok("readiness exige assinatura HMAC do planner");
+  } else {
+    fail("readiness deve exigir PLANNER_SIGNING_SECRET");
   }
 }
 
@@ -161,6 +234,7 @@ checkRoutes();
 checkEnvExample();
 checkSupabaseStorageDriver();
 checkAuthentication();
+checkPublicPlanner();
 
 if (process.exitCode) {
   console.error("Readiness check encontrou problemas.");

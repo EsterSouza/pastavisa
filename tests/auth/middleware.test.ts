@@ -52,7 +52,12 @@ describe("auth middleware", () => {
   });
 
   it("mantem o planner publico sem consultar sessao", async () => {
-    expect((await middleware(request("/planner"))).status).toBe(200);
+    const page = await middleware(request("/planner"));
+    const analysis = await middleware(request("/api/planejamento-comercial/analisar"));
+    expect(page.status).toBe(200);
+    expect(page.headers.get("cache-control")).toBe("no-store");
+    expect(analysis.status).toBe(200);
+    expect(analysis.headers.get("cache-control")).toBe("no-store");
     expect(mocks.updateSession).not.toHaveBeenCalled();
   });
 });

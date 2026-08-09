@@ -61,6 +61,11 @@ export function getReadinessChecks(): ReadinessCheck[] {
       ok: hasSupabaseAuthEnv(),
       message: "Supabase Auth configurado com chave publicavel ou anon legada",
     },
+    {
+      name: "planner-signing",
+      ok: hasEnv("PLANNER_SIGNING_SECRET"),
+      message: "Assinatura temporaria do planner publico configurada",
+    },
   ];
 
   return checks;

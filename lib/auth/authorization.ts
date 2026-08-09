@@ -26,7 +26,8 @@ export function isPublicPath(pathname: string): boolean {
     matchesPrefix(pathname, "/api/auth") ||
     pathname === "/api/health" ||
     matchesPrefix(pathname, "/planner") ||
-    matchesPrefix(pathname, "/api/planner")
+    pathname === "/api/planejamento-comercial/analisar" ||
+    pathname === "/api/planejamento-comercial/pdf"
   );
 }
 
