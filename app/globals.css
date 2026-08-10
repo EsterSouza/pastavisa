@@ -3,21 +3,83 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Institutional palette: TreinaVISA Manual de Marca 2.0, pp. 10-12. */
+  --color-white: 255 255 255;
+  --color-navy-deep: 7 24 46;
+  --color-navy: 11 31 58;
+  --color-blue: 36 74 155;
+  --color-blue-light: 111 149 246;
+  --color-blue-pale: 234 243 252;
+  --color-amber: 217 151 33;
+
+  /* Derived tonal ramp for interface hierarchy; never use outside semantic tokens. */
+  --color-surface-page: 248 251 255;
+  --color-surface-subtle: 234 243 252;
+  --color-border-muted: 206 224 243;
+  --color-border-strong: 150 180 214;
+  --color-ink-subtle: 86 111 142;
+  --color-ink-muted: 57 82 114;
+  --color-ink-quiet: 39 61 90;
+
+  /* Functional colors preserve the manual's green-success/red-error rule. */
+  --color-success: 22 101 52;
+  --color-success-soft: 231 246 236;
+  --color-danger: 180 35 24;
+  --color-danger-soft: 253 235 233;
+  --color-warning: 140 92 6;
+  --color-warning-soft: 255 244 213;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: rgb(var(--color-border-muted));
+}
+
+html {
+  background: rgb(var(--color-surface-page));
+  color: rgb(var(--color-navy));
+  font-family: var(--font-source-sans-3), "Segoe UI", sans-serif;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  background: rgb(var(--color-surface-page));
+  color: rgb(var(--color-navy));
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-sora), "Segoe UI", sans-serif;
+  text-wrap: balance;
+}
+
+button,
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  min-height: 2.75rem;
+}
+
+:focus-visible {
+  outline: 3px solid rgb(var(--color-blue));
+  outline-offset: 3px;
+}
+
+.brand-dark :focus-visible {
+  outline-color: rgb(var(--color-blue-light));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    transition-duration: 180ms;
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
 }
 
 @layer utilities {
@@ -27,7 +89,7 @@ body {
 }
 
 .docx-preview-content {
-  color: #111827;
+  color: rgb(var(--color-navy));
   font-size: 14px;
   line-height: 1.65;
 }
@@ -39,7 +101,7 @@ body {
 .docx-preview-content h1,
 .docx-preview-content h2,
 .docx-preview-content h3 {
-  color: #111827;
+  color: rgb(var(--color-navy));
   font-weight: 700;
   line-height: 1.25;
   margin: 1.25rem 0 0.75rem;
@@ -78,7 +140,7 @@ body {
 
 .docx-preview-content th,
 .docx-preview-content td {
-  border: 1px solid #d1d5db;
+  border: 1px solid rgb(var(--color-border-strong));
   padding: 0.4rem 0.5rem;
   vertical-align: top;
 }

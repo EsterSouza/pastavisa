@@ -22,7 +22,7 @@ describe("auth boundary", () => {
 
   it("nao oferece cadastro e remove a sessao temporaria", () => {
     const root = process.cwd();
-    const login = fs.readFileSync(path.join(root, "app/login/page.tsx"), "utf8");
+    const login = fs.readFileSync(path.join(root, "app/(public)/login/page.tsx"), "utf8");
     const authLogin = fs.readFileSync(path.join(root, "app/api/auth/login/route.ts"), "utf8");
     expect(`${login}\n${authLogin}`).not.toMatch(/sign\s?up/i);
     expect(fs.existsSync(path.join(root, "lib/session-auth.ts"))).toBe(false);

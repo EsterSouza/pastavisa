@@ -1,5 +1,7 @@
 import type { Config } from "tailwindcss";
 
+const token = (name: string) => `rgb(var(${name}) / <alpha-value>)`;
+
 const config: Config = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -7,13 +9,125 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    colors: {
+      transparent: "transparent",
+      current: "currentColor",
+      inherit: "inherit",
+      white: token("--color-white"),
+      black: token("--color-navy-deep"),
+      gray: {
+        50: token("--color-surface-page"),
+        100: token("--color-surface-subtle"),
+        200: token("--color-border-muted"),
+        300: token("--color-border-strong"),
+        400: token("--color-ink-subtle"),
+        500: token("--color-ink-muted"),
+        600: token("--color-ink-quiet"),
+        700: token("--color-navy"),
+        800: token("--color-navy"),
+        900: token("--color-navy-deep"),
+      },
+      blue: {
+        50: token("--color-blue-pale"),
+        100: token("--color-blue-pale"),
+        200: token("--color-border-muted"),
+        300: token("--color-blue-light"),
+        400: token("--color-blue-light"),
+        500: token("--color-blue"),
+        600: token("--color-blue"),
+        700: token("--color-navy"),
+        800: token("--color-navy"),
+        900: token("--color-navy-deep"),
+      },
+      green: {
+        50: token("--color-success-soft"),
+        100: token("--color-success-soft"),
+        200: token("--color-success"),
+        300: token("--color-success"),
+        400: token("--color-success"),
+        500: token("--color-success"),
+        600: token("--color-success"),
+        700: token("--color-success"),
+        800: token("--color-success"),
+        900: token("--color-success"),
+      },
+      red: {
+        50: token("--color-danger-soft"),
+        100: token("--color-danger-soft"),
+        200: token("--color-danger"),
+        300: token("--color-danger"),
+        400: token("--color-danger"),
+        500: token("--color-danger"),
+        600: token("--color-danger"),
+        700: token("--color-danger"),
+        800: token("--color-danger"),
+        900: token("--color-danger"),
+      },
+      amber: {
+        50: token("--color-warning-soft"),
+        100: token("--color-warning-soft"),
+        200: token("--color-amber"),
+        300: token("--color-amber"),
+        400: token("--color-amber"),
+        500: token("--color-amber"),
+        600: token("--color-warning"),
+        700: token("--color-warning"),
+        800: token("--color-warning"),
+        900: token("--color-warning"),
+        950: token("--color-navy-deep"),
+      },
+      yellow: {
+        50: token("--color-warning-soft"),
+        100: token("--color-warning-soft"),
+        200: token("--color-amber"),
+        300: token("--color-amber"),
+        400: token("--color-amber"),
+        500: token("--color-warning"),
+        600: token("--color-warning"),
+        700: token("--color-warning"),
+      },
+      surface: {
+        page: token("--color-surface-page"),
+        subtle: token("--color-surface-subtle"),
+        card: token("--color-white"),
+      },
+      ink: {
+        DEFAULT: token("--color-navy"),
+        muted: token("--color-ink-muted"),
+        subtle: token("--color-ink-subtle"),
+      },
+      brand: {
+        deep: token("--color-navy-deep"),
+        navy: token("--color-navy"),
+        action: token("--color-blue"),
+        focus: token("--color-blue-light"),
+        pale: token("--color-blue-pale"),
+        amber: token("--color-amber"),
+      },
+      status: {
+        success: token("--color-success"),
+        "success-soft": token("--color-success-soft"),
+        danger: token("--color-danger"),
+        "danger-soft": token("--color-danger-soft"),
+        warning: token("--color-warning"),
+        "warning-soft": token("--color-warning-soft"),
+      },
+    },
     extend: {
-      colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+      fontFamily: {
+        display: ["var(--font-sora)", "Segoe UI", "sans-serif"],
+        sans: ["var(--font-source-sans-3)", "Segoe UI", "sans-serif"],
+      },
+      zIndex: {
+        popover: "10",
+        overlay: "20",
+        modal: "30",
+        toast: "40",
+        tooltip: "50",
       },
     },
   },
   plugins: [],
 };
+
 export default config;

@@ -189,7 +189,7 @@ function checkAuthentication() {
     else fail(`${rel} deve proteger DELETE no handler`);
   }
 
-  const loginSources = [read("app/login/page.tsx"), read("app/api/auth/login/route.ts")].join("\n");
+  const loginSources = [read("app/(public)/login/page.tsx"), read("app/api/auth/login/route.ts")].join("\n");
   if (!/sign\s?up/i.test(loginSources)) ok("cadastro publico ausente");
   else fail("login interno nao pode oferecer cadastro");
 }
