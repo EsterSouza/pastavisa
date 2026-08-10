@@ -200,7 +200,7 @@ pagamento ou envio automático.
 | PV-004 | Motor seguro de substituição | gpt-5.6-sol | xhigh | P1 principal | PV-001, PV-003 | Pendente |
 | PV-005 | Fluxo visual de correção | gpt-5.6-terra | alto | P1 principal | PV-004 | Pendente |
 | PV-006 | Motor sanitário do planner | gpt-5.6-sol | xhigh | P1 sanitário | PV-001 | Concluído |
-| PV-007 | API pública, preços e proteção | gpt-5.6-sol | alto | P1 segurança | PV-003, PV-006 | Em implementação; WAF bloqueado pelo plano |
+| PV-007 | API pública, preços e proteção | gpt-5.6-sol | alto | P1 segurança | PV-003, PV-006 | Concluído; segredo, WAF Hobby e 429 comprovados |
 | PV-008 | Manual de marca e design system | gpt-5.6-terra | alto | P1 visual | Manual | Correção publicada; zoom 200% e teclado pendentes |
 | PV-009 | Planner público e PDF | gpt-5.6-sol | alto | P1 comercial | PV-007, PV-008 | Pendente |
 | PV-010 | Redesign interno principal | gpt-5.6-terra | alto | P2 visual | PV-005, PV-008 | Pendente |
@@ -620,6 +620,27 @@ Commit de implementação: `c0d072a`.
 - Nenhuma migration, escrita em banco/Storage, lead, CRM, e-mail, histórico, deploy ou regra WAF publicada
   foi executada.
 
+### Fechamento remoto — 10/08/2026
+
+- `PLANNER_SIGNING_SECRET` foi criado diretamente como variável `Sensitive` no ambiente Production, com
+  valor criptográfico aleatório não exibido nem gravado no repositório. O deployment do commit `e9de691`
+  ficou `Ready` e recebeu a variável.
+- A especificação local e a configuração remota foram consolidadas em uma única regra compatível com o
+  Hobby: os caminhos exatos `/api/planejamento-comercial/analisar` e
+  `/api/planejamento-comercial/pdf`, somente `POST`, 10 requisições por 300 segundos, chave `ip`, janela
+  fixa e ação de excedente `rate_limit` (HTTP 429).
+- A regra foi publicada primeiro com ação de excedente `log`. Na observação, 11 `POST`s ao caminho de PDF
+  chegaram à aplicação e retornaram 404, sem bloqueio. Após revisão das condições, a ação 429 foi publicada;
+  `GET` continuou retornando 404 e o primeiro `POST` seguinte retornou 429 porque o mesmo IP já estava acima
+  do limite na janela de observação.
+- Estado remoto final: regra `live`, válida, habilitada, sem rascunhos ou mudanças pendentes.
+- Smoke sanitário do PV-006 no alias de produção: HTTP 200, `Cache-Control: no-store`, request ID, preço e
+  token assinado presentes. A resposta manteve toxina botulínica e preenchimento labial como duas técnicas
+  distintas, não promoveu marca ou ativo a procedimento, incluiu esterilização somente com reutilização e
+  autoclave confirmadas, retornou 10 documentos e não expôs IDs, cobertura, modo, pontuação ou prompts.
+- Evidência local do ajuste WAF: 16 arquivos e 61 testes aprovados; lint, TypeScript, readiness,
+  `git diff --check` e build aprovados. Commit publicado em `origin/main`: `e9de691`.
+
 ---
 
 ## PV-008 — Manual de marca e design system
@@ -822,6 +843,7 @@ O navegador integrado desta task não alcançou `127.0.0.1` e o Chrome controlá
 | 08/08/2026 | PV-000 | Concluído | `146b73c` | Vercel `success`; sem ação funcional | Handoff único publicado; temporários removidos. |
 | 08/08/2026 | PV-001 | Concluído | `c0d072a` | Nenhuma ação remota | Vitest configurado; build, lint e 2 testes passaram. |
 | 08/08/2026 | Ajuste correção em lote | Concluído | `2a31f1e` | Push em `origin/main` | Exclusão múltipla estrita; restante do PV-005 continua pendente. |
-| 08/08/2026 | PV-006 | Concluído | `a60cc73` | Push em `origin/main`; deployment não verificado | Motor sanitário server-only; 12 testes focados e saída pública sanitizada. |
+| 08/08/2026 | PV-006 | Concluído | `a60cc73` | Push em `origin/main`; smoke Production aprovado em 10/08 | Motor sanitário server-only; resposta 200 com duas técnicas distintas, esterilização condicionada e saída sem campos internos. |
 | 09/08/2026 | PV-008 | Implementação local | `3c77a71` | Nenhuma ação remota | Design system, shells e ativo oficial; screenshot/zoom/teclado em navegador local ou QA pendentes. |
+| 10/08/2026 | PV-007 | Concluído | `e9de691` | Vercel Production `Ready`; WAF `live`; 429 comprovado | Segredo sensível configurado; uma regra Hobby para os dois POSTs; observação, revisão e publicação concluídas. |
 | 10/08/2026 | PV-008 | Correção publicada | `0c15e69` | Vercel Production `success`; smoke público aprovado | Logos e favicons 200, tema persistente, login 200 e fronteira interna preservada; zoom 200% e ordem completa de teclado pendentes. |
