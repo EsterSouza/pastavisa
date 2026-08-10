@@ -201,7 +201,7 @@ pagamento ou envio automático.
 | PV-005 | Fluxo visual de correção | gpt-5.6-terra | alto | P1 principal | PV-004 | Pendente |
 | PV-006 | Motor sanitário do planner | gpt-5.6-sol | xhigh | P1 sanitário | PV-001 | Concluído |
 | PV-007 | API pública, preços e proteção | gpt-5.6-sol | alto | P1 segurança | PV-003, PV-006 | Em implementação; WAF bloqueado pelo plano |
-| PV-008 | Manual de marca e design system | gpt-5.6-terra | alto | P1 visual | Manual | Correção local validada; push, zoom 200% e teclado pendentes |
+| PV-008 | Manual de marca e design system | gpt-5.6-terra | alto | P1 visual | Manual | Correção publicada; zoom 200% e teclado pendentes |
 | PV-009 | Planner público e PDF | gpt-5.6-sol | alto | P1 comercial | PV-007, PV-008 | Pendente |
 | PV-010 | Redesign interno principal | gpt-5.6-terra | alto | P2 visual | PV-005, PV-008 | Pendente |
 | PV-011 | Redesign templates/legislações | gpt-5.6-terra | alto | P2 manutenção | PV-003, PV-008 | Pendente |
@@ -690,8 +690,10 @@ O navegador integrado desta task não alcançou `127.0.0.1` e o Chrome controlá
 - `npm.cmd run test:run`: 16 arquivos e 61 testes aprovados; `npm.cmd run lint`, `npx.cmd tsc --noEmit`, `npm.cmd run check:deploy`, `git diff --check` e `npm.cmd run build`: aprovados.
 - Navegador local: logos clara/escura com HTTP 200, alternância persistida após reload, sem overlay e sem erros de console.
 - Larguras 375, 768 e 1440 px: logo, seletor e formulário visíveis, sem overflow horizontal. O teste de formato confirmou que `ester` isolado é inválido para o campo de e-mail.
-- Zoom exato de 200% e ordem completa de teclado continuam sem evidência automatizada; não foram declarados aprovados.
-- Correção ainda não commitada, publicada ou validada na URL de produção nesta task.
+- Correção versionada em `0c15e69` (`fix: correct PV-008 logos and theme`) e publicada em `origin/main`.
+- O deployment do commit concluiu com sucesso no ambiente Production da Vercel. Smoke público no deployment: `/login` e os quatro ativos em `/brand/*` retornaram 200; `/` permaneceu protegido com redirecionamento 307 para `/login`; `/api/templates` permaneceu protegido com 401.
+- No navegador de produção, os dois temas selecionaram a variante correta da logo, a escolha persistiu após reload, `ester` isolado permaneceu inválido no campo nativo de e-mail e não houve warning/erro de console ou overflow horizontal em 1280 px.
+- Zoom exato de 200% e ordem completa de teclado continuam sem evidência automatizada e não foram declarados aprovados.
 
 ---
 
@@ -822,3 +824,4 @@ O navegador integrado desta task não alcançou `127.0.0.1` e o Chrome controlá
 | 08/08/2026 | Ajuste correção em lote | Concluído | `2a31f1e` | Push em `origin/main` | Exclusão múltipla estrita; restante do PV-005 continua pendente. |
 | 08/08/2026 | PV-006 | Concluído | `a60cc73` | Push em `origin/main`; deployment não verificado | Motor sanitário server-only; 12 testes focados e saída pública sanitizada. |
 | 09/08/2026 | PV-008 | Implementação local | `3c77a71` | Nenhuma ação remota | Design system, shells e ativo oficial; screenshot/zoom/teclado em navegador local ou QA pendentes. |
+| 10/08/2026 | PV-008 | Correção publicada | `0c15e69` | Vercel Production `success`; smoke público aprovado | Logos e favicons 200, tema persistente, login 200 e fronteira interna preservada; zoom 200% e ordem completa de teclado pendentes. |
