@@ -201,7 +201,7 @@ pagamento ou envio automático.
 | PV-005 | Fluxo visual de correção | gpt-5.6-terra | alto | P1 principal | PV-004 | Pendente |
 | PV-006 | Motor sanitário do planner | gpt-5.6-sol | xhigh | P1 sanitário | PV-001 | Concluído |
 | PV-007 | API pública, preços e proteção | gpt-5.6-sol | alto | P1 segurança | PV-003, PV-006 | Em implementação; WAF bloqueado pelo plano |
-| PV-008 | Manual de marca e design system | gpt-5.6-terra | alto | P1 visual | Manual | Pendente |
+| PV-008 | Manual de marca e design system | gpt-5.6-terra | alto | P1 visual | Manual | Implementação local; QA visual pendente |
 | PV-009 | Planner público e PDF | gpt-5.6-sol | alto | P1 comercial | PV-007, PV-008 | Pendente |
 | PV-010 | Redesign interno principal | gpt-5.6-terra | alto | P2 visual | PV-005, PV-008 | Pendente |
 | PV-011 | Redesign templates/legislações | gpt-5.6-terra | alto | P2 manutenção | PV-003, PV-008 | Pendente |
