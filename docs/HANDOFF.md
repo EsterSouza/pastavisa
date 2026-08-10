@@ -573,7 +573,7 @@ Commit de implementação: `c0d072a`.
 - Liberar apenas planner e APIs; corpo 12 KB, procedimentos 8 KB.
 - HMAC com `PLANNER_SIGNING_SECRET`, duas horas, `Cache-Control: no-store`.
 - Sem Prisma/Storage/service role na fronteira pública; logs só request ID/duração/status/quantidades.
-- Vercel: análise 10 POST/5 min/IP, PDF 20 POST/5 min/IP e métodos estritos.
+- Vercel Hobby: uma regra compartilhada para análise e PDF, 10 POST/5 min/IP e método estrito.
 - Status 400/422/429/503 e preço em função pura.
 
 ### Testes e aceite

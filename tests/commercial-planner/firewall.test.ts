@@ -9,19 +9,13 @@ describe("planner Vercel firewall specification", () => {
     );
     expect(config.rules).toEqual([
       expect.objectContaining({
-        path: "/api/planejamento-comercial/analisar",
+        paths: [
+          "/api/planejamento-comercial/analisar",
+          "/api/planejamento-comercial/pdf",
+        ],
         method: "POST",
         windowSeconds: 300,
         requests: 10,
-        key: "ip",
-        action: "rate_limit",
-        status: 429,
-      }),
-      expect.objectContaining({
-        path: "/api/planejamento-comercial/pdf",
-        method: "POST",
-        windowSeconds: 300,
-        requests: 20,
         key: "ip",
         action: "rate_limit",
         status: 429,

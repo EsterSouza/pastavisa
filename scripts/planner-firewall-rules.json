@@ -1,21 +1,14 @@
 {
   "rules": [
     {
-      "name": "Planner public analysis",
-      "path": "/api/planejamento-comercial/analisar",
+      "name": "Planner public POSTs",
+      "paths": [
+        "/api/planejamento-comercial/analisar",
+        "/api/planejamento-comercial/pdf"
+      ],
       "method": "POST",
       "windowSeconds": 300,
       "requests": 10,
-      "key": "ip",
-      "action": "rate_limit",
-      "status": 429
-    },
-    {
-      "name": "Planner public PDF",
-      "path": "/api/planejamento-comercial/pdf",
-      "method": "POST",
-      "windowSeconds": 300,
-      "requests": 20,
       "key": "ip",
       "action": "rate_limit",
       "status": 429

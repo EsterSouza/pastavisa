@@ -133,23 +133,21 @@ function checkPublicPlanner() {
   }
 
   const firewall = JSON.parse(read("scripts/planner-firewall-rules.json"));
-  const expected = new Map([
-    ["/api/planejamento-comercial/analisar", 10],
-    ["/api/planejamento-comercial/pdf", 20],
-  ]);
+  const expectedPaths = [
+    "/api/planejamento-comercial/analisar",
+    "/api/planejamento-comercial/pdf",
+  ];
   const validFirewall =
     Array.isArray(firewall.rules) &&
-    firewall.rules.length === expected.size &&
-    firewall.rules.every(
-      (rule) =>
-        expected.get(rule.path) === rule.requests &&
-        rule.method === "POST" &&
-        rule.windowSeconds === 300 &&
-        rule.key === "ip" &&
-        rule.action === "rate_limit" &&
-        rule.status === 429
-    );
-  if (validFirewall) ok("especificacao WAF limita analise e PDF por IP");
+    firewall.rules.length === 1 &&
+    JSON.stringify(firewall.rules[0].paths) === JSON.stringify(expectedPaths) &&
+    firewall.rules[0].requests === 10 &&
+    firewall.rules[0].method === "POST" &&
+    firewall.rules[0].windowSeconds === 300 &&
+    firewall.rules[0].key === "ip" &&
+    firewall.rules[0].action === "rate_limit" &&
+    firewall.rules[0].status === 429;
+  if (validFirewall) ok("especificacao WAF Hobby limita analise e PDF por IP em uma regra");
   else fail("especificacao WAF do planner esta incompleta");
 
   const readiness = read("lib/env-readiness.ts");
