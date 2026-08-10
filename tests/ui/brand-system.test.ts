@@ -33,13 +33,36 @@ describe("brand system", () => {
     expect(fs.existsSync(path.join(root, "app/pasta/nova/page.tsx"))).toBe(false);
   });
 
-  it("usa o ativo oficial claro e não expõe a navegação administrativa no login", () => {
-    expect(fs.existsSync(path.join(root, "public/brand/treinavisa-logo-light.png"))).toBe(true);
-    expect(read("components/brand/BrandLogo.tsx")).toContain("/brand/treinavisa-logo-light.png");
+  it("usa os ativos oficiais para superfícies claras e escuras", () => {
+    for (const asset of [
+      "public/brand/treinavisa-logo-on-light.png",
+      "public/brand/treinavisa-logo-on-dark.png",
+      "public/brand/favicon-light.png",
+      "public/brand/favicon-dark.png",
+    ]) {
+      expect(fs.existsSync(path.join(root, asset))).toBe(true);
+    }
+
+    const logo = read("components/brand/BrandLogo.tsx");
+    expect(logo).toContain("/brand/treinavisa-logo-on-light.png");
+    expect(logo).toContain("/brand/treinavisa-logo-on-dark.png");
 
     const publicLayout = read("app/(public)/layout.tsx");
     expect(publicLayout).toContain("BrandLogo");
+    expect(publicLayout).toContain("ThemeToggle");
     expect(publicLayout).not.toContain("Templates");
     expect(publicLayout).not.toContain("Legislações");
+  });
+
+  it("oferece tema persistente sem flash e superfícies semânticas", () => {
+    const rootLayout = read("app/layout.tsx");
+    const globals = read("app/globals.css");
+    const shell = read("components/shell/AppShell.tsx");
+
+    expect(rootLayout).toContain("pastavisa-theme");
+    expect(rootLayout).toContain("prefers-color-scheme: dark");
+    expect(globals).toContain(':root[data-theme="dark"]');
+    expect(globals).toContain("--color-surface-card");
+    expect(shell).toContain("ThemeToggle");
   });
 });

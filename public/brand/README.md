@@ -1,7 +1,8 @@
 # Ativos de marca aprovados
 
-- `treinavisa-logo-light.png` é a versão clara oficial, extraída sem alteração da imagem incorporada na página 1 do Manual de Marca TreinaVISA 2.0 local.
-- Usar somente em fundo navy profundo ou institucional. Não inverter, recolorir, esticar, aplicar filtros ou reconstruir o símbolo.
-- A versão escura oficial não foi fornecida no checkout. Não criar uma substituta; quando necessário, manter este ativo sobre uma superfície navy.
+- `treinavisa-logo-on-light.png`: logo oficial com lettering navy para superfícies claras.
+- `treinavisa-logo-on-dark.png`: logo oficial com lettering branco para superfícies escuras.
+- `favicon-light.png` e `favicon-dark.png`: favicons oficiais reduzidos para 64 × 64 px, sem alteração de cor ou proporção.
+- `treinavisa-logo-light.png`: recorte histórico extraído do manual; permanece apenas para rastreabilidade e não é mais usado pela interface.
 
-O PDF-fonte permanece local e ignorado pelo Git; este diretório contém apenas o ativo de aplicação autorizado para a interface.
+Os arquivos oficiais foram fornecidos pela TreinaVISA. Não inverter, recolorir, esticar, filtrar ou reconstruir a marca. O PDF-fonte permanece local e ignorado pelo Git.

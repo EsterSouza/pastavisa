@@ -33,7 +33,7 @@ export function DocumentPreviewModal({ preview, onClose }: DocumentPreviewModalP
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto bg-gray-100 p-4 sm:p-6">
-          <div className="mx-auto min-h-[70vh] max-w-[860px] rounded-lg bg-white px-8 py-10 shadow">
+          <div className="mx-auto min-h-[70vh] max-w-[860px] rounded-lg bg-surface-paper px-8 py-10 shadow">
             {preview.loading && (
               <p className="text-sm text-gray-500">Carregando preview...</p>
             )}

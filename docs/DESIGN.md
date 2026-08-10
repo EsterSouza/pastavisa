@@ -4,13 +4,14 @@
 
 Este sistema aplica o **Manual de Marca TreinaVISA 2.0** local, páginas 10 a 12, à Pasta Sanitária. Ele não cria uma marca paralela: Pasta Sanitária é o descritor funcional da superfície interna da TreinaVISA.
 
-O manual PDF é fonte local deste card, permanece ignorado pelo Git e não é redistribuído. O único ativo incorporado é a versão clara oficial já presente nele, em `public/brand/treinavisa-logo-light.png`.
+O manual PDF é fonte local deste card, permanece ignorado pelo Git e não é redistribuído. Os ativos oficiais claro, escuro e favicons ficam em `public/brand/` e são usados sem recoloração.
 
 ## Marca e uso do logotipo
 
 - Grafia em texto: **TreinaVISA**; em arquivos de marca, pode aparecer em caixa alta.
 - A marca oficial não é redesenhada, esticada, filtrada ou convertida em efeito visual.
-- Como somente a versão clara foi disponibilizada no checkout, o logotipo sempre aparece sobre navy profundo ou navy institucional. Não há versão escura improvisada.
+- Em superfície clara, usar `treinavisa-logo-on-light.png`; em superfície escura, usar `treinavisa-logo-on-dark.png`.
+- O tema respeita inicialmente a preferência do sistema e permite escolha manual persistida no navegador.
 - “Pasta Sanitária” é texto de produto, não um logotipo novo.
 
 ## Paleta institucional

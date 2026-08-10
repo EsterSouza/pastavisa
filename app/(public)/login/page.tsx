@@ -49,7 +49,7 @@ export default function LoginPage() {
         <p className="mt-10 text-sm font-medium text-brand-focus">Da exigência à prática, com clareza.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-7 sm:p-10" noValidate>
+      <form onSubmit={handleSubmit} className="p-7 sm:p-10">
         <div className="mb-8">
           <h1 className="font-display text-2xl font-medium text-ink">Acesse sua área</h1>
           <p className="mt-2 text-base leading-6 text-ink-muted">Use suas credenciais para continuar.</p>
@@ -65,10 +65,11 @@ export default function LoginPage() {
               autoComplete="username"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              aria-describedby={error ? "login-error" : undefined}
+              aria-describedby={error ? "email-hint login-error" : "email-hint"}
               className="w-full rounded-md border border-gray-300 bg-white px-3 text-base text-ink placeholder:text-ink-subtle focus:border-brand-focus focus:ring-2 focus:ring-brand-focus/30"
               required
             />
+            <p id="email-hint" className="mt-1.5 text-sm text-ink-muted">Digite o e-mail completo cadastrado.</p>
           </div>
 
           <div>

@@ -23,9 +23,9 @@ const config: Config = {
         400: token("--color-ink-subtle"),
         500: token("--color-ink-muted"),
         600: token("--color-ink-quiet"),
-        700: token("--color-navy"),
-        800: token("--color-navy"),
-        900: token("--color-navy-deep"),
+        700: token("--color-ink"),
+        800: token("--color-ink"),
+        900: token("--color-ink"),
       },
       blue: {
         50: token("--color-blue-pale"),
@@ -89,10 +89,11 @@ const config: Config = {
       surface: {
         page: token("--color-surface-page"),
         subtle: token("--color-surface-subtle"),
-        card: token("--color-white"),
+        card: token("--color-surface-card"),
+        paper: token("--color-white"),
       },
       ink: {
-        DEFAULT: token("--color-navy"),
+        DEFAULT: token("--color-ink"),
         muted: token("--color-ink-muted"),
         subtle: token("--color-ink-subtle"),
       },
@@ -103,6 +104,14 @@ const config: Config = {
         focus: token("--color-blue-light"),
         pale: token("--color-blue-pale"),
         amber: token("--color-amber"),
+        "on-dark": token("--color-on-dark"),
+      },
+      shell: {
+        bg: token("--color-shell-bg"),
+        border: token("--color-shell-border"),
+        text: token("--color-shell-text"),
+        muted: token("--color-shell-muted"),
+        hover: token("--color-shell-hover"),
       },
       status: {
         success: token("--color-success"),

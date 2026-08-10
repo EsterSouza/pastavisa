@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 
 const mocks = vi.hoisted(() => ({ updateSession: vi.fn() }));
@@ -59,5 +61,10 @@ describe("auth middleware", () => {
     expect(analysis.status).toBe(200);
     expect(analysis.headers.get("cache-control")).toBe("no-store");
     expect(mocks.updateSession).not.toHaveBeenCalled();
+  });
+
+  it("mantem os ativos de marca fora do middleware", () => {
+    const source = fs.readFileSync(path.join(process.cwd(), "middleware.ts"), "utf8");
+    expect(source).toContain("brand/");
   });
 });

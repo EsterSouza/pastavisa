@@ -5,6 +5,7 @@
 :root {
   /* Institutional palette: TreinaVISA Manual de Marca 2.0, pp. 10-12. */
   --color-white: 255 255 255;
+  --color-on-dark: 255 255 255;
   --color-navy-deep: 7 24 46;
   --color-navy: 11 31 58;
   --color-blue: 36 74 155;
@@ -15,11 +16,19 @@
   /* Derived tonal ramp for interface hierarchy; never use outside semantic tokens. */
   --color-surface-page: 248 251 255;
   --color-surface-subtle: 234 243 252;
+  --color-surface-card: 255 255 255;
   --color-border-muted: 206 224 243;
   --color-border-strong: 150 180 214;
+  --color-ink: 11 31 58;
   --color-ink-subtle: 86 111 142;
   --color-ink-muted: 57 82 114;
   --color-ink-quiet: 39 61 90;
+
+  --color-shell-bg: 255 255 255;
+  --color-shell-border: 206 224 243;
+  --color-shell-text: 11 31 58;
+  --color-shell-muted: 57 82 114;
+  --color-shell-hover: 234 243 252;
 
   /* Functional colors preserve the manual's green-success/red-error rule. */
   --color-success: 22 101 52;
@@ -28,6 +37,123 @@
   --color-danger-soft: 253 235 233;
   --color-warning: 140 92 6;
   --color-warning-soft: 255 244 213;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-surface-page: 5 16 31;
+  --color-surface-subtle: 12 31 53;
+  --color-surface-card: 15 36 61;
+  --color-border-muted: 42 65 92;
+  --color-border-strong: 73 103 139;
+  --color-ink: 238 245 252;
+  --color-ink-subtle: 159 183 212;
+  --color-ink-muted: 190 207 228;
+  --color-ink-quiet: 221 232 245;
+
+  --color-shell-bg: 7 24 46;
+  --color-shell-border: 42 65 92;
+  --color-shell-text: 255 255 255;
+  --color-shell-muted: 206 224 243;
+  --color-shell-hover: 20 46 77;
+
+  --color-success-soft: 10 45 32;
+  --color-danger-soft: 58 24 27;
+  --color-warning-soft: 59 44 17;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --color-surface-page: 5 16 31;
+    --color-surface-subtle: 12 31 53;
+    --color-surface-card: 15 36 61;
+    --color-border-muted: 42 65 92;
+    --color-border-strong: 73 103 139;
+    --color-ink: 238 245 252;
+    --color-ink-subtle: 159 183 212;
+    --color-ink-muted: 190 207 228;
+    --color-ink-quiet: 221 232 245;
+    --color-shell-bg: 7 24 46;
+    --color-shell-border: 42 65 92;
+    --color-shell-text: 255 255 255;
+    --color-shell-muted: 206 224 243;
+    --color-shell-hover: 20 46 77;
+    --color-success-soft: 10 45 32;
+    --color-danger-soft: 58 24 27;
+    --color-warning-soft: 59 44 17;
+  }
+}
+
+.brand-logo-on-light {
+  left: -13.07%;
+  top: -190.83%;
+  width: 125.63%;
+}
+
+.brand-logo-on-dark {
+  display: none;
+  left: -6.03%;
+  top: -100.92%;
+  width: 108.79%;
+}
+
+:root[data-theme="dark"] .brand-logo[data-surface="theme"] .brand-logo-on-light,
+.brand-logo[data-surface="dark"] .brand-logo-on-light {
+  display: none;
+}
+
+:root[data-theme="dark"] .brand-logo[data-surface="theme"] .brand-logo-on-dark,
+.brand-logo[data-surface="dark"] .brand-logo-on-dark {
+  display: block;
+}
+
+.brand-logo[data-surface="light"] .brand-logo-on-light {
+  display: block;
+}
+
+.brand-logo[data-surface="light"] .brand-logo-on-dark {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-icon-light {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-icon-dark {
+  display: block;
+}
+
+:root[data-theme="dark"] .bg-white,
+:root[data-theme="dark"] .focus\:bg-white:focus,
+:root[data-theme="dark"] .disabled\:hover\:bg-white:disabled:hover {
+  background-color: rgb(var(--color-surface-card));
+}
+
+:root[data-theme="dark"] .text-blue-700,
+:root[data-theme="dark"] .text-blue-800,
+:root[data-theme="dark"] .text-blue-900 {
+  color: rgb(143 176 255);
+}
+
+:root[data-theme="dark"] .text-green-600,
+:root[data-theme="dark"] .text-green-700,
+:root[data-theme="dark"] .text-green-800 {
+  color: rgb(134 239 172);
+}
+
+:root[data-theme="dark"] .text-red-500,
+:root[data-theme="dark"] .text-red-600,
+:root[data-theme="dark"] .text-red-700,
+:root[data-theme="dark"] .text-red-800 {
+  color: rgb(252 165 165);
+}
+
+:root[data-theme="dark"] .text-amber-600,
+:root[data-theme="dark"] .text-amber-700,
+:root[data-theme="dark"] .text-amber-800,
+:root[data-theme="dark"] .text-amber-900 {
+  color: rgb(253 211 77);
 }
 
 * {

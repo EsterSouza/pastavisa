@@ -1,6 +1,6 @@
 # Handoff único — PASTAVISA
 
-**Última atualização:** 09/08/2026 (BRT), durante a implementação do PV-007
+**Última atualização:** 10/08/2026 (BRT), durante a correção de aceite do PV-008
 **Repositório:** `EsterSouza/pastavisa`
 **Checkout oficial:** `C:\Saas\PASTAVISA`
 **Branch:** `main`
@@ -201,7 +201,7 @@ pagamento ou envio automático.
 | PV-005 | Fluxo visual de correção | gpt-5.6-terra | alto | P1 principal | PV-004 | Pendente |
 | PV-006 | Motor sanitário do planner | gpt-5.6-sol | xhigh | P1 sanitário | PV-001 | Concluído |
 | PV-007 | API pública, preços e proteção | gpt-5.6-sol | alto | P1 segurança | PV-003, PV-006 | Em implementação; WAF bloqueado pelo plano |
-| PV-008 | Manual de marca e design system | gpt-5.6-terra | alto | P1 visual | Manual | Implementação local; QA visual pendente |
+| PV-008 | Manual de marca e design system | gpt-5.6-terra | alto | P1 visual | Manual | Correção local validada; push, zoom 200% e teclado pendentes |
 | PV-009 | Planner público e PDF | gpt-5.6-sol | alto | P1 comercial | PV-007, PV-008 | Pendente |
 | PV-010 | Redesign interno principal | gpt-5.6-terra | alto | P2 visual | PV-005, PV-008 | Pendente |
 | PV-011 | Redesign templates/legislações | gpt-5.6-terra | alto | P2 manutenção | PV-003, PV-008 | Pendente |
@@ -677,6 +677,21 @@ O navegador integrado desta task não alcançou `127.0.0.1` e o Chrome controlá
 - Renders temporários do manual e logs do servidor local foram removidos; o manual PDF permaneceu local, ignorado e sem modificação.
 - Nenhuma API, regra de Auth, dado, migration, Storage, variável de ambiente, fluxo de negócio, deploy ou ação remota foi alterado.
 - Commit de implementação: `3c77a71`.
+
+### Correção de aceite — 10/08/2026
+
+- Incorporadas as versões oficiais da logo para superfícies claras e escuras e os favicons correspondentes, fornecidos pela TreinaVISA. Os favicons foram reduzidos deterministicamente para 64 × 64 px, sem recoloração ou alteração de proporção.
+- Adicionado tema claro/escuro com preferência inicial do sistema, seletor acessível e persistência local. Header público e shell interno usam a variante correta da logo para cada superfície.
+- Corrigida a causa da logo quebrada em produção: o middleware de Auth interceptava `/brand/*` e podia devolver 503 aos próprios ativos públicos. O matcher agora exclui apenas esse diretório estático, sem liberar páginas ou APIs.
+- O login voltou a usar validação nativa de `type="email"` e informa que é necessário digitar o e-mail completo. Nenhuma conta, senha, papel ou regra de autorização foi alterada neste card.
+
+#### Evidência da correção
+
+- `npm.cmd run test:run`: 16 arquivos e 61 testes aprovados; `npm.cmd run lint`, `npx.cmd tsc --noEmit`, `npm.cmd run check:deploy`, `git diff --check` e `npm.cmd run build`: aprovados.
+- Navegador local: logos clara/escura com HTTP 200, alternância persistida após reload, sem overlay e sem erros de console.
+- Larguras 375, 768 e 1440 px: logo, seletor e formulário visíveis, sem overflow horizontal. O teste de formato confirmou que `ester` isolado é inválido para o campo de e-mail.
+- Zoom exato de 200% e ordem completa de teclado continuam sem evidência automatizada; não foram declarados aprovados.
+- Correção ainda não commitada, publicada ou validada na URL de produção nesta task.
 
 ---
 
