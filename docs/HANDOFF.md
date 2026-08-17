@@ -78,14 +78,16 @@ foram medidos nesta data, contra o checkout, o Supabase de produção e a Vercel
 
 ### 2.1 Checkout, Git e produção
 
-Medido em 17/08/2026, **após** a entrega parcial do PV-013.
+Medido em 17/08/2026, **após** a entrega do PV-005.
 
 - Checkout fora do OneDrive em `C:\Saas\PASTAVISA`; worktree **limpo**.
-- `HEAD = main = origin/main = 5e446e85420ed28dee665e3e20c2d5e6ec4bee2b`.
+- `HEAD = main = origin/main = 6cb4eeef3eea06e5b8da40434049960795fcb4d3`.
 - Remoto: `https://github.com/EsterSouza/pastavisa.git` (repositório **público**).
 - Vercel: projeto `pasta-visa` (`prj_3hksb7xOH6gQbc2lnOsKpFOsHYUa`, team `estersouzas-projects`).
-  Deployment de produção mais recente: `dpl_CLTUwEkGMyJ5jaZyttBuD7qwweYn`, commit `5e446e8`,
-  estado **`READY`**. **Repositório, `origin` e produção estão no mesmo SHA.**
+  Deployment de produção mais recente: `dpl_7fc5PoUq2QLYSrHPeHuBeXHoebSf`, commit `6cb4eee`,
+  estado **`READY`**, alias `pastavisa.vercel.app`. **Repositório, `origin` e produção estão no mesmo
+  SHA.** O commit anterior, `c4a785f`, não teve deployment próprio porque os dois foram empurrados
+  juntos — só o `HEAD` do push deploya.
 - `TreinaVISA - Manual de Marca 2.0.pdf` continua na raiz, local e ignorado por `/*.pdf`.
 - O projeto declara Node `22.x` em `engines`; a máquina usa Node `v25.8.0`, o que faz o `npm` emitir
   `EBADENGINE` em qualquer instalação. É divergência **só do ambiente local**. Continue usando o build
@@ -112,26 +114,28 @@ neste projeto. Consequência prática: todo registro no handoff redeploya a prod
 | Item | Estado em 17/08/2026 |
 |---|---:|
 | Páginas `page.tsx` | 9 (`(internal)` 8, `(public)` 1) |
-| Rotas API `route.ts` | **37** (ver nota abaixo) |
+| Rotas API `route.ts` | **38** (ver nota abaixo) |
 | Modelos em `prisma/schema.prisma` | 8 |
 | Migrations Prisma | 13 |
 | Migrations Supabase versionadas | 7 |
 | Stack | Next.js 14.2.35, React 18, Tailwind 3.4.1, Prisma 7.8 |
-| Testes | Vitest, **19 arquivos / 95 testes, todos aprovados** |
+| Testes | Vitest, **22 arquivos / 119 testes, todos aprovados** |
 | `npx tsc --noEmit` | aprovado, sem erros |
 | `npm run lint` | aprovado, 0 erros e 0 avisos |
 | `npm run check:deploy` | concluído sem falhas |
 | `npm run build` | aprovado |
 
-Todas as 37 rotas declaram `runtime = "nodejs"` e `dynamic = "force-dynamic"`. Não há `TODO`,
+Todas as 38 rotas declaram `runtime = "nodejs"` e `dynamic = "force-dynamic"`. Não há `TODO`,
 `FIXME` ou `HACK` no código de aplicação.
 
-**Nota sobre a contagem de rotas, porque o número "37" já esteve errado.** A auditoria de 17/08 mediu
-37 e o handoff nunca atualizou depois disso. O PV-004 acrescentou
-`app/api/pastas/[id]/uploads-corrigidos/preflight/route.ts`, levando o total a **38** sem que a tabela
-mudasse. O PV-019 removeu `app/api/pastas/teste/route.ts`, trazendo de volta a **37**. O número atual
-coincide com o antigo por acidente, e não porque nada tenha mudado — o movimento real foi 37 → 38 → 37.
-Ao mexer nesta linha, **conte**, não copie: `Get-ChildItem -Path app -Recurse -Filter route.ts`.
+**Nota sobre a contagem de rotas, porque este número já esteve errado.** A auditoria de 17/08 mediu 37
+e o handoff nunca atualizou depois disso. O PV-004 acrescentou
+`app/api/pastas/[id]/uploads-corrigidos/preflight/route.ts`, levando o total a 38 sem que a tabela
+mudasse. O PV-019 removeu `app/api/pastas/teste/route.ts`, voltando a 37 — número que coincidia com o
+antigo **por acidente**. O PV-005 acrescentou
+`app/api/pastas/[id]/uploads-corrigidos/[uploadId]/restaurar/route.ts`. Movimento real: 37 → 38 → 37 →
+**38**. Ao mexer nesta linha, **conte**, não copie:
+`Get-ChildItem -Path app -Recurse -Filter route.ts`.
 
 **Dependências — estado após o PV-013 parcial:** `npm audit` informa **17 vulnerabilidades —
 4 moderadas, 13 altas e 0 críticas**.
@@ -208,29 +212,35 @@ Verificado por inspeção de arquivos, para não refazer pesquisa:
 | Supabase Auth | `lib/supabase/{browser,server,middleware}.ts`, `lib/auth/authorization.ts` | Existe |
 | Design system | `docs/DESIGN.md`, `components/{brand,shell,theme,ui}` | Existe |
 | Preflight DOCX | `lib/docx-replacement-plan.ts`, rota `preflight` | Existe (PV-004, 17/08) |
-| Fluxo visual de correção | `components/correction/`, rota `restaurar` | **Ausente** (PV-005) |
+| Fluxo visual de correção | rota `restaurar`, 5 etapas em `corrigir-lote/page.tsx` | Existe (PV-005, 17/08) |
 | Planner público e PDF | `app/(public)/planner/page.tsx`, rota `pdf`, `render-pdf.ts`, `pdf-lib` | **Ausente** (PV-009) |
 | E2E | `tests/e2e/`, `playwright.config.ts`, `scripts/check-public-boundary.mjs` | **Ausente** (PV-012) |
 
 ### 2.6 Correção de documentos prontos — risco técnico atual
 
-- UI: `app/(internal)/pasta/[id]/corrigir-lote/page.tsx` (698 linhas).
+- UI: `app/(internal)/pasta/[id]/corrigir-lote/page.tsx` (5 etapas).
 - Aplicação: `app/api/pastas/[id]/uploads-corrigidos/aplicar/route.ts` e
-  `lib/header-footer-replace.ts` (476 linhas).
+  `lib/header-footer-replace.ts`.
+- Restauração: `app/api/pastas/[id]/uploads-corrigidos/[uploadId]/restaurar/route.ts`.
 - A rota processa **um documento por chamada** (o cliente faz o laço), com `maxDuration = 60`.
 - **Resolvido pelo PV-004 em 17/08:** existe preflight, existe trava de hash 409, e o motor
   preserva a estrutura do Word em vez de concentrar o parágrafo no primeiro run.
-- **Continua em aberto — restauração.** A base de cada correção é `doc.outputPath || doc.uploadPath`,
-  ou seja, correções são **cumulativas sobre a saída anterior**, não sobre o original. Um par aplicado
-  por engano ainda não tem como ser desfeito; o passo de restaurar é entrega do PV-005. O preflight
-  ao menos avisa: devolve `baseCorrigida: true` quando a base já é uma correção.
-- **Continua em aberto — trava de hash inativa.** `hashOrigem` é opcional na rota aplicar até o
-  PV-005 ligar analisar → aplicar. Enquanto isso a proteção existe mas não é exercida pela UI.
-- **Continua em aberto — logo.** A substituição de texto usa as partes *ativas* resolvidas por
-  `sectPr`, mas `replaceLogoInHeadersAndFooters` ainda itera todas as partes presentes no zip, órfãs
-  incluídas, trocando a imagem de menor `rId` de cada uma. Em documento com imagem que não é logo, a
-  imagem errada pode ser substituída. Ficou **fora** do PV-004 por exigir verificação visual; tratar
-  junto do PV-005, que já prevê QA com DOCX real.
+- **Resolvido pelo PV-005 em 17/08 — restauração.** A base de cada correção continua sendo
+  `doc.outputPath || doc.uploadPath`, ou seja, correções seguem **cumulativas sobre a saída anterior**.
+  A diferença é que agora existe caminho de volta: `restaurar` devolve o documento ao upload original
+  ou a qualquer versão intermediária, criando uma versão nova em vez de apagar — restaurar também é
+  reversível.
+- **Resolvido pelo PV-005 em 17/08 — trava de hash.** A UI passou a analisar antes de aplicar e a
+  enviar `hashOrigem`. Rodada com pares **não pode** ser aplicada sem análise válida; rodada só de logo
+  dispensa, porque não há o que contar. `hashOrigem` segue opcional na rota, para não quebrar chamada
+  programática, mas o caminho da UI sempre o envia.
+- **Resolvido pelo PV-005 em 17/08 — alvo da logo.** `replaceLogoInHeadersAndFooters` passou a
+  percorrer só as partes que o corpo referencia por `sectPr`, a considerar só imagens efetivamente
+  desenhadas, e a preferir a que está em célula de tabela. O redimensionamento foi restringido ao
+  desenho da logo — antes esticava qualquer outra imagem da mesma parte.
+- **Continua em aberto — verificação visual.** Nenhum documento corrigido foi **aberto no Word**, e o
+  acerto do alvo da logo está provado por teste unitário, não por inspeção visual de um `.docx` real.
+  Depende de um documento e um par reais da Ester. É a única ressalva viva deste fluxo.
 - Em erro, a rota responde **HTTP 200** com `status: "erro"` no corpo. É intencional para o laço do
   cliente; qualquer monitoramento externo precisa saber disso.
 
@@ -341,13 +351,13 @@ esta seção que diz se o card fechou.
 | PV-001 | Fundação de testes | Concluído | — |
 | PV-002 | Fechamento de tabelas expostas | Concluído | — |
 | PV-003 | Supabase Auth, papéis e QA | Concluído | — |
-| PV-004 | Motor seguro de substituição DOCX | **Concluído com ressalva** | Escopo entregue. Mas a trava de hash só passa a ter efeito quando o PV-005 ligar a UI, e nenhum documento corrigido foi aberto no Word. Não volta à fila. |
-| PV-005 | Fluxo visual de correção | **Parcial** | Só a exclusão múltipla (`2a31f1e`, 08/08). Faltam 4 itens — ver 4.3. |
+| PV-004 | Motor seguro de substituição DOCX | **Concluído com ressalva** | Escopo entregue. A trava de hash passou a ter efeito com o PV-005 em 17/08. Segue valendo a ressalva de nenhum documento corrigido aberto no Word. Não volta à fila. |
+| PV-005 | Fluxo visual de correção | **Concluído com ressalva** | Escopo de código entregue (`2a31f1e`, `c4a785f`, `6cb4eee`). Ressalva: nada foi aberto no Word e o alvo da logo está provado por teste, não por inspeção visual. Ambos dependem de um `.docx` real da Ester — ver 4.3. Não volta à fila. |
 | PV-006 | Motor sanitário do planner | Concluído | — |
 | PV-007 | API pública, preço e proteção | Concluído | — |
 | PV-008 | Manual de marca e design system | **Parcial** | Zoom 200% e ordem completa de teclado nunca foram comprovados. Esse resto virou o PV-018. |
 | PV-009 | Planner público e PDF | Pendente | `/planner` e `/api/planejamento-comercial/pdf` estão liberados no middleware e na WAF, mas os arquivos não existem — hoje dão 404. |
-| PV-010 | Redesign interno principal | **Bloqueado** | Depende do PV-005, que está parcial. |
+| PV-010 | Redesign interno principal | Pendente | **Desbloqueado em 17/08**: o PV-005 entregou o fluxo de correção. |
 | PV-011 | Redesign de templates e legislações | Pendente | Dependências (PV-003, PV-008) satisfeitas o suficiente. |
 | PV-012 | E2E, segurança e homologação | **Bloqueado** | Depende de PV-009, PV-010 e PV-011. É sempre o último. |
 | PV-013 | Rota de teste e dependência crítica | **Parcial, encerrado** | Módulo de imagem removido (`5e446e8`, crítica 1→0). O achado da rota de teste foi entregue pelo **PV-019**. Não volta à fila. |
@@ -359,60 +369,70 @@ esta seção que diz se o card fechou.
 | PV-019 | Remover fluxo de pasta de teste | **Concluído** | Rota e UI removidas em `a12064d`. Zero pastas de teste no banco. Falta só o smoke autenticado de 404, que depende de login da Ester. |
 | PV-020 | `[skip ci]` não impede deploy | **Concluído** | `ignoreCommand` por diff de caminho em `2826545`. `[skip ci]` sai das convenções. |
 
-Contagem: **9 concluídos**, 1 concluído com ressalva, **3 parciais** (PV-005, PV-008, PV-017),
-6 pendentes, 2 bloqueados.
+Contagem: **9 concluídos**, **2 concluídos com ressalva** (PV-004, PV-005), **3 parciais** (PV-008,
+PV-013, PV-017), 6 pendentes, **1 bloqueado** (PV-012).
 
 O PV-013 está listado como parcial **encerrado**: não volta à fila, porque o resto dele foi entregue
-pelo PV-019.
+pelo PV-019. O PV-005 sai da fila como concluído com ressalva: o escopo de código está entregue e a
+ressalva é de verificação visual, que só a Ester pode fazer.
 
-### 4.3 O que exatamente falta no PV-005
+### 4.3 PV-005 — os quatro itens, e o que sobrou
 
-Registrado aqui porque estava sendo dito em conversa e nunca salvo — e porque é o card de maior valor
-hoje. O PV-005 **não está feito**; o que existe é uma entrega antecipada autorizada de um pedaço.
+Esta seção existia porque os quatro itens estavam sendo ditos em conversa e nunca salvos. Ficam
+registrados aqui com o desfecho de cada um, em 17/08.
 
-**Feito:** exclusão múltipla na correção em lote (`2a31f1e`, 08/08) — `Excluir selecionados (N)`, com
-confirmação, limite de 100 por chamada e validação de que todos os IDs pertencem à pasta.
+| Item | Estado | Onde |
+|---|---|---|
+| 1. Ligar analisar → aplicar e enviar `hashOrigem` | **Feito** | `6cb4eee` |
+| 2. Passo de restaurar | **Feito** | `6cb4eee` |
+| 3. Bug da logo — correção de código | **Feito** | `c4a785f` |
+| 3b. Bug da logo — verificação visual | **Aberto, é da Ester** | precisa de `.docx` real |
+| 4. Abrir um documento corrigido no Word | **Aberto, é da Ester** | precisa de `.docx` e par reais |
+| (antecipado) Exclusão múltipla | Feito em 08/08 | `2a31f1e` |
 
-**Falta:**
+**O que sobrou, e por que não posso fechar.** Os dois itens abertos são de inspeção visual em documento
+real. Não existe `.docx` no repositório nem no disco local — o smoke de 900 documentos do PV-004 rodou
+sobre acervo que não está aqui. Os testes unitários fixam *qual* arquivo de mídia e *qual* desenho são
+tocados; eles não dizem como o cabeçalho fica na tela do Word. Fechar exige:
 
-1. **Ligar analisar → aplicar na UI e passar a enviar `hashOrigem`.** Hoje a UI não chama o preflight,
-   e `hashOrigem` é opcional na rota aplicar. A trava 409 entregue pelo PV-004 existe no código e
-   **nunca é exercida em produção**. É o item que dá efeito retroativo ao PV-004.
-2. **Passo de restaurar.** A base de cada correção é `doc.outputPath || doc.uploadPath`, ou seja, as
-   correções são **cumulativas sobre a saída anterior**, não sobre o original. Um par aplicado por
-   engano não tem como ser desfeito. Este é o caminho vivo de perda de trabalho do cliente.
-3. **O bug da logo.** `replaceLogoInHeadersAndFooters` ainda itera todas as partes presentes no zip,
-   órfãs incluídas, e troca a imagem de menor `rId` de cada uma. Em documento com imagem que não é
-   logo, a imagem errada pode ser substituída. Ficou **fora do PV-004 de propósito**, por exigir
-   verificação visual — e o PV-005 já prevê QA com DOCX real.
-4. **Abrir um documento corrigido no Word.** Única lacuna do smoke do PV-004: 900 documentos passaram
-   pelo motor sem falha, mas nenhum foi aberto no Word. Fecha com um documento e um par reais.
+1. subir um `.docx` real pequeno no fluxo de correção, com logo em cabeçalho e, de preferência, uma
+   segunda imagem que não seja logo;
+2. rodar uma rodada com um par real e uma logo nova;
+3. baixar a saída e **abrir no Word** — confirmar que abre sem aviso de conteúdo ilegível, que a logo
+   trocou na caixa certa e que a outra imagem não mudou nem de arquivo nem de tamanho;
+4. usar **Restaurar original** e confirmar que a versão anterior continua baixável.
+
+Se preferir, mande um documento e um par e eu gero a saída para você só abrir.
 
 ### 4.4 Fila de execução recomendada
 
 Critério: risco vivo primeiro, depois valor de negócio, depois dívida. Dentro disso, o que é barato e
 destrava leitura futura vem antes do que é caro.
 
-PV-019 e PV-020 saíram desta fila: ambos executados em 17/08. **Não há mais nenhum P0 de higiene
-aberto** — o topo da fila agora é risco de produto.
+PV-019, PV-020 e PV-005 saíram desta fila: os três executados em 17/08. **Não há mais nenhum P0
+aberto** — nem de higiene, nem de produto. O topo da fila agora é valor comercial.
 
 | # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de |
 |---|---|---|---|---|---|---|
-| 1 | PV-005 | Fluxo visual de correção | **P0 produto** | alto | gpt-5.6-terra | PV-004 |
-| 2 | PV-009 | Planner público e PDF | P1 comercial | alto | gpt-5.6-sol | PV-007 |
-| 3 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 |
-| 4 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
-| 5 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
+| 1 | PV-009 | Planner público e PDF | P1 comercial | alto | gpt-5.6-sol | PV-007 |
+| 2 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 |
+| 3 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
+| 4 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
+| 5 | PV-010 | Redesign interno principal | P2 visual | alto | gpt-5.6-terra | PV-005 (satisfeito) |
 | 6 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008 |
-| 7 | PV-010 | Redesign interno principal | P2 visual | alto | gpt-5.6-terra | **PV-005** |
-| 8 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-009, PV-010, PV-011 |
-| 9 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
-| 10 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
+| 7 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-009, PV-010, PV-011 |
+| 8 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
+| 9 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
 
 **Alternativa defensável — janela de higiene primeiro.** PV-018, PV-015 e o resto do PV-017 somam três
 cards de esforço baixo. Fechar os três de uma vez limpa a fila de ruído e deixa só o trabalho grande
-(PV-005 → PV-009) visível. Custa um ciclo e não protege documento de cliente — se a prioridade for
-risco, o PV-005 vem antes deles.
+(PV-009 → PV-010/PV-011) visível. Agora que nenhum P0 está aberto, essa opção ficou mais defensável do
+que era: não há risco vivo competindo com ela.
+
+**Antes de qualquer card novo, a verificação de 4.3.** É barata para a Ester (um documento, um par,
+abrir no Word) e é o que converte PV-004 e PV-005 de "concluído com ressalva" em concluído. Nenhum
+card depende dela, então não bloqueia a fila — mas quanto mais tarde, mais tempo o motor de correção
+roda em produção sem uma única confirmação visual.
 
 ### 4.5 Decisões resolvidas em 17/08
 
@@ -431,11 +451,13 @@ risco, o PV-005 vem antes deles.
 
 ### 4.6 Decisão em aberto — a única
 
-Entre **PV-005** e **PV-009**, a escolha não é técnica: o PV-005 protege documento de cliente que já
-existe, o PV-009 destrava receita de uma máquina que já foi construída e paga. Recomendo **PV-005
-primeiro**, porque perda de trabalho é irreversível e lançamento comercial não é. Se a prioridade do
-momento for comercial, inverter é defensável — mas então o PV-005 não deve ficar mais de um ciclo
-parado, porque o risco dele é sobre documento que a cliente já entregou.
+**Resolvida em 17/08.** A decisão era entre PV-005 e PV-009, e a Ester escolheu o PV-005 pedindo o card.
+Ele foi executado; a recomendação registrada (perda de trabalho é irreversível, lançamento comercial
+não) valeu.
+
+Não há decisão de priorização em aberto. O que existe é **uma tarefa da Ester**, não uma decisão: a
+verificação visual de 4.3. E uma pergunta antiga que segue sem resposta, do PV-017: o que fazer com
+`entregas/templates-subcisao`.
 
 ---
 
@@ -722,6 +744,9 @@ Commit de implementação: `c0d072a`.
 - **`hashOrigem` é opcional na rota aplicar.** Torná-lo obrigatório quebraria a página de correção em
   produção hoje, já que a UI é escopo do PV-005. A trava só passa a valer de fato quando o PV-005
   ligar analisar → aplicar. **PV-005 deve passar a enviar `hashOrigem`.**
+  → **Feito em 17/08 (`6cb4eee`).** A UI analisa antes de aplicar e sempre envia o hash; rodada com
+  pares não pode nem ser aplicada sem análise válida. O campo **segue opcional na rota**, de propósito,
+  para não quebrar chamada programática — a obrigatoriedade vive no cliente, não no contrato.
 - **Sem alteração de schema.** O hash é calculado sobre o buffer no momento do uso e trafega no
   round-trip preflight → aplicar. Não há coluna nova, migration Prisma ou migration Supabase.
 - **A logo não foi tocada.** A auditoria registrou que `replaceLogoInHeadersAndFooters` ainda varre
@@ -729,6 +754,8 @@ Commit de implementação: `c0d072a`.
   outra imagem. O card é sobre substituição de texto, e uma mudança na logo exige verificação visual
   que não existe aqui. Segue registrado como pendência, agora isolada no único ponto do arquivo que
   não passa pelo motor novo.
+  → **Corrigido em 17/08 (`c4a785f`, PV-005).** Partes ativas, só imagens desenhadas, preferência pela
+  imagem em célula. A verificação visual continua sendo a pendência — ver 4.3.
 
 #### Limite conhecido
 
@@ -785,8 +812,9 @@ o texto não existe.
 
 **Onde a evidência não chega — e uma correção à expectativa inicial:**
 
-- **Os documentos não foram abertos no Word.** A validação estrutural é o substituto automatizado;
-  abrir um documento corrigido no Word segue como QA do PV-005.
+- **Os documentos não foram abertos no Word.** A validação estrutural é o substituto automatizado. O
+  PV-005 também não fechou esta lacuna, por não haver `.docx` real disponível aqui; virou tarefa da
+  Ester, com roteiro em **4.3**.
 - **O dano do motor antigo neste acervo foi mais estreito do que eu supunha.** O caminho destrutivo
   só dispara quando o par atravessa runs; com pares que cabem em um único run, o motor antigo passou
   em 899 de 900. A correção é real e mensurável, mas o raio de alcance neste corpus é modesto — o
@@ -806,9 +834,10 @@ alterada.
 **Modelo:** gpt-5.6-terra · **Esforço:** alto · **Prioridade:** P0 produto · **Depende de:** PV-004
 **Resultado:** Upload → Analisar → Revisar → Aplicar → Baixar/Restaurar.
 
-> **Estado: PARCIAL.** Só a exclusão múltipla foi entregue (`2a31f1e`, 08/08) — ver a entrega
-> antecipada no fim deste card. Os 4 itens que faltam estão listados em **4.3**. O card continua na
-> fila como P0 produto.
+> **Estado: CONCLUÍDO COM RESSALVA** em 17/08. Escopo de código entregue em `c4a785f` e `6cb4eee`,
+> além da exclusão múltipla antecipada em `2a31f1e`. **Ressalva:** nenhum documento corrigido foi
+> aberto no Word e o acerto do alvo da logo está provado por teste unitário, não por inspeção visual.
+> Os dois dependem de um `.docx` real da Ester — roteiro em **4.3**. Não volta à fila.
 
 ### Arquivos
 
@@ -835,6 +864,122 @@ alterada.
 ### Commit
 
 `feat: improve corrected document workflow`
+
+### Resultado — 17/08/2026
+
+Dois commits, porque o bug da logo é defeito de biblioteca e não parte do fluxo — separar mantém a
+correção atribuível:
+
+| Commit | Conteúdo |
+|---|---|
+| `c4a785f` | `fix: target the actual logo when replacing header images` |
+| `6cb4eee` | `feat: improve corrected document workflow` |
+
+#### Item 1 — analisar → aplicar, com `hashOrigem`
+
+A UI agora chama o preflight por documento na etapa 4 e envia o `hashOrigem` daquela análise na etapa 5.
+**É isto que faz a trava 409 do PV-004 disparar**: ela existia na rota desde 17/08 e nunca era exercida,
+porque nada mandava o hash.
+
+- Rodada **com pares não pode ser aplicada sem análise válida** — o botão fica bloqueado com o motivo
+  escrito. Rodada só de logo dispensa, porque o preflight conta ocorrências de texto e não haveria o
+  que revisar.
+- A análise é identificada por uma **assinatura dos pares**. Editar um par vence a análise; desfazer a
+  edição a revalida. Adicionar um par vazio não vence nada, porque não altera os pares válidos. Foi
+  deliberado não invalidar manualmente em `addPar`/`removePar`: a comparação de assinatura acerta os três
+  casos, a invalidação manual erraria dois.
+- Aplicar e restaurar vencem a análise, porque ambos mudam a base.
+- Recusa por base desatualizada é contada **separada** de falha na resposta final, para o operador não
+  confundir "não fiz porque mudou" com "tentei e quebrou".
+
+#### Item 2 — restaurar
+
+`POST /api/pastas/[id]/uploads-corrigidos/[uploadId]/restaurar`, com `alvo: "original" | "versao"`.
+
+- **Acréscimo, nunca remoção.** Grava um arquivo novo, cria uma versão a mais e move `outputPath` para
+  ela. A saída que estava vigente continua registrada e baixável — restaurar é reversível pelo mesmo
+  mecanismo.
+- **Alvo sempre explícito.** `alvo` ausente é 400, não um padrão. Um padrão silencioso significaria que
+  um bug de UI que deixasse de enviar o campo descartaria todas as correções do documento.
+- Base validada como `.docx` íntegro **antes** de virar a saída vigente: uma base ilegível faria o
+  operador baixar arquivo que o Word recusa, tendo perdido o ponteiro para a saída boa.
+- Restaurar o que já está vigente é 409, em vez de duplicar arquivo e sujar o histórico.
+- Status do documento passa a `"restaurado"`, não `"processado"` — na lista o operador distingue
+  corrigido de revertido.
+- **Sem `requireAdmin`**, igual à rota de aplicar. Se o operador pode corrigir, tem de poder desfazer;
+  o contrário deixaria quem erra sem caminho de volta.
+
+#### Item 3 — alvo da logo
+
+O comportamento antigo era "a imagem de menor `rId` de cada parte de cabeçalho/rodapé presente no zip".
+Errava o alvo de três formas em documento real, editado à mão ao longo do tempo:
+
+1. imagens declaradas no rels mas desenhadas por nenhum `<a:blip>` entravam na disputa e, tendo `rId`
+   baixo, geralmente ganhavam. Trocar os bytes delas não muda nada do que o Word renderiza — e o
+   arquivo de mídia pode ser compartilhado com a parte vigente, então o efeito visível é **imagem
+   errada substituída**;
+2. partes órfãs — dentro do zip, referenciadas por nenhum `<w:sectPr>` — eram percorridas, com a mesma
+   consequência;
+3. **descoberto ao escrever o teste:** o passo de redimensionar reescrevia `<wp:extent>`/`<a:ext>` na
+   parte inteira. Uma foto ao lado da logo era esticada para a caixa da logo. A mídia certa era
+   preservada, mas o cabeçalho saía distorcido.
+
+Agora: só partes que o corpo referencia (reusando `listActiveHeaderFooterParts`, primitiva que o
+caminho de texto já usava), só imagens efetivamente desenhadas, com prioridade para a que está em
+célula de tabela com largura declarada — o formato do slot de logo em todo o projeto. Menor `rId` segue
+como desempate dentro do grupo. O redimensionamento foi restringido ao bloco `<w:drawing>` que embute o
+`rId` escolhido. Grafo irresolvível cai para as partes meramente presentes, que é o comportamento
+anterior.
+
+#### `DocumentPreviewModal`
+
+`role="dialog"`, `aria-modal`, Esc fecha, foco entra no botão Fechar, Tab circula dentro do diálogo,
+foco volta a quem abriu, região viva para carregamento e erro. Sem isso o operador de teclado tabulava
+para fora do diálogo, na lista por baixo, e não conseguia fechar sem mouse.
+
+#### Uma mudança de infraestrutura de teste que vale registrar
+
+`vitest.config.ts` passou a definir `oxc.jsx.runtime`. O `tsconfig` mantém `jsx: "preserve"` porque é o
+Next que compila a aplicação; o Vitest não tem esse passo, então **qualquer** teste que renderizasse um
+componente falhava no parse do próprio componente. Nenhum teste do repositório renderizava React até
+hoje — o de tema contorna lendo o arquivo como texto. Quem for escrever teste de componente daqui em
+diante já tem o caminho aberto.
+
+#### Aceite verificado
+
+| Verificação | Resultado |
+|---|---|
+| `npm.cmd run test:run` | **22 arquivos, 119 testes**, todos passaram (eram 19 e 95) |
+| `npx tsc --noEmit` | exit 0 |
+| `npm.cmd run lint` | 0 erros, 0 avisos |
+| `npm.cmd run check:deploy` | concluído sem falhas |
+| `npm.cmd run build` | exit 0, **38 rotas** |
+| Deployment | `dpl_7fc5PoUq2QLYSrHPeHuBeXHoebSf` **READY**, alias `pastavisa.vercel.app` |
+| Manifesto do build de produção | `.../uploads-corrigidos/[uploadId]/restaurar` presente |
+| `GET /login` e `GET /api/health` | 200 |
+| `POST .../restaurar` anônimo | **401** do middleware — a rota nasce protegida |
+
+Os 24 testes novos: 12 da rota de restaurar (alvo explícito, isolamento por pasta, 409 de já-vigente,
+422 de base ilegível ou não-docx, criação de versão sem remoção, e a composição restaurar → aplicar
+com hash vencido devolvendo 409), 5 do alvo da logo, 7 do teclado e foco do modal.
+
+#### Um desvio deliberado do card
+
+O card pedia "criar componentes em `components/correction/`". **Não criei o diretório.** A lógica nova é
+estado compartilhado entre as etapas — análise, assinatura da rodada, ressalvas, seleção — e quebrar
+isso em componentes exigiria erguer um contexto ou descer props por três níveis, sem mudar uma linha de
+comportamento. A página cresceu e continua legível por etapa. Extrair componentes é refatoração
+oportuna quando o PV-010 mexer nesta tela; fazer agora seria custo sem entrega.
+
+#### O que **não** foi verificado, e por quê
+
+- **Nenhum documento aberto no Word.** Não existe `.docx` no repositório nem no disco local; o smoke de
+  900 documentos do PV-004 rodou sobre acervo que não está aqui.
+- **O alvo da logo não passou por inspeção visual.** Os testes fixam qual arquivo de mídia e qual
+  desenho são tocados — não como o cabeçalho fica na tela.
+
+Roteiro para fechar os dois em **4.3**. Enquanto não forem feitos, PV-004 e PV-005 seguem "concluído
+com ressalva", não concluídos.
 
 ### Entrega antecipada autorizada — exclusão múltipla — 08/08/2026
 
@@ -1834,6 +1979,8 @@ Resumo dos dois testes que fecham o card:
 | 17/08/2026 | PV-020 | Concluído | `2826545` | `dpl_D1FGTxCsrivVUGDjHbpR5XJaHQ6Z` `READY` | `ignoreCommand` em `vercel.json` apontando para `scripts/vercel-ignore-build.js`: ignora build só quando todo caminho alterado é `docs/**` ou `*.md`, e resolve toda dúvida para build. 4 ramos testados localmente contra histórico real. Commit de código continua deployando — comprovado por este próprio deployment. `[skip ci]` removido das convenções. |
 | 17/08/2026 | PV-020 — prova do filtro | Concluído | `05139b3`, `d778677` | `dpl_E4c6fcR4…` e `dpl_8t24PZwx…`, ambos **`CANCELED`**, sem build | Dois commits só de `docs/HANDOFF.md`. O filtro cancelou antes do build nos dois; o alias de produção permaneceu em `2826545`, verificado por HTTP (`/login` 200, `/api/health` 200). **Daqui em diante esta coluna é confiável.** |
 | 17/08/2026 | PV-019 | Concluído | `a12064d` | `dpl_5KM2gRV9Qybp4To71cDwCm1gJVKs` `READY` | Rota `app/api/pastas/teste/route.ts` e todo o caminho de UI removidos em um commit: botão, `handleCriarTeste`, `criandoTeste` e o `useRouter` que ficou morto. Banco consultado antes, somente leitura: **0 pastas de teste** entre as 6 existentes, nenhuma `Pasta` removida. Rotas 38→37 (o "37" do handoff estava velho desde o PV-004). Ausência da rota confirmada no manifesto do build de produção; produção servindo (`/login` 200, `/api/health` 200). Smoke autenticado de 404 delegado à Ester por exigir login. |
+| 17/08/2026 | PV-005 — alvo da logo | Concluído | `c4a785f` | Sem deployment próprio (empurrado junto de `6cb4eee`) | `replaceLogoInHeadersAndFooters` deixou de disputar imagens só declaradas no rels e de percorrer partes órfãs, e passou a preferir a imagem em célula de tabela. **Terceiro defeito descoberto ao escrever o teste:** o redimensionamento reescrevia os extents da parte inteira, esticando qualquer outra imagem do cabeçalho para a caixa da logo — agora é restrito ao `<w:drawing>` da logo. 5 testes novos. Grafo irresolvível cai para o comportamento anterior. |
+| 17/08/2026 | PV-005 | **Concluído com ressalva** | `6cb4eee` | `dpl_7fc5PoUq2QLYSrHPeHuBeXHoebSf` `READY` | Fluxo em 5 etapas com revisão obrigatória: a UI analisa por documento e envia `hashOrigem`, o que **faz a trava 409 do PV-004 disparar pela primeira vez**. Rota `restaurar` (original ou versão intermediária) só acrescenta versão, nunca remove; `alvo` ausente é 400 em vez de padrão silencioso. Confirmação explícita para zero ocorrências, casamento excessivo e falha de análise; documento não analisado é bloqueio, não confirmação. Retry seletivo dos documentos com erro. Modal de preview com `role="dialog"`, Esc, ciclo de Tab e devolução de foco. `vitest.config.ts` passou a definir `oxc.jsx.runtime`, sem o que nenhum teste de componente parseava. Suíte **22 arquivos / 119 testes**, tsc, lint, `check:deploy` e build aprovados; rotas 37→38. Rota presente no manifesto de produção, `POST` anônimo devolve **401**. **Ressalva:** nada aberto no Word e alvo da logo sem inspeção visual — roteiro em 4.3. |
 
 **Aviso sobre a coluna "Produção" nas linhas acima de 17/08.** Ela não é confiável. Foi preenchida
 assumindo que `[skip ci]` impedia deploy, o que é falso neste projeto (ver PV-020). Onde se lê
