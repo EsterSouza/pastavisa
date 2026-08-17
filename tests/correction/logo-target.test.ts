@@ -42,9 +42,13 @@ function desenho(rId: string): string {
   );
 }
 
-function celulaComDesenho(rId: string, larguraTwips: number, alturaLinhaTwips?: number): string {
-  const trPr = alturaLinhaTwips
-    ? `<w:trPr><w:trHeight w:val="${alturaLinhaTwips}" w:hRule="atLeast"/></w:trPr>`
+function celulaComDesenho(
+  rId: string,
+  larguraTwips: number,
+  altura?: { twips: number; hRule: "exact" | "atLeast" | "ausente" }
+): string {
+  const trPr = altura
+    ? `<w:trPr><w:trHeight${altura.hRule === "ausente" ? "" : ` w:hRule="${altura.hRule}"`} w:val="${altura.twips}"/></w:trPr>`
     : "";
   return (
     `<w:tbl><w:tr>${trPr}<w:tc>` +
@@ -66,8 +70,8 @@ function midia(marcador: number): Buffer {
 interface Opcoes {
   /** Quando falso, nenhum `<w:sectPr>` referencia cabeçalho — grafo irresolvível. */
   comSectPr?: boolean;
-  /** Altura declarada da linha da logo, em twips. Ausente = linha sem altura. */
-  alturaLinhaTwips?: number;
+  /** Altura declarada da linha da logo. Ausente = linha sem `<w:trHeight>`. */
+  altura?: { twips: number; hRule: "exact" | "atLeast" | "ausente" };
 }
 
 /**
@@ -75,7 +79,7 @@ interface Opcoes {
  * menor e a logo dentro de uma célula — mais uma imagem só declarada no rels. Um
  * segundo cabeçalho (header2) existe no zip mas nenhum `<w:sectPr>` o referencia.
  */
-function montarDocxComLogo({ comSectPr = true, alturaLinhaTwips }: Opcoes = {}): PizZip {
+function montarDocxComLogo({ comSectPr = true, altura }: Opcoes = {}): PizZip {
   const zip = new PizZip();
 
   zip.file(
@@ -111,7 +115,7 @@ function montarDocxComLogo({ comSectPr = true, alturaLinhaTwips }: Opcoes = {}):
   zip.file(
     "word/header1.xml",
     `<w:hdr ${W} ${R}><w:p><w:r>${desenho("rId5")}</w:r></w:p>` +
-      `${celulaComDesenho("rId7", 4000, alturaLinhaTwips)}</w:hdr>`
+      `${celulaComDesenho("rId7", 4000, altura)}</w:hdr>`
   );
   zip.file(
     "word/_rels/header1.xml.rels",
@@ -218,44 +222,53 @@ describe("alvo da troca de logo", () => {
     expect(daFoto).toContain('cy="222"');
   });
 
-  it("respeita a altura declarada da linha em vez do teto fixo", async () => {
-    // Logo 300x100 (3:1) numa célula de 4000 twips. Largura útil = 2.336.800 EMU.
-    // Com o teto fixo de 684.000 EMU (1,9 cm) a altura limita e a logo sai estreita;
-    // com a linha declarando 1700 twips a largura passa a limitar e ela preenche.
-    const larguraUtilEmu = Math.round(4000 * 635 * 0.92);
+  /** Largura da logo escolhida, em EMU, no cabeçalho resultante. */
+  async function larguraDaLogo(zip: PizZip): Promise<number> {
+    await replaceLogoInHeadersAndFooters(zip, await logoNova());
+    const daLogo = (zip.files["word/header1.xml"].asText().match(/<w:drawing[\s\S]*?<\/w:drawing>/g) ?? [])
+      .find((bloco) => bloco.includes('r:embed="rId7"'));
+    return Number(daLogo?.match(/wp:extent[^>]*?\scx="(\d+)"/)?.[1]);
+  }
 
-    const semAltura = montarDocxComLogo();
-    await replaceLogoInHeadersAndFooters(semAltura, await logoNova());
-    const cxSemAltura = Number(
-      semAltura.files["word/header1.xml"].asText().match(/wp:extent[^>]*?\scx="(\d+)"/)?.[1]
+  // Logo 300x100 (3:1) numa célula de 4000 twips: largura útil = 2.336.800 EMU.
+  const LARGURA_UTIL_EMU = Math.round(4000 * 635 * 0.92);
+
+  it("usa o teto da linha quando ela é de altura exata", async () => {
+    // `hRule="exact"` corta o que passar da linha, então o valor é teto de verdade e
+    // dimensionar por ele evita a logo ser cortada.
+    const cx = await larguraDaLogo(
+      montarDocxComLogo({ altura: { twips: 1700, hRule: "exact" } })
     );
 
-    const comAltura = montarDocxComLogo({ alturaLinhaTwips: 1700 });
-    await replaceLogoInHeadersAndFooters(comAltura, await logoNova());
-    const xmlComAltura = comAltura.files["word/header1.xml"].asText();
-    const daLogo = (xmlComAltura.match(/<w:drawing[\s\S]*?<\/w:drawing>/g) ?? []).find((bloco) =>
-      bloco.includes('r:embed="rId7"')
-    );
-    const cxComAltura = Number(daLogo?.match(/wp:extent[^>]*?\scx="(\d+)"/)?.[1]);
+    expect(cx).toBe(LARGURA_UTIL_EMU);
+  });
 
-    expect(cxSemAltura).toBeLessThan(larguraUtilEmu);
-    expect(cxComAltura).toBe(larguraUtilEmu);
-    expect(cxComAltura).toBeGreaterThan(cxSemAltura);
+  it("ignora `atLeast`, que é altura mínima e não máxima", async () => {
+    // Este é o caso dos documentos reais: `<w:trHeight w:val="419"/>` sem `hRule`,
+    // o que significa `atLeast` por padrão — 0,74 cm de mínimo, com a linha crescendo
+    // conforme o conteúdo. Tratar isso como teto encolheria a logo a um terço.
+    const semRegra = await larguraDaLogo(
+      montarDocxComLogo({ altura: { twips: 419, hRule: "ausente" } })
+    );
+    const explicito = await larguraDaLogo(
+      montarDocxComLogo({ altura: { twips: 419, hRule: "atLeast" } })
+    );
+    const semAltura = await larguraDaLogo(montarDocxComLogo());
+
+    expect(semRegra).toBe(semAltura);
+    expect(explicito).toBe(semAltura);
+    // Sem esta guarda, 419 twips daria ~244.800 EMU de teto e a logo sairia minúscula.
+    expect(semRegra).toBeGreaterThan(Math.round(419 * 635 * 0.92));
   });
 
   it("nunca passa da largura da célula, que alargaria a tabela do cabeçalho", async () => {
-    const larguraUtilEmu = Math.round(4000 * 635 * 0.92);
-    // Altura declarada folgada de propósito: mesmo com espaço vertical de sobra, a
+    // Altura exata folgada de propósito: mesmo com espaço vertical de sobra, a
     // largura da célula continua sendo limite duro.
-    const zip = montarDocxComLogo({ alturaLinhaTwips: 20_000 });
+    const cx = await larguraDaLogo(
+      montarDocxComLogo({ altura: { twips: 20_000, hRule: "exact" } })
+    );
 
-    await replaceLogoInHeadersAndFooters(zip, await logoNova());
-
-    const daLogo = (zip.files["word/header1.xml"].asText().match(/<w:drawing[\s\S]*?<\/w:drawing>/g) ?? [])
-      .find((bloco) => bloco.includes('r:embed="rId7"'));
-    const cx = Number(daLogo?.match(/wp:extent[^>]*?\scx="(\d+)"/)?.[1]);
-
-    expect(cx).toBe(larguraUtilEmu);
+    expect(cx).toBe(LARGURA_UTIL_EMU);
     expect(cx).toBeLessThanOrEqual(4000 * 635);
   });
 

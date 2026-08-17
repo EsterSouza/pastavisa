@@ -106,25 +106,32 @@ function findImageCellWidthTwips(xml: string, rId: string): number | null {
 }
 
 /**
- * Altura declarada (em twips) da linha de tabela que contém o desenho de `rId`.
+ * Teto de altura (em twips) imposto pela linha de tabela que contém o desenho de
+ * `rId` — e **somente** quando a linha declara `w:hRule="exact"`.
  *
- * É o teto de altura correto para a logo: quem desenhou o cabeçalho já decidiu a
- * altura da faixa, e essa decisão está no documento. Sem isto o código usava um
- * teto fixo de 1,9 cm, que fazia qualquer logo menos larga que ~3,9:1 sair
- * estreita — uma logo 2:1 ocupava metade da célula, uma quadrada um quarto.
+ * `<w:trHeight>` é ambíguo por si só: com `hRule="exact"` o valor é a altura fixa
+ * da linha, e o Word corta o que passar dela, então sobra como teto legítimo. Com
+ * `hRule="atLeast"` — que é o **padrão quando o atributo está ausente** — o valor é
+ * a altura *mínima*, e a linha cresce com o conteúdo: usá-lo como teto encolheria a
+ * logo em vez de ajustá-la. Nos documentos reais desta consultoria a linha declara
+ * `<w:trHeight w:val="419"/>` sem `hRule`, ou seja 0,74 cm de mínimo, enquanto a
+ * logo vigente tem 1,90 cm de altura — tratar 419 como máximo reduziria a logo a
+ * um terço do tamanho atual.
  *
- * `null` quando a linha não declara altura (cresce com o conteúdo), caso em que o
- * chamador não tem geometria para respeitar e volta ao teto conservador.
+ * `null` quando não há teto declarado, caso em que o chamador usa o conservador.
  *
  * Assume tabela de cabeçalho simples, sem tabela aninhada — a mesma premissa que
  * `findImageCellWidthTwips` já fazia.
  */
-function findImageRowHeightTwips(xml: string, rId: string): number | null {
+function findImageRowHeightCapTwips(xml: string, rId: string): number | null {
   const rows = xml.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) || [];
   for (const row of rows) {
     if (!row.includes(`r:embed="${rId}"`)) continue;
-    const match = row.match(/<w:trHeight\b[^>]*\sw:val="(\d+)"/);
-    return match ? parseInt(match[1], 10) : null;
+    const trHeight = row.match(/<w:trHeight\b[^>]*\/>/);
+    if (!trHeight) return null;
+    if (!/\bw:hRule="exact"/.test(trHeight[0])) return null;
+    const valor = trHeight[0].match(/\sw:val="(\d+)"/);
+    return valor ? parseInt(valor[1], 10) : null;
   }
   return null;
 }
@@ -207,11 +214,12 @@ export async function replaceLogoInHeadersAndFooters(
     // A largura da célula é um limite duro: passar dela obriga o Word a alargar a
     // célula, e com ela a tabela do cabeçalho.
     const maxWidthEmu = Math.round(cellWidthTwips * TWIP_TO_EMU * HEADER_CELL_INSET);
-    // A altura vem da linha quando o documento a declara. O teto fixo é só o caso
-    // em que não há geometria declarada para respeitar.
-    const rowHeightTwips = findImageRowHeightTwips(partXml, ref.rId);
-    const maxHeightEmu = rowHeightTwips
-      ? Math.round(rowHeightTwips * TWIP_TO_EMU * HEADER_CELL_INSET)
+    // A altura vem da linha só quando ela impõe um teto de verdade (`hRule="exact"`).
+    // Caso contrário vale o teto conservador: linha `atLeast` cresce com o conteúdo
+    // e não diz nada sobre o máximo.
+    const rowHeightCapTwips = findImageRowHeightCapTwips(partXml, ref.rId);
+    const maxHeightEmu = rowHeightCapTwips
+      ? Math.round(rowHeightCapTwips * TWIP_TO_EMU * HEADER_CELL_INSET)
       : HEADER_MAX_HEIGHT_EMU;
     const scale = Math.min(maxWidthEmu / naturalWEmu, maxHeightEmu / naturalHEmu);
     const targetCx = Math.round(naturalWEmu * scale);
