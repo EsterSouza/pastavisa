@@ -260,48 +260,62 @@ pagamento ou envio automático.
 
 ## 4. Mapa dos cards
 
-Estado revisado contra o código e a produção em 17/08/2026. **PV-002 e PV-003 constavam como
-pendentes e estão concluídos e comprovados** (ver 2.3).
+Estado revisado contra o código e a produção em 17/08/2026, e reordenado após a entrega do PV-004.
 
-| Card | Entrega | Modelo | Esforço | Prioridade | Depende de | Estado |
-|---|---|---|---|---|---|---|
-| PV-000 | Checkout e handoff único | gpt-5.6-terra | médio | P0 | — | Concluído |
-| PV-001 | Fundação de testes | gpt-5.6-terra | médio | P0 | PV-000 | Concluído |
-| PV-002 | Fechamento de tabelas expostas | gpt-5.6-sol | alto | P0 segurança | PV-000 | **Concluído** (`1a03f6f`); zero grants confirmado em produção |
-| PV-003 | Supabase Auth, papéis e QA | gpt-5.6-sol | alto | P0 segurança | PV-001, PV-002 | **Concluído** (`b7d1272`); 2 contas com papel em produção |
-| PV-004 | Motor seguro de substituição | gpt-5.6-sol | xhigh | P1 principal | PV-001, PV-003 | **Concluído** (`9ed5856`); preflight, trava de hash 409 e preservação estrutural |
-| PV-005 | Fluxo visual de correção | gpt-5.6-terra | alto | P1 principal | PV-004 | Pendente — **liberado**; deve consumir preflight e enviar `hashOrigem` |
-| PV-006 | Motor sanitário do planner | gpt-5.6-sol | xhigh | P1 sanitário | PV-001 | Concluído |
-| PV-007 | API pública, preços e proteção | gpt-5.6-sol | alto | P1 segurança | PV-003, PV-006 | Concluído; segredo, WAF Hobby e 429 comprovados |
-| PV-008 | Manual de marca e design system | gpt-5.6-terra | alto | P1 visual | Manual | Publicado; **zoom 200% e teclado seguem sem evidência** (ver PV-018) |
-| PV-009 | Planner público e PDF | gpt-5.6-sol | alto | P1 comercial | PV-007, PV-008 | Pendente — **maior lacuna de negócio** |
-| PV-010 | Redesign interno principal | gpt-5.6-terra | alto | P2 visual | PV-005, PV-008 | Pendente |
-| PV-011 | Redesign templates/legislações | gpt-5.6-terra | alto | P2 manutenção | PV-003, PV-008 | Pendente |
-| PV-012 | E2E e homologação final | gpt-5.6-sol | alto | P1 lançamento | PV-009, PV-010, PV-011 | Pendente |
+### 4.1 Fila de execução
 
-Cards abertos pela auditoria de 17/08/2026:
+Ordenada por prioridade. Dentro de cada faixa, a ordem é a recomendada — o critério é risco vivo
+primeiro, depois valor de negócio, depois dívida.
 
-| Card | Entrega | Modelo | Esforço | Prioridade | Depende de | Estado |
-|---|---|---|---|---|---|---|
-| PV-013 | Remover rota de teste e dependência crítica | gpt-5.6-terra | baixo | **P0 higiene** | — | Pendente |
-| PV-014 | Endurecer senha e reduzir vulnerabilidades | gpt-5.6-sol | médio | P1 segurança | PV-013 | Pendente |
-| PV-015 | Restringir superfície de `/api/health` | gpt-5.6-terra | baixo | P2 segurança | — | Pendente |
-| PV-016 | Atualizar modelo do motor sanitário | gpt-5.6-sol | médio | P2 | PV-006 | Pendente |
-| PV-017 | Limpeza de artefatos locais | gpt-5.6-terra | baixo | P3 | — | Pendente |
-| PV-018 | Fechar aceite de acessibilidade do PV-008 | gpt-5.6-terra | baixo | P1 visual | PV-008 | Pendente |
+| # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de | Nota |
+|---|---|---|---|---|---|---|---|
+| 1 | PV-013 | Remover rota de teste e dependência crítica | **P0 higiene** | baixo | gpt-5.6-terra | — | Única vulnerabilidade crítica + rota que escreve lixo em produção. Nada depende dele. |
+| 2 | PV-005 | Fluxo visual de correção | **P0 produto** ↑ | alto | gpt-5.6-terra | PV-004 | **Subiu de P1.** A trava do PV-004 só passa a valer quando a UI consumir o preflight; até lá a correção segue cumulativa e sem restauração. |
+| 3 | PV-009 | Planner público e PDF | P1 comercial | alto | gpt-5.6-sol | PV-007, PV-008 | Maior lacuna de negócio: motor, API, segredo e regra WAF já pagos, sem página nem PDF. |
+| 4 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 | O P1 mais barato: fecha os dois critérios que o PV-008 deixou sem evidência. |
+| 5 | PV-014 | Endurecer senha e reduzir vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | PV-013 | Considerar mover a chave de senha vazada para o PV-013 e deixar este card só com dependências. |
+| 6 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-009, PV-010, PV-011 | Prioridade alta, mas **bloqueado por dependência**: é sempre o último a rodar. |
+| 7 | PV-015 | Restringir superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — | Pequeno e independente; pode entrar em qualquer janela livre. |
+| 8 | PV-010 | Redesign interno principal | P2 visual | alto | gpt-5.6-terra | PV-005, PV-008 | — |
+| 9 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008 | — |
+| 10 | PV-016 | Atualizar modelo do motor sanitário | P3 ↓ | médio | gpt-5.6-sol | PV-006 | **Desceu de P2.** `claude-sonnet-4-5` segue ativo e sem aposentadoria anunciada. |
+| 11 | PV-017 | Limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — | Parcialmente feito em 17/08: `.next` e `tsconfig.tsbuildinfo` já removidos. |
 
-### Ordem recomendada de execução
+### 4.2 Mudanças de prioridade em 17/08
 
-1. **PV-013** — baixo esforço, elimina a única vulnerabilidade crítica e uma rota que escreve lixo em
-   produção. Nada depende dele; faça primeiro.
-2. **PV-018** e **PV-015** — pequenos, fecham dívidas abertas sem tocar em fluxo.
-3. ~~PV-004~~ → **PV-005** — o PV-004 já entregou o motor seguro e a análise prévia; falta a UI
-   consumir o preflight, enviar `hashOrigem` e oferecer restauração. A correção continua cumulativa
-   sobre a saída anterior até o PV-005 entregar o passo de restaurar.
-4. **PV-009** — a maior lacuna de negócio: o planner comercial existe do lado do servidor e está
-   pago em WAF e segredo, mas não tem página pública nem PDF.
-5. **PV-014** e **PV-016** — mexem em dependências e modelo; exigem build e suíte verdes antes.
-6. **PV-010 → PV-011 → PV-012** — visual e homologação final.
+Três ajustes, com o motivo — para não parecer arbitrário em uma leitura futura:
+
+- **PV-005 subiu de P1 para P0.** O PV-004 entregou preflight e trava de hash, mas `hashOrigem` é
+  opcional e a UI não chama o preflight, então a proteção está **inerte em produção**. Enquanto isso,
+  cada correção continua sendo aplicada sobre a saída anterior sem caminho de restauração: é um
+  caminho vivo de perda de trabalho do cliente, não uma dívida estética. É o card de maior valor hoje.
+- **PV-016 desceu de P2 para P3.** `claude-sonnet-4-5` continua ativo, sem aposentadoria anunciada, e
+  o planner já passou por smoke em produção. Trocar o modelo obriga a revalidar os 12 testes
+  sanitários e comparar saídas caso a caso — custo real por ganho especulativo. Só sobe se a Ester
+  quiser mais precisão sanitária.
+- **PV-014 pode encolher.** A proteção contra senha vazada é uma chave no painel do Supabase e cabe
+  no PV-013, que já é o card de higiene trivial. Se ela for junto, o PV-014 vira só trabalho de
+  dependências e cai para P2. **Decisão da Ester.**
+
+### 4.3 Decisão em aberto sobre a ordem
+
+Entre **PV-005** e **PV-009** a escolha não é técnica: PV-005 protege documento de cliente que já
+existe, PV-009 destrava receita de máquina que já foi construída e paga. Recomendo PV-005 primeiro,
+porque perda de trabalho é irreversível e lançamento comercial não é. Se a prioridade do momento for
+comercial, inverter os dois é defensável — mas então o PV-005 não deve ficar mais de um ciclo parado.
+
+### 4.4 Concluídos
+
+| Card | Entrega | Commit | Comprovação |
+|---|---|---|---|
+| PV-000 | Checkout e handoff único | `146b73c` | Handoff único publicado; build preservado. |
+| PV-001 | Fundação de testes | `c0d072a` | Vitest configurado; lint sem avisos. |
+| PV-002 | Fechamento de tabelas expostas | `1a03f6f` | Zero grants para `anon`/`authenticated` confirmado em produção. |
+| PV-003 | Supabase Auth, papéis e QA | `b7d1272` | 2 contas com papel em `app_metadata`; Basic Auth removido. |
+| PV-004 | Motor seguro de substituição DOCX | `9ed5856` | Preflight, trava 409 e preservação estrutural; 95 testes. |
+| PV-006 | Motor sanitário do planner | `a60cc73` | Smoke aprovado no alias de produção em 10/08. |
+| PV-007 | API pública, preço e proteção | `e9de691` | Segredo `Sensitive`, WAF `live` e 429 comprovado. |
+| PV-008 | Manual de marca e design system | `0c15e69` | Publicado; zoom 200% e teclado seguem no PV-018. |
 
 ---
 
@@ -631,7 +645,7 @@ alterada.
 
 ## PV-005 — Fluxo visual de correção
 
-**Modelo:** gpt-5.6-terra · **Esforço:** alto · **Prioridade:** P1 · **Depende de:** PV-004
+**Modelo:** gpt-5.6-terra · **Esforço:** alto · **Prioridade:** P0 produto · **Depende de:** PV-004
 **Resultado:** Upload → Analisar → Revisar → Aplicar → Baixar/Restaurar.
 
 ### Arquivos
@@ -1137,7 +1151,7 @@ entrega telemetria de negócio e mapa de configuração a qualquer visitante do 
 
 ## PV-016 — Modelo do motor sanitário
 
-**Modelo:** gpt-5.6-sol · **Esforço:** médio · **Prioridade:** P2 · **Depende de:** PV-006
+**Modelo:** gpt-5.6-sol · **Esforço:** médio · **Prioridade:** P3 · **Depende de:** PV-006
 **Resultado:** planner comercial em modelo atual, com qualidade sanitária comprovada por teste.
 
 ### Contexto
