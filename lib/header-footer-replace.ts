@@ -25,20 +25,11 @@ export interface AplicarBatchResult {
 
 const TWIP_TO_EMU = 635;
 const HEADER_CELL_INSET = 0.92; // ~8% de recuo das bordas da célula, igual ao fluxo principal
-// Teto de altura padrão da logo, usado quando a linha do cabeçalho não impõe um
-// teto próprio via `w:hRule="exact"`.
-//
-// Era 684.000 EMU (1,9 cm), e esse valor é que fazia a logo sair estreita: como a
-// escala preserva a proporção, um teto de altura baixo amarra a largura. Nos
-// documentos reais desta consultoria a célula da logo tem 2,74 a 3,24 cm e a logo é
-// praticamente quadrada, então 1,9 cm de altura a deixava com 67% a 79% da largura
-// da célula.
-//
-// 2,6 cm foi a escolha da Ester em 17/08, entre preencher a largura nos três
-// documentos medidos (2,9 cm) e não mexer (1,9 cm). Custo: a faixa do cabeçalho
-// cresce até 0,7 cm. Sem um teto, logo quadrada em célula larga geraria cabeçalho
-// desproporcional — por isso ele continua existindo.
-const HEADER_MAX_HEIGHT_EMU = 936_000; // 2,6 cm
+// Teto de altura de último recurso, usado só quando o documento não diz qual é a
+// altura da faixa da logo — isto é, quando o desenho que está sendo substituído não
+// declara `<wp:extent>`. Nos documentos reais isso não acontece; ver
+// `findImageExtentHeightEmu`, que é a fonte de verdade preferida.
+const HEADER_MAX_HEIGHT_FALLBACK_EMU = 684_000; // 1,9 cm
 
 /** Um rId de imagem está de fato desenhado nesta parte (e não só declarado no rels)? */
 function isImageEmbedded(partXml: string, rId: string): boolean {
@@ -132,6 +123,30 @@ function findImageCellWidthTwips(xml: string, rId: string): number | null {
  * Assume tabela de cabeçalho simples, sem tabela aninhada — a mesma premissa que
  * `findImageCellWidthTwips` já fazia.
  */
+/**
+ * Altura (em EMU) que o desenho de `rId` **já ocupa** no documento.
+ *
+ * É o teto de altura correto para a logo nova, e o motivo é direto: a linha do
+ * cabeçalho hoje tem a altura necessária para caber esta imagem. Reaproveitar
+ * exatamente essa altura mantém a faixa do cabeçalho do tamanho que está — a logo
+ * fica justa na altura disponível sem empurrar a tabela para baixo.
+ *
+ * Substitui a tentativa anterior de derivar o teto de uma constante (1,9 cm, depois
+ * 2,6 cm): qualquer número escolhido de fora acerta um template e erra o próximo,
+ * enquanto a altura vigente é a única medida que já está calibrada para cada
+ * documento. Foi o que a Ester pediu depois de ver o cabeçalho crescer: "justinha na
+ * altura, o máximo possível sem aumentar a tabela".
+ */
+function findImageExtentHeightEmu(xml: string, rId: string): number | null {
+  const blocos = xml.match(/<w:drawing[\s\S]*?<\/w:drawing>/g) || [];
+  const bloco = blocos.find((b) => b.includes(`r:embed="${rId}"`));
+  if (!bloco) return null;
+  const match = bloco.match(/wp:extent[^>]*?\scy="(\d+)"/);
+  if (!match) return null;
+  const altura = parseInt(match[1], 10);
+  return altura > 0 ? altura : null;
+}
+
 function findImageRowHeightCapTwips(xml: string, rId: string): number | null {
   const rows = xml.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) || [];
   for (const row of rows) {
@@ -223,13 +238,16 @@ export async function replaceLogoInHeadersAndFooters(
     // A largura da célula é um limite duro: passar dela obriga o Word a alargar a
     // célula, e com ela a tabela do cabeçalho.
     const maxWidthEmu = Math.round(cellWidthTwips * TWIP_TO_EMU * HEADER_CELL_INSET);
-    // A altura vem da linha só quando ela impõe um teto de verdade (`hRule="exact"`).
-    // Caso contrário vale o teto conservador: linha `atLeast` cresce com o conteúdo
-    // e não diz nada sobre o máximo.
+    // A altura não pode crescer: a faixa do cabeçalho já está dimensionada para a
+    // logo que está ali. Vale a mais apertada entre a altura vigente do desenho e um
+    // eventual teto de linha de altura exata; nenhuma das duas leva recuo, porque o
+    // objetivo é ficar justo na altura, e não sobrar margem.
     const rowHeightCapTwips = findImageRowHeightCapTwips(partXml, ref.rId);
-    const maxHeightEmu = rowHeightCapTwips
-      ? Math.round(rowHeightCapTwips * TWIP_TO_EMU * HEADER_CELL_INSET)
-      : HEADER_MAX_HEIGHT_EMU;
+    const tetos = [
+      findImageExtentHeightEmu(partXml, ref.rId),
+      rowHeightCapTwips ? Math.round(rowHeightCapTwips * TWIP_TO_EMU) : null,
+    ].filter((valor): valor is number => valor !== null);
+    const maxHeightEmu = tetos.length > 0 ? Math.min(...tetos) : HEADER_MAX_HEIGHT_FALLBACK_EMU;
     const scale = Math.min(maxWidthEmu / naturalWEmu, maxHeightEmu / naturalHEmu);
     const targetCx = Math.round(naturalWEmu * scale);
     const targetCy = Math.round(naturalHEmu * scale);

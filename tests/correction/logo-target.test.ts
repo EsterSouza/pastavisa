@@ -29,18 +29,27 @@ const RELS_ABRE =
   '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
 const TIPO_IMAGEM = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
 
-function desenho(rId: string): string {
+/** Altura vigente do desenho da logo no fixture: 1,9 cm, como nos documentos reais. */
+const ALTURA_LOGO_EMU = 684_000;
+/** Largura vigente: 2 cm, também como nos documentos reais. */
+const LARGURA_LOGO_EMU = 720_000;
+
+function desenho(rId: string, cx = LARGURA_LOGO_EMU, cy = ALTURA_LOGO_EMU): string {
   return (
     "<w:drawing><wp:inline>" +
-    '<wp:extent cx="111" cy="222"/>' +
+    `<wp:extent cx="${cx}" cy="${cy}"/>` +
     "<a:graphic><a:graphicData><pic:pic><pic:blipFill>" +
     `<a:blip r:embed="${rId}"/>` +
     "</pic:blipFill><pic:spPr><a:xfrm>" +
-    '<a:ext cx="111" cy="222"/>' +
+    `<a:ext cx="${cx}" cy="${cy}"/>` +
     "</a:xfrm></pic:spPr></pic:pic></a:graphicData></a:graphic>" +
     "</wp:inline></w:drawing>"
   );
 }
+
+/** Extent distinto para a foto, para provar que ela não é redimensionada. */
+const FOTO_CX = 900_000;
+const FOTO_CY = 600_000;
 
 function celulaComDesenho(
   rId: string,
@@ -61,13 +70,6 @@ function celulaComDesenho(
 function relacaoImagem(rId: string, target: string): string {
   return `<Relationship Id="${rId}" Type="${TIPO_IMAGEM}" Target="${target}"/>`;
 }
-
-/**
- * Espelha `HEADER_MAX_HEIGHT_EMU` da biblioteca: o teto de altura usado quando a
- * linha não impõe um próprio. Mudar lá exige mudar aqui, de propósito — o valor é
- * decisão de produto (ver 4.7 do handoff) e não deve escorregar sem alguém notar.
- */
-const TETO_ALTURA_PADRAO_EMU = 936_000; // 2,6 cm
 
 /** Bytes distintos por arquivo, para saber exatamente qual mídia foi reescrita. */
 function midia(marcador: number): Buffer {
@@ -121,7 +123,7 @@ function montarDocxComLogo({ comSectPr = true, altura }: Opcoes = {}): PizZip {
 
   zip.file(
     "word/header1.xml",
-    `<w:hdr ${W} ${R}><w:p><w:r>${desenho("rId5")}</w:r></w:p>` +
+    `<w:hdr ${W} ${R}><w:p><w:r>${desenho("rId5", FOTO_CX, FOTO_CY)}</w:r></w:p>` +
       `${celulaComDesenho("rId7", 4000, altura)}</w:hdr>`
   );
   zip.file(
@@ -208,75 +210,115 @@ describe("alvo da troca de logo", () => {
 
     await replaceLogoInHeadersAndFooters(zip, await logoNova());
 
-    // A escala é o menor entre caber na largura útil da célula (4000 twips * 635
-    // EMU * 0,92 de recuo) e respeitar o teto de altura padrão.
-    const larguraUtilEmu = Math.round(4000 * 635 * 0.92);
-    const escala = Math.min(larguraUtilEmu / (300 * 9144), TETO_ALTURA_PADRAO_EMU / (100 * 9144));
-    const cx = Math.round(300 * 9144 * escala);
-    const cy = Math.round(100 * 9144 * escala);
+    const { cx, cy } = await medidasDaLogo(zip);
+    const daFoto = (zip.files["word/header1.xml"].asText().match(/<w:drawing[\s\S]*?<\/w:drawing>/g) ?? [])
+      .find((bloco) => bloco.includes('r:embed="rId5"'));
 
-    const xml = zip.files["word/header1.xml"].asText();
-    const desenhos = xml.match(/<w:drawing[\s\S]*?<\/w:drawing>/g) ?? [];
-    const daLogo = desenhos.find((bloco) => bloco.includes('r:embed="rId7"'));
-    const daFoto = desenhos.find((bloco) => bloco.includes('r:embed="rId5"'));
-
-    expect(daLogo).toContain(`cx="${cx}"`);
-    expect(daLogo).toContain(`cy="${cy}"`);
+    // Logo 300x100 (3:1) numa altura vigente de 684.000 EMU: a largura resultante
+    // (2.052.000) cabe na largura útil da célula, então a altura é que amarra.
+    expect(cy).toBe(ALTURA_LOGO_EMU);
+    expect(cx).toBe(ALTURA_LOGO_EMU * 3);
     // A foto ao lado não é a logo: mexer no extent dela a esticaria para a caixa
     // da logo, entregando um cabeçalho com imagem distorcida.
-    expect(daFoto).toContain('cx="111"');
-    expect(daFoto).toContain('cy="222"');
+    expect(daFoto).toContain(`cx="${FOTO_CX}"`);
+    expect(daFoto).toContain(`cy="${FOTO_CY}"`);
   });
 
-  /** Largura da logo escolhida, em EMU, no cabeçalho resultante. */
-  async function larguraDaLogo(zip: PizZip): Promise<number> {
-    await replaceLogoInHeadersAndFooters(zip, await logoNova());
+  /** Medidas finais do desenho da logo, em EMU. */
+  async function medidasDaLogo(zip: PizZip): Promise<{ cx: number; cy: number }> {
     const daLogo = (zip.files["word/header1.xml"].asText().match(/<w:drawing[\s\S]*?<\/w:drawing>/g) ?? [])
       .find((bloco) => bloco.includes('r:embed="rId7"'));
-    return Number(daLogo?.match(/wp:extent[^>]*?\scx="(\d+)"/)?.[1]);
+    return {
+      cx: Number(daLogo?.match(/wp:extent[^>]*?\scx="(\d+)"/)?.[1]),
+      cy: Number(daLogo?.match(/wp:extent[^>]*?\scy="(\d+)"/)?.[1]),
+    };
   }
 
-  // Logo 300x100 (3:1) numa célula de 4000 twips: largura útil = 2.336.800 EMU.
+  async function aplicarEMedir(zip: PizZip, logo?: Buffer) {
+    await replaceLogoInHeadersAndFooters(zip, logo ?? (await logoNova()));
+    return medidasDaLogo(zip);
+  }
+
+  // Célula de 4000 twips: largura útil = 2.336.800 EMU.
   const LARGURA_UTIL_EMU = Math.round(4000 * 635 * 0.92);
 
-  it("usa o teto da linha quando ela é de altura exata", async () => {
-    // `hRule="exact"` corta o que passar da linha, então o valor é teto de verdade e
-    // dimensionar por ele evita a logo ser cortada. 800 twips é apertado o bastante
-    // para amarrar antes da largura, o que prova que o teto da linha foi lido.
-    const tetoLinhaEmu = Math.round(800 * 635 * 0.92);
-    const cx = await larguraDaLogo(
+  it("nunca cresce a altura que o desenho já ocupava", async () => {
+    // A invariante que a Ester nomeou depois de ver o cabeçalho crescer: a faixa do
+    // cabeçalho está dimensionada para a logo que está ali, então a nova não pode
+    // passar dessa altura em nenhum formato.
+    const formatos: Array<[string, number, number]> = [
+      ["quadrada", 500, 500],
+      ["larga 3:1", 900, 300],
+      ["faixa 6:1", 1800, 300],
+      ["alta 1:2", 400, 800],
+    ];
+
+    for (const [, largura, alturaPx] of formatos) {
+      const logo = await sharp({
+        create: { width: largura, height: alturaPx, channels: 3, background: { r: 1, g: 2, b: 3 } },
+      })
+        .png()
+        .toBuffer();
+      const { cx, cy } = await aplicarEMedir(montarDocxComLogo(), logo);
+
+      expect(cy).toBeLessThanOrEqual(ALTURA_LOGO_EMU);
+      expect(cx).toBeLessThanOrEqual(LARGURA_UTIL_EMU);
+    }
+  });
+
+  it("aproveita toda a altura disponível quando a largura permite", async () => {
+    // "Justinha na altura": logo alta é limitada pela altura vigente e a usa inteira.
+    const alta = await sharp({
+      create: { width: 400, height: 800, channels: 3, background: { r: 1, g: 2, b: 3 } },
+    })
+      .png()
+      .toBuffer();
+
+    const { cx, cy } = await aplicarEMedir(montarDocxComLogo(), alta);
+
+    expect(cy).toBe(ALTURA_LOGO_EMU);
+    expect(cx).toBe(Math.round(ALTURA_LOGO_EMU / 2));
+  });
+
+  it("usa o teto da linha quando ele é mais apertado que a altura vigente", async () => {
+    // `hRule="exact"` corta o que passar da linha, então vale o mais apertado dos dois.
+    const tetoLinhaEmu = 800 * 635;
+    const { cx, cy } = await aplicarEMedir(
       montarDocxComLogo({ altura: { twips: 800, hRule: "exact" } })
     );
 
-    // Logo 3:1 limitada pela altura: largura = 3 x o teto de altura.
+    expect(tetoLinhaEmu).toBeLessThan(ALTURA_LOGO_EMU);
+    expect(cy).toBe(tetoLinhaEmu);
     expect(cx).toBe(tetoLinhaEmu * 3);
-    expect(cx).toBeLessThan(LARGURA_UTIL_EMU);
   });
 
   it("ignora `atLeast`, que é altura mínima e não máxima", async () => {
-    // Este é o caso dos documentos reais: `<w:trHeight w:val="419"/>` sem `hRule`,
-    // o que significa `atLeast` por padrão — 0,74 cm de mínimo, com a linha crescendo
+    // Caso dos documentos reais: `<w:trHeight w:val="419"/>` sem `hRule`, o que
+    // significa `atLeast` por padrão — 0,74 cm de mínimo, com a linha crescendo
     // conforme o conteúdo. Tratar isso como teto encolheria a logo a um terço.
-    const semRegra = await larguraDaLogo(
+    const semRegra = await aplicarEMedir(
       montarDocxComLogo({ altura: { twips: 419, hRule: "ausente" } })
     );
-    const explicito = await larguraDaLogo(
+    const explicito = await aplicarEMedir(
       montarDocxComLogo({ altura: { twips: 419, hRule: "atLeast" } })
     );
-    const semAltura = await larguraDaLogo(montarDocxComLogo());
+    const semAltura = await aplicarEMedir(montarDocxComLogo());
 
-    expect(semRegra).toBe(semAltura);
-    expect(explicito).toBe(semAltura);
-    // Sem esta guarda, 419 twips daria ~244.800 EMU de teto e a logo sairia minúscula.
-    expect(semRegra).toBeGreaterThan(Math.round(419 * 635 * 0.92));
+    expect(semRegra).toEqual(semAltura);
+    expect(explicito).toEqual(semAltura);
+    expect(semRegra.cy).toBeGreaterThan(419 * 635);
   });
 
   it("nunca passa da largura da célula, que alargaria a tabela do cabeçalho", async () => {
-    // Altura exata folgada de propósito: mesmo com espaço vertical de sobra, a
-    // largura da célula continua sendo limite duro.
-    const cx = await larguraDaLogo(
-      montarDocxComLogo({ altura: { twips: 20_000, hRule: "exact" } })
-    );
+    // Logo em faixa muito larga: a altura vigente permitiria muito mais largura do
+    // que a célula tem, e é a largura que precisa amarrar.
+    const faixa = await sharp({
+      create: { width: 2000, height: 100, channels: 3, background: { r: 1, g: 2, b: 3 } },
+    })
+      .png()
+      .toBuffer();
+
+    const { cx } = await aplicarEMedir(montarDocxComLogo(), faixa);
 
     expect(cx).toBe(LARGURA_UTIL_EMU);
     expect(cx).toBeLessThanOrEqual(4000 * 635);
