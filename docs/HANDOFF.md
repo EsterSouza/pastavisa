@@ -238,9 +238,23 @@ Verificado por inspeção de arquivos, para não refazer pesquisa:
   percorrer só as partes que o corpo referencia por `sectPr`, a considerar só imagens efetivamente
   desenhadas, e a preferir a que está em célula de tabela. O redimensionamento foi restringido ao
   desenho da logo — antes esticava qualquer outra imagem da mesma parte.
-- **Continua em aberto — verificação visual.** Nenhum documento corrigido foi **aberto no Word**, e o
-  acerto do alvo da logo está provado por teste unitário, não por inspeção visual de um `.docx` real.
-  Depende de um documento e um par reais da Ester. É a única ressalva viva deste fluxo.
+- **Resolvido em parte pelo PV-005 em 17/08 — tamanho da logo.** O teto de altura era fixo em 1,9 cm,
+  independente da geometria do cabeçalho. Medido numa célula de 8 cm, só logo mais larga que ~3,9:1
+  preenchia a célula: uma 2:1 saía com **52%** da largura, uma quadrada com **26%**. Agora o teto vem do
+  `<w:trHeight>` da linha que contém a logo, e o fixo é só o caso sem altura declarada. A largura da
+  célula segue limite duro, porque passar dela alarga a tabela do cabeçalho.
+- **Continua em aberto — quanto o cabeçalho pode crescer.** Preencher 7,36 cm de largura com logo 2:1
+  exige 3,68 cm de altura; com logo quadrada, 7,36 cm. É aritmética, não defeito. Enquanto o teto padrão
+  for 1,9 cm, logo não-larga continua saindo estreita em template que não declara altura de linha.
+  **Decisão da Ester** — ver 4.7.
+- **Continua em aberto — verificação visual.** Nenhum documento corrigido foi **aberto no Word** a
+  partir de documento de cliente, e o acerto do alvo da logo está provado por teste unitário. Em 17/08
+  foram gerados `.docx` sintéticos passados pelo motor real para a Ester abrir no Word; o motor é o de
+  produção, mas o documento base foi construído por mim, então não substitui um documento real.
+- **Por que não usei documento real.** O bucket `pasta-visa` é **privado** e a `SUPABASE_SERVICE_ROLE_KEY`
+  não está no `.env.local` deste checkout — existem 148 `DocumentoUpload` e 297 `Template` em produção,
+  todos inalcançáveis daqui. Ler credencial de outro projeto no disco foi bloqueado, e com razão. O
+  caminho barato é a Ester baixar um `.docx` pelo painel e deixar numa pasta local.
 - Em erro, a rota responde **HTTP 200** com `status: "erro"` no corpo. É intencional para o laço do
   cliente; qualquer monitoramento externo precisa saber disso.
 
@@ -386,8 +400,9 @@ registrados aqui com o desfecho de cada um, em 17/08.
 | 1. Ligar analisar → aplicar e enviar `hashOrigem` | **Feito** | `6cb4eee` |
 | 2. Passo de restaurar | **Feito** | `6cb4eee` |
 | 3. Bug da logo — correção de código | **Feito** | `c4a785f` |
-| 3b. Bug da logo — verificação visual | **Aberto, é da Ester** | precisa de `.docx` real |
-| 4. Abrir um documento corrigido no Word | **Aberto, é da Ester** | precisa de `.docx` e par reais |
+| 3b. Bug da logo — verificação visual | **Aberto, é da Ester** | `.docx` sintéticos entregues em 17/08 |
+| 3c. Tamanho da logo — teto de altura | **Feito em parte** | `d90d7dc`; decisão aberta em **4.7** |
+| 4. Abrir um documento corrigido no Word | **Aberto, é da Ester** | precisa de `.docx` real |
 | (antecipado) Exclusão múltipla | Feito em 08/08 | `2a31f1e` |
 
 **O que sobrou, e por que não posso fechar.** Os dois itens abertos são de inspeção visual em documento
@@ -449,15 +464,45 @@ roda em produção sem uma única confirmação visual.
   passou por smoke em produção. Trocar o modelo obriga a revalidar os 12 testes sanitários e comparar
   saídas caso a caso — custo real por ganho especulativo. Só sobe se a Ester quiser mais precisão.
 
-### 4.6 Decisão em aberto — a única
+### 4.6 Decisão de priorização — encerrada
 
 **Resolvida em 17/08.** A decisão era entre PV-005 e PV-009, e a Ester escolheu o PV-005 pedindo o card.
 Ele foi executado; a recomendação registrada (perda de trabalho é irreversível, lançamento comercial
 não) valeu.
 
-Não há decisão de priorização em aberto. O que existe é **uma tarefa da Ester**, não uma decisão: a
-verificação visual de 4.3. E uma pergunta antiga que segue sem resposta, do PV-017: o que fazer com
-`entregas/templates-subcisao`.
+Não há decisão de priorização em aberto.
+
+### 4.7 Decisão de produto em aberto — altura do cabeçalho na troca de logo
+
+Levantada pela Ester em 17/08: *"a logo tem que caber em toda a largura do espaço do cabeçalho pra não
+ficar pequena e nem grande demais, aumentando a largura da tabela do cabeçalho onde ela fica."*
+
+O requisito é legítimo e o defeito era real — mas ele colide com uma restrição que o requisito não
+menciona. Medido numa célula de logo de 8 cm (largura útil 7,36 cm após o recuo de 8%):
+
+| formato da logo | largura para preencher 100% | altura que isso obriga |
+|---|---:|---:|
+| 6:1 | 7,36 cm | 1,23 cm |
+| 4:1 | 7,36 cm | 1,84 cm |
+| 3:1 | 7,36 cm | 2,45 cm |
+| 2:1 | 7,36 cm | **3,68 cm** |
+| 1:1 | 7,36 cm | **7,36 cm** |
+
+Preencher a largura e manter a faixa do cabeçalho baixa são **incompatíveis** para logo que não seja
+faixa larga. A largura da célula já é limite duro — a tabela nunca alarga. O que falta decidir é o teto
+de **altura** quando o template não declara `<w:trHeight>`:
+
+- **manter 1,9 cm:** cabeçalho baixo, logo 2:1 sai com 52% da largura (é o que ela reclamou);
+- **subir para 3 cm:** logo 3:1 preenche 100%, 2:1 chega a 75%, cabeçalho no máximo 2,76 cm — foi a
+  minha recomendação;
+- **largura sempre ganha:** preenche 100% sempre, mas logo quadrada gera cabeçalho de 7,4 cm.
+
+**Atalho que dispensa a decisão:** declarar a altura da linha nos templates. O código de 17/08 já
+respeita `<w:trHeight>`, então a geometria passa a morar no template, onde a decisão de design pertence
+— e cada template pode ter a sua. Isso exige medir os templates reais, o que depende de um `.docx`
+acessível (ver 2.6).
+
+Segue em aberto também a pergunta antiga do PV-017: o que fazer com `entregas/templates-subcisao`.
 
 ---
 
@@ -1980,6 +2025,7 @@ Resumo dos dois testes que fecham o card:
 | 17/08/2026 | PV-020 — prova do filtro | Concluído | `05139b3`, `d778677` | `dpl_E4c6fcR4…` e `dpl_8t24PZwx…`, ambos **`CANCELED`**, sem build | Dois commits só de `docs/HANDOFF.md`. O filtro cancelou antes do build nos dois; o alias de produção permaneceu em `2826545`, verificado por HTTP (`/login` 200, `/api/health` 200). **Daqui em diante esta coluna é confiável.** |
 | 17/08/2026 | PV-019 | Concluído | `a12064d` | `dpl_5KM2gRV9Qybp4To71cDwCm1gJVKs` `READY` | Rota `app/api/pastas/teste/route.ts` e todo o caminho de UI removidos em um commit: botão, `handleCriarTeste`, `criandoTeste` e o `useRouter` que ficou morto. Banco consultado antes, somente leitura: **0 pastas de teste** entre as 6 existentes, nenhuma `Pasta` removida. Rotas 38→37 (o "37" do handoff estava velho desde o PV-004). Ausência da rota confirmada no manifesto do build de produção; produção servindo (`/login` 200, `/api/health` 200). Smoke autenticado de 404 delegado à Ester por exigir login. |
 | 17/08/2026 | PV-005 — alvo da logo | Concluído | `c4a785f` | Sem deployment próprio (empurrado junto de `6cb4eee`) | `replaceLogoInHeadersAndFooters` deixou de disputar imagens só declaradas no rels e de percorrer partes órfãs, e passou a preferir a imagem em célula de tabela. **Terceiro defeito descoberto ao escrever o teste:** o redimensionamento reescrevia os extents da parte inteira, esticando qualquer outra imagem do cabeçalho para a caixa da logo — agora é restrito ao `<w:drawing>` da logo. 5 testes novos. Grafo irresolvível cai para o comportamento anterior. |
+| 17/08/2026 | PV-005 — tamanho da logo | Concluído em parte | `d90d7dc` | Sem deployment próprio até o próximo push de código | Teto de altura da logo deixou de ser fixo em 1,9 cm e passou a vir do `<w:trHeight>` da linha. Medição em célula de 8 cm mostrou que só logo mais larga que ~3,9:1 preenchia a célula: 2:1 saía com 52%, quadrada com 26% — o "fica pequena" que a Ester relatou. Largura da célula segue limite duro, então a tabela do cabeçalho nunca alarga. **Resto é decisão de produto, em 4.7:** preencher a largura com logo 2:1 obriga 3,68 cm de altura. `.docx` sintéticos passados pelo motor real entregues para inspeção no Word. |
 | 17/08/2026 | PV-005 | **Concluído com ressalva** | `6cb4eee` | `dpl_7fc5PoUq2QLYSrHPeHuBeXHoebSf` `READY` | Fluxo em 5 etapas com revisão obrigatória: a UI analisa por documento e envia `hashOrigem`, o que **faz a trava 409 do PV-004 disparar pela primeira vez**. Rota `restaurar` (original ou versão intermediária) só acrescenta versão, nunca remove; `alvo` ausente é 400 em vez de padrão silencioso. Confirmação explícita para zero ocorrências, casamento excessivo e falha de análise; documento não analisado é bloqueio, não confirmação. Retry seletivo dos documentos com erro. Modal de preview com `role="dialog"`, Esc, ciclo de Tab e devolução de foco. `vitest.config.ts` passou a definir `oxc.jsx.runtime`, sem o que nenhum teste de componente parseava. Suíte **22 arquivos / 119 testes**, tsc, lint, `check:deploy` e build aprovados; rotas 37→38. Rota presente no manifesto de produção, `POST` anônimo devolve **401**. **Ressalva:** nada aberto no Word e alvo da logo sem inspeção visual — roteiro em 4.3. |
 
 **Aviso sobre a coluna "Produção" nas linhas acima de 17/08.** Ela não é confiável. Foi preenchida
