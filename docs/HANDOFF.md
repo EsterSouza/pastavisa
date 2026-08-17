@@ -112,7 +112,7 @@ neste projeto. Consequência prática: todo registro no handoff redeploya a prod
 | Item | Estado em 17/08/2026 |
 |---|---:|
 | Páginas `page.tsx` | 9 (`(internal)` 8, `(public)` 1) |
-| Rotas API `route.ts` | 37 |
+| Rotas API `route.ts` | **37** (ver nota abaixo) |
 | Modelos em `prisma/schema.prisma` | 8 |
 | Migrations Prisma | 13 |
 | Migrations Supabase versionadas | 7 |
@@ -125,6 +125,13 @@ neste projeto. Consequência prática: todo registro no handoff redeploya a prod
 
 Todas as 37 rotas declaram `runtime = "nodejs"` e `dynamic = "force-dynamic"`. Não há `TODO`,
 `FIXME` ou `HACK` no código de aplicação.
+
+**Nota sobre a contagem de rotas, porque o número "37" já esteve errado.** A auditoria de 17/08 mediu
+37 e o handoff nunca atualizou depois disso. O PV-004 acrescentou
+`app/api/pastas/[id]/uploads-corrigidos/preflight/route.ts`, levando o total a **38** sem que a tabela
+mudasse. O PV-019 removeu `app/api/pastas/teste/route.ts`, trazendo de volta a **37**. O número atual
+coincide com o antigo por acidente, e não porque nada tenha mudado — o movimento real foi 37 → 38 → 37.
+Ao mexer nesta linha, **conte**, não copie: `Get-ChildItem -Path app -Recurse -Filter route.ts`.
 
 **Dependências — estado após o PV-013 parcial:** `npm audit` informa **17 vulnerabilidades —
 4 moderadas, 13 altas e 0 críticas**.
@@ -343,17 +350,20 @@ esta seção que diz se o card fechou.
 | PV-010 | Redesign interno principal | **Bloqueado** | Depende do PV-005, que está parcial. |
 | PV-011 | Redesign de templates e legislações | Pendente | Dependências (PV-003, PV-008) satisfeitas o suficiente. |
 | PV-012 | E2E, segurança e homologação | **Bloqueado** | Depende de PV-009, PV-010 e PV-011. É sempre o último. |
-| PV-013 | Rota de teste e dependência crítica | **Parcial** | Módulo de imagem removido (`5e446e8`, crítica 1→0). A rota `/api/pastas/teste` **continua em produção** — virou o PV-019. |
+| PV-013 | Rota de teste e dependência crítica | **Parcial, encerrado** | Módulo de imagem removido (`5e446e8`, crítica 1→0). O achado da rota de teste foi entregue pelo **PV-019**. Não volta à fila. |
 | PV-014 | Senha vazada e vulnerabilidades | Pendente | **Desbloqueado hoje**: a dependência era o PV-013, e a parte de dependências dele foi entregue. |
 | PV-015 | Superfície de `/api/health` | Pendente | Independente; cabe em qualquer janela. |
 | PV-016 | Modelo do motor sanitário | Pendente | P3 especulativo. `claude-sonnet-4-5` segue ativo. |
 | PV-017 | Limpeza de artefatos locais | **Parcial** | `.next` e `tsconfig.tsbuildinfo` já removidos. Faltam `.pv008-dev.log`, `.pv008-dev.err.log` e a pergunta à Ester sobre `entregas/templates-subcisao`. |
 | PV-018 | Aceite de acessibilidade do PV-008 | Pendente | — |
-| PV-019 | Remover fluxo de pasta de teste | **Aberto em 17/08** | Novo. Herda o achado 1 do PV-013, agora com o escopo de UI correto. |
+| PV-019 | Remover fluxo de pasta de teste | **Concluído** | Rota e UI removidas em `a12064d`. Zero pastas de teste no banco. Falta só o smoke autenticado de 404, que depende de login da Ester. |
 | PV-020 | `[skip ci]` não impede deploy | **Concluído** | `ignoreCommand` por diff de caminho em `2826545`. `[skip ci]` sai das convenções. |
 
-Contagem: **8 concluídos**, 1 concluído com ressalva, **4 parciais**, 6 pendentes, 2 bloqueados,
-1 aberto e não iniciado (PV-019).
+Contagem: **9 concluídos**, 1 concluído com ressalva, **3 parciais** (PV-005, PV-008, PV-017),
+6 pendentes, 2 bloqueados.
+
+O PV-013 está listado como parcial **encerrado**: não volta à fila, porque o resto dele foi entregue
+pelo PV-019.
 
 ### 4.3 O que exatamente falta no PV-005
 
@@ -383,27 +393,26 @@ confirmação, limite de 100 por chamada e validação de que todos os IDs perte
 Critério: risco vivo primeiro, depois valor de negócio, depois dívida. Dentro disso, o que é barato e
 destrava leitura futura vem antes do que é caro.
 
-O PV-020 saiu desta fila: foi executado em 17/08 e a régua de registro já está confiável.
+PV-019 e PV-020 saíram desta fila: ambos executados em 17/08. **Não há mais nenhum P0 de higiene
+aberto** — o topo da fila agora é risco de produto.
 
 | # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de |
 |---|---|---|---|---|---|---|
-| 1 | PV-019 | Remover fluxo de pasta de teste (rota + UI) | **P0 higiene** | baixo | gpt-5.6-terra | — |
-| 2 | PV-005 | Fluxo visual de correção | **P0 produto** | alto | gpt-5.6-terra | PV-004 |
-| 3 | PV-009 | Planner público e PDF | P1 comercial | alto | gpt-5.6-sol | PV-007 |
-| 4 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 |
-| 5 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
-| 6 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
-| 7 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008 |
-| 8 | PV-010 | Redesign interno principal | P2 visual | alto | gpt-5.6-terra | **PV-005** |
-| 9 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-009, PV-010, PV-011 |
-| 10 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
-| 11 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
+| 1 | PV-005 | Fluxo visual de correção | **P0 produto** | alto | gpt-5.6-terra | PV-004 |
+| 2 | PV-009 | Planner público e PDF | P1 comercial | alto | gpt-5.6-sol | PV-007 |
+| 3 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 |
+| 4 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
+| 5 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
+| 6 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008 |
+| 7 | PV-010 | Redesign interno principal | P2 visual | alto | gpt-5.6-terra | **PV-005** |
+| 8 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-009, PV-010, PV-011 |
+| 9 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
+| 10 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
 
-**Alternativa defensável — janela de higiene primeiro.** PV-019, PV-015, PV-018 e o resto do PV-017
-somam quatro cards de esforço baixo. Fechar os quatro de uma vez limpa a fila de ruído e deixa só o
-trabalho grande (PV-005 → PV-009) visível. Custa um ciclo e não protege documento de cliente — se a
-prioridade for risco, o PV-005 vem antes deles, com o PV-019 na frente por ser barato demais para
-esperar.
+**Alternativa defensável — janela de higiene primeiro.** PV-018, PV-015 e o resto do PV-017 somam três
+cards de esforço baixo. Fechar os três de uma vez limpa a fila de ruído e deixa só o trabalho grande
+(PV-005 → PV-009) visível. Custa um ciclo e não protege documento de cliente — se a prioridade for
+risco, o PV-005 vem antes deles.
 
 ### 4.5 Decisões resolvidas em 17/08
 
@@ -1181,8 +1190,9 @@ O navegador integrado desta task não alcançou `127.0.0.1` e o Chrome controlá
 **Resultado:** produção sem rota que cria dados falsos e sem a única vulnerabilidade crítica.
 
 > **Estado: PARCIAL, encerrado.** O achado 2 foi entregue (`5e446e8`): crítica 1→0. O achado 1 **não**
-> foi feito — a premissa do card estava errada e ele acionou a própria cláusula de parada. Esse resto
-> virou o **PV-019**, com o escopo de UI correto. Este card não volta à fila; siga pelo PV-019.
+> foi feito aqui — a premissa do card estava errada e ele acionou a própria cláusula de parada. Esse
+> resto virou o **PV-019**, que foi executado em 17/08 (`a12064d`). Nada deste card ficou pendente;
+> ele permanece marcado como parcial apenas para registrar que não foi cumprido como escrito.
 
 ### Contexto
 
@@ -1567,6 +1577,95 @@ nenhuma para o operador. Por isso este card, e não um remendo dentro do PV-013.
 
 `chore: remove test folder flow`
 
+### Resultado — 17/08/2026
+
+**Concluído**, com um item de aceite delegado à Ester por exigir login. Commit: `a12064d`.
+Deployment `dpl_5KM2gRV9Qybp4To71cDwCm1gJVKs`, `READY`.
+
+#### Contagem de dados em produção, antes de tocar em qualquer coisa
+
+Consulta **somente leitura**, dois passos. Primeiro pelos critérios sugeridos pelo card, depois por
+critérios mais frouxos, para não deixar lixo escapar por renomeação:
+
+| Marcador | Contagem |
+|---|---:|
+| `Pasta` no total | 6 |
+| `clienteCnpj = '00.000.000/0001-00'` | **0** |
+| `clienteNomeFantasia = 'Clínica Teste'` | **0** |
+| `clienteNomeFantasia ILIKE '%teste%'` | **0** |
+| `clienteRazaoSocial ILIKE '%teste%'` | **0** |
+| `clienteCnpj LIKE '00.000.000%'` | **0** |
+| `clienteRtNome = 'Dra. Maria da Silva'` | **0** |
+| `clienteEmail = 'contato@clinicateste.com.br'` | **0** |
+| `clienteColetaCnpj = '11.111.111/0001-11'` | **0** |
+
+**Não existe pasta de teste em produção.** As 6 pastas são reais. Não há decisão de dados pendente
+para a Ester, e **nenhuma `Pasta` foi removida** — o card não tocou o banco além de contar.
+
+#### Alterações entregues
+
+Os quatro pontos saíram em um único commit, para que rota e UI não divirjam nem por um deploy:
+
+- Removido `app/api/pastas/teste/route.ts` (88 linhas). O diretório `app/api/pastas/teste` deixou de
+  existir.
+- Em `app/(internal)/page.tsx`: removidos o botão `🧪 Pasta de teste`, a função `handleCriarTeste` e o
+  estado `criandoTeste`.
+
+**Uma premissa do card estava errada e mudou o escopo do arquivo.** O card mandava confirmar que
+`useRouter` continuava necessário "para os outros usos da página". Não continuava: `router.push` na
+linha 63, dentro de `handleCriarTeste`, era o **único** consumidor. Removidos também o
+`const router = useRouter()` e o `import { useRouter } from "next/navigation"`, que viraram código
+morto — sem isso o lint não passaria. Não é ampliação de escopo: é a consequência direta da remoção.
+
+O `<div className="flex gap-2">` que envolvia os dois botões foi **mantido** com o `+ Nova Pasta`
+dentro. Removê-lo não muda nada visualmente e estaria fora do escopo declarado.
+
+#### A contagem de rotas não caiu para 36 — e o motivo importa
+
+O card previa 37 → 36. O real foi **38 → 37**, porque o "37" do handoff estava velho: a auditoria de
+17/08 mediu 37, o PV-004 acrescentou `uploads-corrigidos/preflight/route.ts` levando a 38, e a tabela
+nunca foi atualizada. O número atual coincide com o antigo **por acidente**. A seção 2.2 foi corrigida
+e ganhou instrução para contar em vez de copiar.
+
+O `check:deploy` **não** fixa o número — ele enumera os `route.ts` dinamicamente
+(`scripts/check-deploy-readiness.js:53`), então não precisou de ajuste.
+
+#### Aceite verificado
+
+| Verificação | Resultado |
+| --- | --- |
+| `npm.cmd run test:run` | 19 arquivos, 95 testes, todos passaram |
+| `npx.cmd tsc --noEmit` | exit 0 |
+| `npm.cmd run lint` | sem avisos nem erros |
+| `npm.cmd run check:deploy` | concluído sem falhas |
+| `npm.cmd run build` | exit 0, 37 rotas `/api/` |
+| Rota ausente do build de produção | confirmado nos logs de `dpl_5KM2gRV9…`: a lista salta de `uploads-corrigidos/sign` para `planejamento-comercial/analisar` |
+| Produção servindo depois do deploy | `/login` **200**, `/api/health` **200** |
+
+**Armadilha do `tsc`:** na primeira execução ele falhou com dois `TS2307` apontando para
+`.next/types/app/api/pastas/teste/route.ts` — tipos gerados pelo build anterior, que ainda
+referenciavam o arquivo apagado. Não era erro real; o `npm run build` regenera e o `tsc` passa. Quem
+remover rota no futuro deve rodar o build **antes** de acreditar no `tsc`.
+
+#### O item que ficou para a Ester, e por quê
+
+O card pede smoke autenticado: `POST /api/pastas/teste` retornando **404**. **Não executei**, porque
+exige entrar com senha em produção, e eu não manipulo credenciais.
+
+O que foi possível provar sem login está acima: a rota não existe no manifesto de produção. O que o
+POST anônimo devolve é **401** do middleware, não 404 — o middleware intercepta **antes** do
+roteamento, então o 404 é invisível para quem não está autenticado. Isso também confirma que a
+proteção do middleware segue de pé.
+
+Para fechar, a Ester roda isto no console do navegador **já logada** no painel interno:
+
+```js
+await fetch('/api/pastas/teste', { method: 'POST' }).then(r => r.status)
+```
+
+Esperado: **404**. E, ao abrir o dashboard, o botão "🧪 Pasta de teste" não deve mais aparecer, com o
+"+ Nova Pasta" funcionando normalmente.
+
 ---
 
 ## PV-020 — `[skip ci]` não impede deploy de produção
@@ -1733,7 +1832,8 @@ Resumo dos dois testes que fecham o card:
 | 17/08/2026 | PV-013 | **Parcial — achado 2** | `5e446e8` | `dpl_CLTUwEkGMyJ5jaZyttBuD7qwweYn` `READY` | `docxtemplater-image-module-free` removido; 2 pacotes fora, incluindo `xmldom@0.1.31`. `npm audit` 19→17, **crítica 1→0**. Sem `npm audit fix`, então a queda é atribuível. Suíte (95), tsc, lint, `check:deploy` e build aprovados. A rota de teste **continua em produção** → PV-019. |
 | 17/08/2026 | Revisão do mapa de cards | Concluído | `1ae52d4` | `dpl_AQScP8no…` `READY` (docs ainda deployava) | Seção 4 reescrita: vocabulário de estado, painel com os 21 cards, os 4 itens que faltam no PV-005 registrados por escrito, fila reordenada. Abertos PV-019 e PV-020. Corrigido o SHA de 2.1, que apontava para `c702ec3` quando `origin` já estava em `536e055`. |
 | 17/08/2026 | PV-020 | Concluído | `2826545` | `dpl_D1FGTxCsrivVUGDjHbpR5XJaHQ6Z` `READY` | `ignoreCommand` em `vercel.json` apontando para `scripts/vercel-ignore-build.js`: ignora build só quando todo caminho alterado é `docs/**` ou `*.md`, e resolve toda dúvida para build. 4 ramos testados localmente contra histórico real. Commit de código continua deployando — comprovado por este próprio deployment. `[skip ci]` removido das convenções. |
-| 17/08/2026 | PV-020 — prova do filtro | Concluído | `05139b3` | `dpl_E4c6fcR4ov1nGC3kF24N1xhYAPnV` **`CANCELED`**, sem build | Commit só de `docs/HANDOFF.md`. O filtro cancelou antes do build; o alias de produção permaneceu em `2826545`, verificado por HTTP (`/login` 200, `/api/health` 200). **Daqui em diante esta coluna é confiável.** |
+| 17/08/2026 | PV-020 — prova do filtro | Concluído | `05139b3`, `d778677` | `dpl_E4c6fcR4…` e `dpl_8t24PZwx…`, ambos **`CANCELED`**, sem build | Dois commits só de `docs/HANDOFF.md`. O filtro cancelou antes do build nos dois; o alias de produção permaneceu em `2826545`, verificado por HTTP (`/login` 200, `/api/health` 200). **Daqui em diante esta coluna é confiável.** |
+| 17/08/2026 | PV-019 | Concluído | `a12064d` | `dpl_5KM2gRV9Qybp4To71cDwCm1gJVKs` `READY` | Rota `app/api/pastas/teste/route.ts` e todo o caminho de UI removidos em um commit: botão, `handleCriarTeste`, `criandoTeste` e o `useRouter` que ficou morto. Banco consultado antes, somente leitura: **0 pastas de teste** entre as 6 existentes, nenhuma `Pasta` removida. Rotas 38→37 (o "37" do handoff estava velho desde o PV-004). Ausência da rota confirmada no manifesto do build de produção; produção servindo (`/login` 200, `/api/health` 200). Smoke autenticado de 404 delegado à Ester por exigir login. |
 
 **Aviso sobre a coluna "Produção" nas linhas acima de 17/08.** Ela não é confiável. Foi preenchida
 assumindo que `[skip ci]` impedia deploy, o que é falso neste projeto (ver PV-020). Onde se lê
