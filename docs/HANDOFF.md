@@ -238,9 +238,11 @@ Verificado por inspeção de arquivos, para não refazer pesquisa:
   percorrer só as partes que o corpo referencia por `sectPr`, a considerar só imagens efetivamente
   desenhadas, e a preferir a que está em célula de tabela. O redimensionamento foi restringido ao
   desenho da logo — antes esticava qualquer outra imagem da mesma parte.
-- **Tamanho da logo — teto de altura.** O teto é 1,9 cm fixo, e é ele que limita: como a logo escala em
-  proporção, um teto de altura baixo amarra a largura. Desde `1b89a59` o teto pode vir do
-  `<w:trHeight>` da linha, **mas só quando a linha declara `w:hRule="exact"`**.
+- **Resolvido em 17/08 — tamanho da logo.** O teto de altura é o que limita a largura, porque a escala
+  preserva a proporção. Era 1,9 cm e passou a **2,6 cm** em `b5bd95d`, por decisão da Ester medida sobre
+  documento real: a logo saiu de 67–79% para **92–100%** da largura útil da célula, com a faixa do
+  cabeçalho crescendo no máximo 0,70 cm. Desde `1b89a59` o teto também pode vir do `<w:trHeight>` da
+  linha, **mas só quando ela declara `w:hRule="exact"`**. Ver 4.7.
 - **Erro meu, corrigido no mesmo dia: `<w:trHeight>` não é teto por padrão.** O commit `d90d7dc` leu
   `<w:trHeight>` como altura máxima. Ele significa duas coisas opostas conforme o `w:hRule`: com
   `exact` a linha tem aquela altura e o Word corta o excedente, então é teto legítimo; com `atLeast`
@@ -417,7 +419,7 @@ registrados aqui com o desfecho de cada um, em 17/08.
 | 2. Passo de restaurar | **Feito** | `6cb4eee` |
 | 3. Bug da logo — correção de código | **Feito** | `c4a785f` |
 | 3b. Bug da logo — verificação visual | **Aberto, é da Ester** | `.docx` reais corrigidos entregues |
-| 3c. Tamanho da logo — teto de altura | **Feito em parte** | `d90d7dc` + correção `1b89a59`; decisão em **4.7** |
+| 3c. Tamanho da logo — teto de altura | **Feito** | `d90d7dc` → `1b89a59` → `b5bd95d`; ver **4.7** |
 | 4. Abrir um documento corrigido no Word | **Aberto, é da Ester** | 3 documentos reais corrigidos e entregues em 17/08 |
 | (antecipado) Exclusão múltipla | Feito em 08/08 | `2a31f1e` |
 
@@ -488,7 +490,19 @@ não) valeu.
 
 Não há decisão de priorização em aberto.
 
-### 4.7 Altura do cabeçalho na troca de logo — reaberta com número real
+### 4.7 Altura do cabeçalho na troca de logo — decidida em 17/08
+
+> **Decisão da Ester: teto padrão de 2,6 cm** (`936_000` EMU), entregue em `b5bd95d`. Era 1,9 cm.
+> Resultado medido nos mesmos três documentos: POP **100%** da largura útil, plano de contingência
+> **99%**, planilha **92%**. A faixa do cabeçalho cresce no máximo **0,70 cm**.
+>
+> A largura da célula segue limite duro — a tabela do cabeçalho nunca alarga. Linha com
+> `w:hRule="exact"` continua sobrepondo o padrão, então um template pode impor a própria geometria.
+>
+> Correção de um número que eu dei: ao apresentar a opção eu estimei a planilha em ~87%; medida, deu
+> **92%**. Não muda a decisão.
+
+O caminho até a decisão, porque ela foi tomada duas vezes:
 
 Levantada pela Ester em 17/08: *"a logo tem que caber em toda a largura do espaço do cabeçalho pra não
 ficar pequena e nem grande demais, aumentando a largura da tabela do cabeçalho onde ela fica."*
@@ -514,8 +528,8 @@ jogo é só o teto de **altura**:
 
 | opção | efeito nestes documentos | altura do cabeçalho |
 |---|---|---:|
-| manter 1,9 cm | logo em 67–79% da largura, como hoje | 1,90 cm |
-| subir para 2,6 cm | preenche no POP e no plano de contingência | até 2,60 cm |
+| manter 1,9 cm | logo em 67–79% da largura, como antes | 1,90 cm |
+| **subir para 2,6 cm — escolhida** | **100% / 99% / 92%** | até 2,60 cm |
 | subir para 2,9 cm | preenche nos três | até 2,90 cm |
 | largura sempre ganha | preenche sempre, inclusive em template de célula larga | sem limite |
 
@@ -2051,6 +2065,7 @@ Resumo dos dois testes que fecham o card:
 | 17/08/2026 | PV-019 | Concluído | `a12064d` | `dpl_5KM2gRV9Qybp4To71cDwCm1gJVKs` `READY` | Rota `app/api/pastas/teste/route.ts` e todo o caminho de UI removidos em um commit: botão, `handleCriarTeste`, `criandoTeste` e o `useRouter` que ficou morto. Banco consultado antes, somente leitura: **0 pastas de teste** entre as 6 existentes, nenhuma `Pasta` removida. Rotas 38→37 (o "37" do handoff estava velho desde o PV-004). Ausência da rota confirmada no manifesto do build de produção; produção servindo (`/login` 200, `/api/health` 200). Smoke autenticado de 404 delegado à Ester por exigir login. |
 | 17/08/2026 | PV-005 — alvo da logo | Concluído | `c4a785f` | Sem deployment próprio (empurrado junto de `6cb4eee`) | `replaceLogoInHeadersAndFooters` deixou de disputar imagens só declaradas no rels e de percorrer partes órfãs, e passou a preferir a imagem em célula de tabela. **Terceiro defeito descoberto ao escrever o teste:** o redimensionamento reescrevia os extents da parte inteira, esticando qualquer outra imagem do cabeçalho para a caixa da logo — agora é restrito ao `<w:drawing>` da logo. 5 testes novos. Grafo irresolvível cai para o comportamento anterior. |
 | 17/08/2026 | PV-005 — tamanho da logo | Concluído em parte | `d90d7dc` | Sem deployment próprio até o próximo push de código | Teto de altura da logo deixou de ser fixo em 1,9 cm e passou a vir do `<w:trHeight>` da linha. Medição em célula de 8 cm mostrou que só logo mais larga que ~3,9:1 preenchia a célula: 2:1 saía com 52%, quadrada com 26% — o "fica pequena" que a Ester relatou. Largura da célula segue limite duro, então a tabela do cabeçalho nunca alarga. **Resto é decisão de produto, em 4.7:** preencher a largura com logo 2:1 obriga 3,68 cm de altura. `.docx` sintéticos passados pelo motor real entregues para inspeção no Word. |
+| 17/08/2026 | PV-005 — teto da logo | Concluído | `b5bd95d` | Segue no próximo push de código | Teto padrão de altura da logo de 1,9 cm para **2,6 cm**, decisão da Ester contra geometria medida. Nos três documentos reais a logo passou de 67–79% para **100% / 99% / 92%** da largura útil da célula, com a faixa do cabeçalho crescendo no máximo 0,70 cm. Largura da célula segue limite duro, então a tabela do cabeçalho nunca alarga; linha com `hRule="exact"` continua sobrepondo o padrão. O teste da aritmética de redimensionamento passou a espelhar a constante explicitamente, em vez de repetir o número antigo. |
 | 17/08/2026 | PV-005 — correção de erro meu | Concluído | `1b89a59` | Segue no próximo push de código | `d90d7dc` lia `<w:trHeight>` como teto de altura. Está errado: com `w:hRule="atLeast"`, que é **o padrão quando o atributo está ausente**, o valor é altura *mínima* e a linha cresce com o conteúdo. Nos três documentos reais a linha declara `<w:trHeight w:val="419"/>` sem `hRule` — 0,74 cm de mínimo — enquanto a logo tem 1,90 cm: `d90d7dc` teria encolhido a logo a um terço, o oposto do que motivou a mudança. Agora o teto vem da linha só com `hRule="exact"`. Testes reescritos por valor de `hRule`, incluindo o atributo ausente. |
 | 17/08/2026 | PV-005 — smoke em acervo real | Concluído com ressalva | (sem commit; execução local) | Nenhuma — nada gravado no OneDrive nem em produção | Três `.docx` de uma pasta de cliente fornecidos pela Ester. **3/3 saíram válidos** e em todos a contagem do preflight bateu exatamente com a aplicada; substituições atravessaram corpo, cabeçalho e rodapé, e o par ausente na planilha foi relatado como "não encontrado" sem alterar o arquivo. Geometria real medida: célula da logo de **2,74 a 3,24 cm**, não os 8 cm que eu havia estimado — o que reabriu a decisão de 4.7. **Limite deste acervo:** uma única imagem por documento e zero partes órfãs, então a correção de alvo de `c4a785f` não seria exercitada aqui. **Ressalva:** os arquivos foram entregues, mas a inspeção no Word é da Ester. |
 | 17/08/2026 | PV-005 | **Concluído com ressalva** | `6cb4eee` | `dpl_7fc5PoUq2QLYSrHPeHuBeXHoebSf` `READY` | Fluxo em 5 etapas com revisão obrigatória: a UI analisa por documento e envia `hashOrigem`, o que **faz a trava 409 do PV-004 disparar pela primeira vez**. Rota `restaurar` (original ou versão intermediária) só acrescenta versão, nunca remove; `alvo` ausente é 400 em vez de padrão silencioso. Confirmação explícita para zero ocorrências, casamento excessivo e falha de análise; documento não analisado é bloqueio, não confirmação. Retry seletivo dos documentos com erro. Modal de preview com `role="dialog"`, Esc, ciclo de Tab e devolução de foco. `vitest.config.ts` passou a definir `oxc.jsx.runtime`, sem o que nenhum teste de componente parseava. Suíte **22 arquivos / 119 testes**, tsc, lint, `check:deploy` e build aprovados; rotas 37→38. Rota presente no manifesto de produção, `POST` anônimo devolve **401**. **Ressalva:** nada aberto no Word e alvo da logo sem inspeção visual — roteiro em 4.3. |
