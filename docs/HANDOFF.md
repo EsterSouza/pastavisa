@@ -31,6 +31,10 @@ refaça pesquisas que já estejam registradas, salvo quando um fato temporal pre
    **Não use `[skip ci]`.** Nunca funcionou neste projeto e era enganoso por parecer funcionar. Desde
    o PV-020 (`2826545`), quem decide é o **caminho do arquivo**: commit que toca só `docs/**` ou `*.md`
    não gera build; qualquer outro caminho gera. Ver `scripts/vercel-ignore-build.js`.
+
+   Ao conferir na Vercel: um commit de docs **ainda cria** um registro de deployment, em estado
+   `CANCELED` e sem build. `CANCELED` significa que o filtro atuou corretamente — não é falha. Se um
+   commit de docs aparecer como `READY`, aí sim algo regrediu.
 5. Push, deploy, migrations, usuários QA e firewall descritos no card estão autorizados como parte
    dele. Não ampliar a ação remota além do texto do card.
 6. Nunca registrar `.env`, tokens, senhas, service role, URLs assinadas, credenciais, dados de
@@ -1675,8 +1679,32 @@ Evidência remota, com o estado anterior registrado antes de cada passo:
 - **Commit de código `2826545` (toca `vercel.json` e `scripts/`):** gerou
   `dpl_D1FGTxCsrivVUGDjHbpR5XJaHQ6Z`, target `production`. **Este é o teste que não pode falhar** —
   filtro que bloqueia deploy de código é pior que o problema original.
-- **Commit de documentação seguinte:** evidência registrada em `#### Confirmação do filtro` abaixo,
-  acrescentada depois de medir na Vercel.
+- **Commit de documentação seguinte:** `05139b3` (`docs: record PV-020 result`, diff = apenas
+  `docs/HANDOFF.md`) produziu `dpl_E4c6fcR4ov1nGC3kF24N1xhYAPnV` em estado **`CANCELED`**, sem build.
+
+#### Confirmação do filtro — e a armadilha de leitura
+
+O filtro funciona, mas **não** da forma que o critério de aceite deste card presumia. Registrado em
+detalhe porque a leitura errada aqui faria alguém achar que o filtro falhou:
+
+- Um commit de documentação **ainda cria um registro de deployment** na Vercel. O que o
+  `ignoreCommand` faz é **cancelá-lo antes do build**, resultando em estado `CANCELED`.
+- Portanto, ver um deployment associado a um commit de docs **não** significa que o filtro falhou. O
+  que distingue é o estado: `CANCELED` = filtro atuou; `READY` = filtro não atuou.
+- Não há build nem consumo de minutos, que era o objetivo.
+- O alias de produção **não** mudou: continua servido por `dpl_D1FGTxCs…` (`2826545`, `READY`).
+  Comprovado por HTTP em `pastavisa.vercel.app` **depois** do commit de docs — `/login` **200** e
+  `/api/health` **200**. Um deployment `CANCELED` não assume o alias.
+- Cuidado ao interpretar `get_project`: o campo `domains` lista os domínios apontando para o
+  **último** deployment, então ele deixa de mostrar `pastavisa.vercel.app` enquanto o último é o
+  `CANCELED`. Não é perda de domínio — foi verificado por HTTP.
+
+Resumo dos dois testes que fecham o card:
+
+| Commit | Diff | Deployment | Estado | Filtro |
+|---|---|---|---|---|
+| `2826545` | `vercel.json`, `scripts/` | `dpl_D1FGTxCs…` | **`READY`** | não atuou, correto |
+| `05139b3` | só `docs/HANDOFF.md` | `dpl_E4c6fcR4…` | **`CANCELED`** | atuou, correto |
 
 #### Convenção que passa a valer
 
@@ -1705,6 +1733,7 @@ Evidência remota, com o estado anterior registrado antes de cada passo:
 | 17/08/2026 | PV-013 | **Parcial — achado 2** | `5e446e8` | `dpl_CLTUwEkGMyJ5jaZyttBuD7qwweYn` `READY` | `docxtemplater-image-module-free` removido; 2 pacotes fora, incluindo `xmldom@0.1.31`. `npm audit` 19→17, **crítica 1→0**. Sem `npm audit fix`, então a queda é atribuível. Suíte (95), tsc, lint, `check:deploy` e build aprovados. A rota de teste **continua em produção** → PV-019. |
 | 17/08/2026 | Revisão do mapa de cards | Concluído | `1ae52d4` | `dpl_AQScP8no…` `READY` (docs ainda deployava) | Seção 4 reescrita: vocabulário de estado, painel com os 21 cards, os 4 itens que faltam no PV-005 registrados por escrito, fila reordenada. Abertos PV-019 e PV-020. Corrigido o SHA de 2.1, que apontava para `c702ec3` quando `origin` já estava em `536e055`. |
 | 17/08/2026 | PV-020 | Concluído | `2826545` | `dpl_D1FGTxCsrivVUGDjHbpR5XJaHQ6Z` `READY` | `ignoreCommand` em `vercel.json` apontando para `scripts/vercel-ignore-build.js`: ignora build só quando todo caminho alterado é `docs/**` ou `*.md`, e resolve toda dúvida para build. 4 ramos testados localmente contra histórico real. Commit de código continua deployando — comprovado por este próprio deployment. `[skip ci]` removido das convenções. |
+| 17/08/2026 | PV-020 — prova do filtro | Concluído | `05139b3` | `dpl_E4c6fcR4ov1nGC3kF24N1xhYAPnV` **`CANCELED`**, sem build | Commit só de `docs/HANDOFF.md`. O filtro cancelou antes do build; o alias de produção permaneceu em `2826545`, verificado por HTTP (`/login` 200, `/api/health` 200). **Daqui em diante esta coluna é confiável.** |
 
 **Aviso sobre a coluna "Produção" nas linhas acima de 17/08.** Ela não é confiável. Foi preenchida
 assumindo que `[skip ci]` impedia deploy, o que é falso neste projeto (ver PV-020). Onde se lê
