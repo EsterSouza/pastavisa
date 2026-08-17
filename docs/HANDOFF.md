@@ -27,6 +27,11 @@ refaça pesquisas que já estejam registradas, salvo quando um fato temporal pre
    - acrescentar `### Resultado — <data>` no card, com testes, evidência, ação remota, SHA e fora de escopo;
    - commit `docs: record <CARD> result [skip ci]` e novo push;
    - confirmar `origin/main`, worktree e deployment quando aplicável.
+
+   ⚠️ **O `[skip ci]` deste fluxo não funciona neste projeto** — commits de docs geram deployment de
+   produção mesmo assim (evidência e correção no **PV-020**). Até o PV-020 fechar, verifique o
+   deployment na Vercel também depois de commits de documentação, e **não** escreva "nenhuma ação
+   remota" sem ter olhado.
 5. Push, deploy, migrations, usuários QA e firewall descritos no card estão autorizados como parte
    dele. Não ampliar a ação remota além do texto do card.
 6. Nunca registrar `.env`, tokens, senhas, service role, URLs assinadas, credenciais, dados de
@@ -41,6 +46,16 @@ refaça pesquisas que já estejam registradas, salvo quando um fato temporal pre
     logs, `.next` e caches do card. Registre o que foi removido. Não apagar arquivos rastreados,
     ativos oficiais, manual de marca, dados reais, backups ou `node_modules` enquanto ainda for útil.
     Resolva e confira o caminho absoluto antes de limpeza recursiva.
+11. **Nada relevante vive só na conversa.** Se durante um card você descobrir escopo que falta, uma
+    premissa errada, um risco novo ou uma recomendação, isso vai para o handoff **no mesmo commit** —
+    no painel da seção 4.2, no card correspondente, ou como card novo. Dizer no chat e não salvar é a
+    falha que produziu o problema de leitura corrigido em 17/08: o PV-005 tinha 4 itens pendentes que
+    existiam apenas em conversa, e por isso parecia concluído.
+12. **Card entregue pela metade é registrado como `Parcial`, com o que falta nomeado.** Nunca marque
+    um card como concluído porque ele tem commit. O vocabulário obrigatório está em **4.1**, e todo
+    card parcial leva um bloco `> **Estado: PARCIAL**` logo abaixo do próprio cabeçalho.
+13. Quando um card **não puder** ser executado como escrito, não o adapte por conta própria: registre
+    a premissa que falhou, pare, e abra o card sucessor com o escopo real. Precedente: PV-013 → PV-019.
 
 ### Modelos
 
@@ -60,14 +75,29 @@ foram medidos nesta data, contra o checkout, o Supabase de produção e a Vercel
 
 ### 2.1 Checkout, Git e produção
 
+Medido em 17/08/2026, **após** a entrega parcial do PV-013.
+
 - Checkout fora do OneDrive em `C:\Saas\PASTAVISA`; worktree **limpo**.
-- `HEAD = main = origin/main = c702ec34e254e71f93bbe6248f36f153a6cbb938` (10/08/2026).
+- `HEAD = main = origin/main = 5e446e85420ed28dee665e3e20c2d5e6ec4bee2b`.
 - Remoto: `https://github.com/EsterSouza/pastavisa.git` (repositório **público**).
 - Vercel: projeto `pasta-visa` (`prj_3hksb7xOH6gQbc2lnOsKpFOsHYUa`, team `estersouzas-projects`).
-  O deployment de produção mais recente é do commit `c702ec3` e está `READY`. **Repositório, `origin`
-  e produção estão no mesmo SHA** — não há trabalho publicado fora do git nem commit não deployado.
+  Deployment de produção mais recente: `dpl_CLTUwEkGMyJ5jaZyttBuD7qwweYn`, commit `5e446e8`,
+  estado **`READY`**. **Repositório, `origin` e produção estão no mesmo SHA.**
 - `TreinaVISA - Manual de Marca 2.0.pdf` continua na raiz, local e ignorado por `/*.pdf`.
-- O projeto declara Node `22.x`; a máquina usa Node `v25.8.0`. Continue usando o build como evidência.
+- O projeto declara Node `22.x`; a máquina usa Node `v25.8.0`, o que faz o `npm` emitir `EBADENGINE`
+  em qualquer instalação. É divergência **só do ambiente local** — a Vercel usa a versão declarada.
+  Continue usando o build como evidência; não há card por isso.
+
+**Correção de um registro anterior desta seção.** A versão anterior afirmava que os três apontavam
+para `c702ec3` (10/08). Estava desatualizada: `origin/main` já estava em `536e055` e o PV-004 **já
+estava em produção** antes de qualquer ação de hoje. Nenhum trabalho ficou fora do git em momento
+algum; o que faltava era o handoff acompanhar os pushes.
+
+**Achado novo — `[skip ci]` não impede deploy.** Os commits `99e97bc` e `536e055`, ambos marcados
+`[skip ci]` e sem uma linha de código, **geraram deployment de produção** (`dpl_Fm5dc9tp…` e
+`dpl_8tjBFone…`). A convenção que o handoff assume — "commit de docs não mexe em produção" — é falsa
+neste projeto. Consequência prática: todo registro no handoff redeploya a produção, e a coluna
+"Produção" da seção 6 registrou "nenhuma ação remota" em casos onde houve deploy. Ver PV-020.
 
 ### 2.2 Código e qualidade
 
@@ -79,24 +109,33 @@ foram medidos nesta data, contra o checkout, o Supabase de produção e a Vercel
 | Migrations Prisma | 13 |
 | Migrations Supabase versionadas | 7 |
 | Stack | Next.js 14.2.35, React 18, Tailwind 3.4.1, Prisma 7.8 |
-| Testes | Vitest, **16 arquivos / 61 testes, todos aprovados** |
+| Testes | Vitest, **19 arquivos / 95 testes, todos aprovados** |
 | `npx tsc --noEmit` | aprovado, sem erros |
 | `npm run lint` | aprovado, 0 erros e 0 avisos |
+| `npm run check:deploy` | concluído sem falhas |
+| `npm run build` | aprovado |
 
 Todas as 37 rotas declaram `runtime = "nodejs"` e `dynamic = "force-dynamic"`. Não há `TODO`,
 `FIXME` ou `HACK` no código de aplicação.
 
-**Baseline de dependências (regressão desde 08/08):** `npm audit` informa **19 vulnerabilidades —
-5 moderadas, 13 altas e 1 crítica**. Detalhamento acionável:
+**Dependências — estado após o PV-013 parcial:** `npm audit` informa **17 vulnerabilidades —
+4 moderadas, 13 altas e 0 críticas**.
 
-- **Crítica — `xmldom@0.1.31`, sem correção disponível.** Entra exclusivamente por
-  `docxtemplater-image-module-free@1.1.1`, que está declarado em `package.json` mas **não é
-  importado em nenhum arquivo do projeto**. Remover a dependência elimina a única crítica sem risco
-  funcional. Ver PV-013.
-- **Altas com correção por major:** `next` (→16, mais de 20 CVEs incluindo SSRF, cache poisoning e
-  XSS no App Router), `eslint-config-next` (→16), `sharp` (→0.35.3, CVEs do libvips).
+| Severidade | 08/08 (baseline) | 17/08 antes do PV-013 | 17/08 agora |
+|---|---:|---:|---:|
+| crítica | — | 1 | **0** |
+| alta | — | 13 | 13 |
+| moderada | — | 5 | 4 |
+| **total** | — | **19** | **17** |
+
+- **Crítica: resolvida.** Era `xmldom@0.1.31` (`CVE-2021-21366`, sem correção disponível), que entrava
+  exclusivamente por `docxtemplater-image-module-free@1.1.1` — declarado em `package.json` e importado
+  em lugar nenhum. Removido em `5e446e8`. Levou junto uma moderada do mesmo pacote. **Nada mais no
+  grafo depende de `xmldom`**; o `docxtemplater` em uso usa o `@xmldom/xmldom`, pacote distinto.
+- **Altas com correção por major (13, nenhuma tratada):** `next` (→16, mais de 20 CVEs incluindo SSRF,
+  cache poisoning e XSS no App Router), `eslint-config-next` (→16), `sharp` (→0.35.3, CVEs do libvips).
 - **Altas com correção compatível:** `brace-expansion`, `fast-uri`, `js-yaml`, `deepmerge-ts`,
-  `@prisma/config`, `prisma`, `hono`, `postcss`.
+  `@prisma/config`, `prisma`, `hono`, `postcss`. Ver PV-014.
 
 Scripts: `dev`, `build`, `start`, `check:deploy`, `backup:local`, `migrate:local-to-supabase`,
 `migrate:storage-to-supabase`, `repair:docx`, `lint`, `sync:templates`, `test`, `test:run`,
@@ -260,62 +299,129 @@ pagamento ou envio automático.
 
 ## 4. Mapa dos cards
 
-Estado revisado contra o código e a produção em 17/08/2026, e reordenado após a entrega do PV-004.
+Estado revisado contra o código e a produção em 17/08/2026, após a entrega parcial do PV-013.
 
-### 4.1 Fila de execução
+### 4.1 Como ler o estado de um card
 
-Ordenada por prioridade. Dentro de cada faixa, a ordem é a recomendada — o critério é risco vivo
-primeiro, depois valor de negócio, depois dívida.
+O vocabulário abaixo é **obrigatório** e existe porque a versão anterior desta seção não distinguia
+"entregue" de "entregue pela metade" — o PV-005 aparecia com commit na seção 6 e parecia pronto,
+sendo que só um pedaço dele foi feito.
 
-| # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de | Nota |
-|---|---|---|---|---|---|---|---|
-| 1 | PV-013 | Remover rota de teste e dependência crítica | **P0 higiene** | baixo | gpt-5.6-terra | — | Única vulnerabilidade crítica + rota que escreve lixo em produção. Nada depende dele. |
-| 2 | PV-005 | Fluxo visual de correção | **P0 produto** ↑ | alto | gpt-5.6-terra | PV-004 | **Subiu de P1.** A trava do PV-004 só passa a valer quando a UI consumir o preflight; até lá a correção segue cumulativa e sem restauração. |
-| 3 | PV-009 | Planner público e PDF | P1 comercial | alto | gpt-5.6-sol | PV-007, PV-008 | Maior lacuna de negócio: motor, API, segredo e regra WAF já pagos, sem página nem PDF. |
-| 4 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 | O P1 mais barato: fecha os dois critérios que o PV-008 deixou sem evidência. |
-| 5 | PV-014 | Endurecer senha e reduzir vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | PV-013 | Considerar mover a chave de senha vazada para o PV-013 e deixar este card só com dependências. |
-| 6 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-009, PV-010, PV-011 | Prioridade alta, mas **bloqueado por dependência**: é sempre o último a rodar. |
-| 7 | PV-015 | Restringir superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — | Pequeno e independente; pode entrar em qualquer janela livre. |
-| 8 | PV-010 | Redesign interno principal | P2 visual | alto | gpt-5.6-terra | PV-005, PV-008 | — |
-| 9 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008 | — |
-| 10 | PV-016 | Atualizar modelo do motor sanitário | P3 ↓ | médio | gpt-5.6-sol | PV-006 | **Desceu de P2.** `claude-sonnet-4-5` segue ativo e sem aposentadoria anunciada. |
-| 11 | PV-017 | Limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — | Parcialmente feito em 17/08: `.next` e `tsconfig.tsbuildinfo` já removidos. |
+| Estado | Significa |
+|---|---|
+| **Concluído** | Todo o escopo do card foi entregue e comprovado. Nada em aberto. |
+| **Concluído com ressalva** | O escopo do card foi entregue, mas o efeito prático depende de outro card. O card não volta à fila. |
+| **Parcial** | Só parte do escopo foi entregue. O que falta está **nomeado** na coluna, e o card **continua na fila**. |
+| **Pendente** | Não começado, e as dependências estão satisfeitas — pode entrar agora. |
+| **Bloqueado** | Não começado e com dependência não satisfeita. Não entra na fila até a dependência cair. |
 
-### 4.2 Mudanças de prioridade em 17/08
+Regra: **um card com commit não é automaticamente um card concluído.** A seção 6 registra commits; é
+esta seção que diz se o card fechou.
 
-Três ajustes, com o motivo — para não parecer arbitrário em uma leitura futura:
+### 4.2 Painel de estado — todos os cards
 
-- **PV-005 subiu de P1 para P0.** O PV-004 entregou preflight e trava de hash, mas `hashOrigem` é
-  opcional e a UI não chama o preflight, então a proteção está **inerte em produção**. Enquanto isso,
-  cada correção continua sendo aplicada sobre a saída anterior sem caminho de restauração: é um
-  caminho vivo de perda de trabalho do cliente, não uma dívida estética. É o card de maior valor hoje.
-- **PV-016 desceu de P2 para P3.** `claude-sonnet-4-5` continua ativo, sem aposentadoria anunciada, e
-  o planner já passou por smoke em produção. Trocar o modelo obriga a revalidar os 12 testes
-  sanitários e comparar saídas caso a caso — custo real por ganho especulativo. Só sobe se a Ester
-  quiser mais precisão sanitária.
-- **PV-014 pode encolher.** A proteção contra senha vazada é uma chave no painel do Supabase e cabe
-  no PV-013, que já é o card de higiene trivial. Se ela for junto, o PV-014 vira só trabalho de
-  dependências e cai para P2. **Decisão da Ester.**
-
-### 4.3 Decisão em aberto sobre a ordem
-
-Entre **PV-005** e **PV-009** a escolha não é técnica: PV-005 protege documento de cliente que já
-existe, PV-009 destrava receita de máquina que já foi construída e paga. Recomendo PV-005 primeiro,
-porque perda de trabalho é irreversível e lançamento comercial não é. Se a prioridade do momento for
-comercial, inverter os dois é defensável — mas então o PV-005 não deve ficar mais de um ciclo parado.
-
-### 4.4 Concluídos
-
-| Card | Entrega | Commit | Comprovação |
+| Card | Entrega | Estado | O que falta / ressalva |
 |---|---|---|---|
-| PV-000 | Checkout e handoff único | `146b73c` | Handoff único publicado; build preservado. |
-| PV-001 | Fundação de testes | `c0d072a` | Vitest configurado; lint sem avisos. |
-| PV-002 | Fechamento de tabelas expostas | `1a03f6f` | Zero grants para `anon`/`authenticated` confirmado em produção. |
-| PV-003 | Supabase Auth, papéis e QA | `b7d1272` | 2 contas com papel em `app_metadata`; Basic Auth removido. |
-| PV-004 | Motor seguro de substituição DOCX | `9ed5856` | Preflight, trava 409 e preservação estrutural; 95 testes. |
-| PV-006 | Motor sanitário do planner | `a60cc73` | Smoke aprovado no alias de produção em 10/08. |
-| PV-007 | API pública, preço e proteção | `e9de691` | Segredo `Sensitive`, WAF `live` e 429 comprovado. |
-| PV-008 | Manual de marca e design system | `0c15e69` | Publicado; zoom 200% e teclado seguem no PV-018. |
+| PV-000 | Checkout e handoff único | Concluído | — |
+| PV-001 | Fundação de testes | Concluído | — |
+| PV-002 | Fechamento de tabelas expostas | Concluído | — |
+| PV-003 | Supabase Auth, papéis e QA | Concluído | — |
+| PV-004 | Motor seguro de substituição DOCX | **Concluído com ressalva** | Escopo entregue. Mas a trava de hash só passa a ter efeito quando o PV-005 ligar a UI, e nenhum documento corrigido foi aberto no Word. Não volta à fila. |
+| PV-005 | Fluxo visual de correção | **Parcial** | Só a exclusão múltipla (`2a31f1e`, 08/08). Faltam 4 itens — ver 4.3. |
+| PV-006 | Motor sanitário do planner | Concluído | — |
+| PV-007 | API pública, preço e proteção | Concluído | — |
+| PV-008 | Manual de marca e design system | **Parcial** | Zoom 200% e ordem completa de teclado nunca foram comprovados. Esse resto virou o PV-018. |
+| PV-009 | Planner público e PDF | Pendente | `/planner` e `/api/planejamento-comercial/pdf` estão liberados no middleware e na WAF, mas os arquivos não existem — hoje dão 404. |
+| PV-010 | Redesign interno principal | **Bloqueado** | Depende do PV-005, que está parcial. |
+| PV-011 | Redesign de templates e legislações | Pendente | Dependências (PV-003, PV-008) satisfeitas o suficiente. |
+| PV-012 | E2E, segurança e homologação | **Bloqueado** | Depende de PV-009, PV-010 e PV-011. É sempre o último. |
+| PV-013 | Rota de teste e dependência crítica | **Parcial** | Módulo de imagem removido (`5e446e8`, crítica 1→0). A rota `/api/pastas/teste` **continua em produção** — virou o PV-019. |
+| PV-014 | Senha vazada e vulnerabilidades | Pendente | **Desbloqueado hoje**: a dependência era o PV-013, e a parte de dependências dele foi entregue. |
+| PV-015 | Superfície de `/api/health` | Pendente | Independente; cabe em qualquer janela. |
+| PV-016 | Modelo do motor sanitário | Pendente | P3 especulativo. `claude-sonnet-4-5` segue ativo. |
+| PV-017 | Limpeza de artefatos locais | **Parcial** | `.next` e `tsconfig.tsbuildinfo` já removidos. Faltam `.pv008-dev.log`, `.pv008-dev.err.log` e a pergunta à Ester sobre `entregas/templates-subcisao`. |
+| PV-018 | Aceite de acessibilidade do PV-008 | Pendente | — |
+| PV-019 | Remover fluxo de pasta de teste | **Aberto em 17/08** | Novo. Herda o achado 1 do PV-013, agora com o escopo de UI correto. |
+| PV-020 | `[skip ci]` não impede deploy | **Aberto em 17/08** | Novo. Todo commit de docs está redeployando produção. |
+
+Contagem: **7 concluídos**, 1 concluído com ressalva, **4 parciais**, 6 pendentes, 2 bloqueados,
+2 abertos hoje.
+
+### 4.3 O que exatamente falta no PV-005
+
+Registrado aqui porque estava sendo dito em conversa e nunca salvo — e porque é o card de maior valor
+hoje. O PV-005 **não está feito**; o que existe é uma entrega antecipada autorizada de um pedaço.
+
+**Feito:** exclusão múltipla na correção em lote (`2a31f1e`, 08/08) — `Excluir selecionados (N)`, com
+confirmação, limite de 100 por chamada e validação de que todos os IDs pertencem à pasta.
+
+**Falta:**
+
+1. **Ligar analisar → aplicar na UI e passar a enviar `hashOrigem`.** Hoje a UI não chama o preflight,
+   e `hashOrigem` é opcional na rota aplicar. A trava 409 entregue pelo PV-004 existe no código e
+   **nunca é exercida em produção**. É o item que dá efeito retroativo ao PV-004.
+2. **Passo de restaurar.** A base de cada correção é `doc.outputPath || doc.uploadPath`, ou seja, as
+   correções são **cumulativas sobre a saída anterior**, não sobre o original. Um par aplicado por
+   engano não tem como ser desfeito. Este é o caminho vivo de perda de trabalho do cliente.
+3. **O bug da logo.** `replaceLogoInHeadersAndFooters` ainda itera todas as partes presentes no zip,
+   órfãs incluídas, e troca a imagem de menor `rId` de cada uma. Em documento com imagem que não é
+   logo, a imagem errada pode ser substituída. Ficou **fora do PV-004 de propósito**, por exigir
+   verificação visual — e o PV-005 já prevê QA com DOCX real.
+4. **Abrir um documento corrigido no Word.** Única lacuna do smoke do PV-004: 900 documentos passaram
+   pelo motor sem falha, mas nenhum foi aberto no Word. Fecha com um documento e um par reais.
+
+### 4.4 Fila de execução recomendada
+
+Critério: risco vivo primeiro, depois valor de negócio, depois dívida. Dentro disso, o que é barato e
+destrava leitura futura vem antes do que é caro.
+
+| # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de |
+|---|---|---|---|---|---|---|
+| 1 | PV-020 | Corrigir `[skip ci]` / deploy de docs | P1 higiene | baixo | gpt-5.6-terra | — |
+| 2 | PV-019 | Remover fluxo de pasta de teste (rota + UI) | **P0 higiene** | baixo | gpt-5.6-terra | — |
+| 3 | PV-005 | Fluxo visual de correção | **P0 produto** | alto | gpt-5.6-terra | PV-004 |
+| 4 | PV-009 | Planner público e PDF | P1 comercial | alto | gpt-5.6-sol | PV-007 |
+| 5 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 |
+| 6 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
+| 7 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
+| 8 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008 |
+| 9 | PV-010 | Redesign interno principal | P2 visual | alto | gpt-5.6-terra | **PV-005** |
+| 10 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-009, PV-010, PV-011 |
+| 11 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
+| 12 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
+
+**Por que o PV-020 vem antes de tudo, sendo P1 e não P0:** ele custa minutos e distorce o registro de
+todos os cards seguintes. Enquanto ele não fecha, cada linha "Produção: nenhuma ação remota" que
+escrevermos pode ser falsa. Arrumar a régua antes de medir mais coisa.
+
+**Alternativa defensável — janela de higiene primeiro.** PV-020, PV-019, PV-015, PV-018 e o resto do
+PV-017 somam cinco cards de esforço baixo. Fechar os cinco de uma vez limpa a fila de ruído e deixa
+só o trabalho grande (PV-005 → PV-009) visível. Custa um ciclo e não protege documento de cliente —
+se a prioridade for risco, o PV-005 vem antes deles, com o PV-019 na frente por ser barato demais
+para esperar.
+
+### 4.5 Decisões resolvidas em 17/08
+
+- **O PV-014 não encolheu, e não precisa mais encolher.** A versão anterior propunha mover a chave de
+  senha vazada para o PV-013. O PV-013 fechou a parte de dependências sem tocar nisso, então a chave
+  **fica no PV-014**, que segue P1 com os dois assuntos. Decisão encerrada.
+- **O PV-014 deixou de depender do PV-013.** A dependência era a remoção do módulo de imagem, para que
+  a queda de vulnerabilidades fosse atribuível. Isso foi feito e medido (19→17, crítica 1→0). O PV-014
+  pode rodar a qualquer momento.
+- **O achado da rota de teste virou card próprio (PV-019).** O PV-013 assumia que a rota não tinha
+  caminho de UI. Tem: um botão visível no dashboard interno. Remover só a rota deixaria um botão
+  quebrado em produção, então o escopo real inclui UI e não caberia no card de higiene trivial.
+- **PV-016 continua P3.** `claude-sonnet-4-5` segue ativo, sem aposentadoria anunciada, e o planner já
+  passou por smoke em produção. Trocar o modelo obriga a revalidar os 12 testes sanitários e comparar
+  saídas caso a caso — custo real por ganho especulativo. Só sobe se a Ester quiser mais precisão.
+
+### 4.6 Decisão em aberto — a única
+
+Entre **PV-005** e **PV-009**, a escolha não é técnica: o PV-005 protege documento de cliente que já
+existe, o PV-009 destrava receita de uma máquina que já foi construída e paga. Recomendo **PV-005
+primeiro**, porque perda de trabalho é irreversível e lançamento comercial não é. Se a prioridade do
+momento for comercial, inverter é defensável — mas então o PV-005 não deve ficar mais de um ciclo
+parado, porque o risco dele é sobre documento que a cliente já entregou.
 
 ---
 
@@ -686,6 +792,10 @@ alterada.
 **Modelo:** gpt-5.6-terra · **Esforço:** alto · **Prioridade:** P0 produto · **Depende de:** PV-004
 **Resultado:** Upload → Analisar → Revisar → Aplicar → Baixar/Restaurar.
 
+> **Estado: PARCIAL.** Só a exclusão múltipla foi entregue (`2a31f1e`, 08/08) — ver a entrega
+> antecipada no fim deste card. Os 4 itens que faltam estão listados em **4.3**. O card continua na
+> fila como P0 produto.
+
 ### Arquivos
 
 - Modificar página de corrigir lote e `DocumentPreviewModal`.
@@ -868,6 +978,9 @@ alterada.
 
 **Modelo:** gpt-5.6-terra · **Esforço:** alto · **Prioridade:** P1 visual · **Depende de:** manual
 **Resultado:** identidade única para público, login e interno.
+
+> **Estado: PARCIAL.** Publicado e com smoke aprovado, mas zoom de 200% e ordem completa de teclado
+> nunca foram comprovados. Esse resto é o **PV-018**; siga por lá em vez de reabrir este card.
 
 ### Fonte e arquivos
 
@@ -1061,6 +1174,10 @@ O navegador integrado desta task não alcançou `127.0.0.1` e o Chrome controlá
 
 **Modelo:** gpt-5.6-terra · **Esforço:** baixo · **Prioridade:** P0 higiene · **Depende de:** —
 **Resultado:** produção sem rota que cria dados falsos e sem a única vulnerabilidade crítica.
+
+> **Estado: PARCIAL, encerrado.** O achado 2 foi entregue (`5e446e8`): crítica 1→0. O achado 1 **não**
+> foi feito — a premissa do card estava errada e ele acionou a própria cláusula de parada. Esse resto
+> virou o **PV-019**, com o escopo de UI correto. Este card não volta à fila; siga pelo PV-019.
 
 ### Contexto
 
@@ -1318,6 +1435,9 @@ mas há mudanças de comportamento relevantes:
 **Modelo:** gpt-5.6-terra · **Esforço:** baixo · **Prioridade:** P3 · **Depende de:** —
 **Resultado:** checkout sem restos de sessões anteriores.
 
+> **Estado: PARCIAL.** `.next` e `tsconfig.tsbuildinfo` já foram removidos em 17/08. Faltam
+> `.pv008-dev.log`, `.pv008-dev.err.log` e a pergunta à Ester sobre `entregas/templates-subcisao`.
+
 ### Implementação
 
 Remover, conferindo o caminho absoluto antes de qualquer remoção recursiva:
@@ -1381,6 +1501,124 @@ inspeção manual na próxima vez.
 
 ---
 
+## PV-019 — Remover o fluxo de pasta de teste
+
+**Modelo:** gpt-5.6-terra · **Esforço:** baixo · **Prioridade:** P0 higiene · **Depende de:** —
+**Resultado:** produção sem nenhum caminho que crie `Pasta` de mentira.
+
+### Contexto
+
+Herda o achado 1 do PV-013, que **não** pôde ser executado como escrito. O card original afirmava que
+a rota não tinha caminho de UI; tem. O escopo real é maior e envolve mudança de UI do dashboard.
+
+`app/api/pastas/teste/route.ts` cria uma `Pasta` completa de mentira ("Clínica Teste", CNPJ
+`00.000.000/0001-00`, RT fictícia, funcionários, equipamentos e terceirizados falsos) mais 3
+`DocumentoGerado`, direto no banco de produção. Está atrás do middleware, então exige login — mas
+**qualquer conta interna, incluindo `operador`, polui a produção com um clique**, sem confirmação.
+
+O caminho de UI é um botão visível no cabeçalho do dashboard interno, ao lado de "+ Nova Pasta":
+
+- `app/(internal)/page.tsx:58-67` — `handleCriarTeste()` faz `POST /api/pastas/teste` e redireciona
+  para `/pasta/${json.pastaId}/editar`.
+- `app/(internal)/page.tsx:89-95` — o botão `🧪 Pasta de teste`.
+- `app/(internal)/page.tsx:29` — estado `criandoTeste`, que controla o rótulo "Criando…".
+
+Remover só a rota deixaria o botão dando 404 e caindo no `catch` silencioso da linha 64, sem mensagem
+nenhuma para o operador. Por isso este card, e não um remendo dentro do PV-013.
+
+### Arquivos
+
+- Remover `app/api/pastas/teste/route.ts`.
+- Modificar `app/(internal)/page.tsx`: remover botão, `handleCriarTeste` e estado `criandoTeste`.
+- Modificar `docs/HANDOFF.md`.
+
+### Implementação
+
+- Remover os quatro pontos juntos, em um único commit — rota e UI não podem divergir nem por um deploy.
+- Conferir que nada mais no dashboard usa `criandoTeste` antes de apagar o estado, e que o `import` de
+  `useRouter` continua necessário para os outros usos da página (`handleCriarTeste` é um dos
+  consumidores do `router`).
+- **Antes de remover**, contar as pastas de teste já existentes em produção e **apenas registrar a
+  contagem**. Sugestão de critério: `clienteCnpj = '00.000.000/0001-00'` ou
+  `clienteNomeFantasia = 'Clínica Teste'`. A exclusão desses dados é decisão da Ester, **não** deste
+  card.
+
+### Testes e aceite
+
+- `npm.cmd run test:run`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run check:deploy` e
+  `npm.cmd run build` aprovados.
+- A contagem de rotas API cai de 37 para **36**; atualizar a seção 2.2 e o `check:deploy` se ele
+  fixar o número.
+- Smoke em produção autenticado: `POST /api/pastas/teste` retorna **404**.
+- O dashboard interno carrega sem o botão, e "+ Nova Pasta" continua funcionando.
+- Contagem de pastas de teste registrada. **Nenhuma `Pasta` removida.**
+
+### Fora de escopo
+
+- Apagar as pastas de teste que já existem.
+- Qualquer outra mudança no dashboard.
+
+### Commit
+
+`chore: remove test folder flow`
+
+---
+
+## PV-020 — `[skip ci]` não impede deploy de produção
+
+**Modelo:** gpt-5.6-terra · **Esforço:** baixo · **Prioridade:** P1 higiene · **Depende de:** —
+**Resultado:** commit que só mexe em documentação deixa de redeployar a produção, ou o handoff passa
+a registrar a verdade.
+
+### Contexto
+
+Descoberto em 17/08 ao conferir a Vercel. Os commits `99e97bc` e `536e055`, ambos marcados `[skip ci]`
+e sem uma linha de código, **geraram deployment de produção** — `dpl_Fm5dc9tpL8dtDtKMge1JVa6j7ar2` e
+`dpl_8tjBFoneZfLehDNachkYEQVCgBM3`, os dois `READY`, target `production`.
+
+Duas consequências, e a segunda é a que importa:
+
+1. Builds desperdiçados a cada registro no handoff.
+2. **O handoff mentiu sem querer.** A coluna "Produção" da seção 6 registra "Nenhuma ação remota" em
+   linhas onde houve deploy de produção. Enquanto isso não fecha, todo registro novo é suspeito.
+
+`[skip ci]` é convenção de alguns provedores; a Vercel usa `[skip ci]`/`[ci skip]` no assunto do
+commit apenas quando a integração Git está configurada para respeitá-los, e o comportamento observado
+mostra que **neste projeto não está**.
+
+### Implementação
+
+- Confirmar na Vercel qual mecanismo o projeto respeita hoje. Não presumir: ler a configuração do
+  projeto e comparar com os dois deployments citados como evidência.
+- Escolher **uma** saída e registrar o motivo:
+  - `vercel.json` com `git.deploymentEnabled` ajustado, ou `ignoreCommand` que sai com código 0
+    quando o diff toca só `docs/**` e `*.md`; **ou**
+  - aceitar que docs redeploya, remover `[skip ci]` das mensagens por ser enganoso, e corrigir a
+    convenção da seção 6 para registrar o deploy que realmente acontece.
+- Recomendação: `ignoreCommand` por diff de caminho. É explícito, versionado no repositório e não
+  depende de convenção em mensagem de commit — que é justamente o que falhou.
+- **Não** desligar deploy automático de produção por inteiro; o objetivo é filtrar docs, não parar de
+  publicar código.
+
+### Testes e aceite
+
+- Um commit de docs após a mudança **não** gera deployment novo, comprovado por `list_deployments`
+  antes e depois.
+- Um commit que toca código **continua** gerando deployment de produção `READY`. Este é o teste que
+  não pode ser esquecido: filtro que bloqueia código é pior que o problema.
+- Corrigir retroativamente as linhas erradas da seção 6, ou marcá-las como não confiáveis com o motivo.
+- Registrar os IDs dos deployments usados como evidência.
+
+### Fora de escopo
+
+- Mudar target, domínios, proteção de deployment ou qualquer configuração de runtime da Vercel.
+
+### Commit
+
+`chore: stop docs commits from redeploying production`
+
+---
+
 ## 6. Registro de execução
 
 | Data | Card | Estado | Commit | Produção | Observação |
@@ -1395,4 +1633,12 @@ inspeção manual na próxima vez.
 | 09/08/2026 | PV-002 | Concluído | `1a03f6f` | Migration aplicada em `imywcumdngkzkeszvyxv` | Registro reconstruído na auditoria de 17/08. RLS ativa e **zero grants** para `anon`/`authenticated` confirmados em produção. |
 | 09/08/2026 | PV-003 | Concluído | `b7d1272` | 2 contas criadas em `auth.users` | Registro reconstruído na auditoria de 17/08. `lib/session-auth.ts` removido; 1 `admin` e 1 `operador`, ambos com papel em `app_metadata`. |
 | 17/08/2026 | Auditoria de retomada | Concluído | `443f27e` | Nenhuma ação remota | Estado real medido contra código, Supabase e Vercel. Mapa de cards corrigido (PV-002/PV-003 estavam marcados como pendentes). Abertos PV-013 a PV-018. |
-| 17/08/2026 | PV-004 | Concluído | `9ed5856` | Nenhuma ação remota | Motor reescrito com preflight, trava 409 e preservação estrutural. 95 testes + smoke em 900 documentos reais (zero falhas; A/B mostrou 1 dano estrutural e 6 não-aplicações do motor antigo). `hashOrigem` opcional até o PV-005. |
+| 17/08/2026 | PV-004 | Concluído com ressalva | `9ed5856` | **Deployado** (via `99e97bc`/`536e055`) | Motor reescrito com preflight, trava 409 e preservação estrutural. 95 testes + smoke em 900 documentos reais (zero falhas; A/B mostrou 1 dano estrutural e 6 não-aplicações do motor antigo). `hashOrigem` opcional até o PV-005; nenhum documento aberto no Word. |
+| 17/08/2026 | PV-013 | **Parado na verificação** | `cbfe5bd` | Deploy de produção (o `[skip ci]` não impediu) | Cláusula de parada do próprio card acionada: a rota `/api/pastas/teste` tem chamador de UI, ao contrário do que o card afirmava. Achado registrado, nada removido. |
+| 17/08/2026 | PV-013 | **Parcial — achado 2** | `5e446e8` | `dpl_CLTUwEkGMyJ5jaZyttBuD7qwweYn` `READY` | `docxtemplater-image-module-free` removido; 2 pacotes fora, incluindo `xmldom@0.1.31`. `npm audit` 19→17, **crítica 1→0**. Sem `npm audit fix`, então a queda é atribuível. Suíte (95), tsc, lint, `check:deploy` e build aprovados. A rota de teste **continua em produção** → PV-019. |
+| 17/08/2026 | Revisão do mapa de cards | Concluído | — | — | Seção 4 reescrita: vocabulário de estado, painel com os 21 cards, os 4 itens que faltam no PV-005 registrados por escrito, fila reordenada. Abertos PV-019 e PV-020. Corrigido o SHA de 2.1, que apontava para `c702ec3` quando `origin` já estava em `536e055`. |
+
+**Aviso sobre a coluna "Produção" nas linhas acima de 17/08.** Ela não é confiável. Foi preenchida
+assumindo que `[skip ci]` impedia deploy, o que é falso neste projeto (ver PV-020). Onde se lê
+"Nenhuma ação remota" em um commit `[skip ci]`, houve provavelmente um deployment de produção. As
+linhas a partir do PV-013 já usam o estado real medido na Vercel.
