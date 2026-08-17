@@ -25,13 +25,12 @@ refaça pesquisas que já estejam registradas, salvo quando um fato temporal pre
    - commit de implementação e `git push origin main`;
    - executar e verificar as ações remotas previstas no card;
    - acrescentar `### Resultado — <data>` no card, com testes, evidência, ação remota, SHA e fora de escopo;
-   - commit `docs: record <CARD> result [skip ci]` e novo push;
+   - commit `docs: record <CARD> result` e novo push;
    - confirmar `origin/main`, worktree e deployment quando aplicável.
 
-   ⚠️ **O `[skip ci]` deste fluxo não funciona neste projeto** — commits de docs geram deployment de
-   produção mesmo assim (evidência e correção no **PV-020**). Até o PV-020 fechar, verifique o
-   deployment na Vercel também depois de commits de documentação, e **não** escreva "nenhuma ação
-   remota" sem ter olhado.
+   **Não use `[skip ci]`.** Nunca funcionou neste projeto e era enganoso por parecer funcionar. Desde
+   o PV-020 (`2826545`), quem decide é o **caminho do arquivo**: commit que toca só `docs/**` ou `*.md`
+   não gera build; qualquer outro caminho gera. Ver `scripts/vercel-ignore-build.js`.
 5. Push, deploy, migrations, usuários QA e firewall descritos no card estão autorizados como parte
    dele. Não ampliar a ação remota além do texto do card.
 6. Nunca registrar `.env`, tokens, senhas, service role, URLs assinadas, credenciais, dados de
@@ -84,9 +83,14 @@ Medido em 17/08/2026, **após** a entrega parcial do PV-013.
   Deployment de produção mais recente: `dpl_CLTUwEkGMyJ5jaZyttBuD7qwweYn`, commit `5e446e8`,
   estado **`READY`**. **Repositório, `origin` e produção estão no mesmo SHA.**
 - `TreinaVISA - Manual de Marca 2.0.pdf` continua na raiz, local e ignorado por `/*.pdf`.
-- O projeto declara Node `22.x`; a máquina usa Node `v25.8.0`, o que faz o `npm` emitir `EBADENGINE`
-  em qualquer instalação. É divergência **só do ambiente local** — a Vercel usa a versão declarada.
-  Continue usando o build como evidência; não há card por isso.
+- O projeto declara Node `22.x` em `engines`; a máquina usa Node `v25.8.0`, o que faz o `npm` emitir
+  `EBADENGINE` em qualquer instalação. É divergência **só do ambiente local**. Continue usando o build
+  como evidência; não há card por isso.
+- **Configuração de Node da Vercel divergente, sem efeito hoje.** O projeto na Vercel está com
+  `nodeVersion: "24.x"`, enquanto o `package.json` declara `22.x`. Pela documentação da Vercel,
+  `engines.node` no `package.json` **sobrepõe** a configuração do projeto, então produção roda `22.x`
+  e não há divergência real. O `24.x` é configuração morta que passaria a valer se alguém removesse o
+  `engines` — vale saber, não vale card.
 
 **Correção de um registro anterior desta seção.** A versão anterior afirmava que os três apontavam
 para `c702ec3` (10/08). Estava desatualizada: `origin/main` já estava em `536e055` e o PV-004 **já
@@ -342,10 +346,10 @@ esta seção que diz se o card fechou.
 | PV-017 | Limpeza de artefatos locais | **Parcial** | `.next` e `tsconfig.tsbuildinfo` já removidos. Faltam `.pv008-dev.log`, `.pv008-dev.err.log` e a pergunta à Ester sobre `entregas/templates-subcisao`. |
 | PV-018 | Aceite de acessibilidade do PV-008 | Pendente | — |
 | PV-019 | Remover fluxo de pasta de teste | **Aberto em 17/08** | Novo. Herda o achado 1 do PV-013, agora com o escopo de UI correto. |
-| PV-020 | `[skip ci]` não impede deploy | **Aberto em 17/08** | Novo. Todo commit de docs está redeployando produção. |
+| PV-020 | `[skip ci]` não impede deploy | **Concluído** | `ignoreCommand` por diff de caminho em `2826545`. `[skip ci]` sai das convenções. |
 
-Contagem: **7 concluídos**, 1 concluído com ressalva, **4 parciais**, 6 pendentes, 2 bloqueados,
-2 abertos hoje.
+Contagem: **8 concluídos**, 1 concluído com ressalva, **4 parciais**, 6 pendentes, 2 bloqueados,
+1 aberto e não iniciado (PV-019).
 
 ### 4.3 O que exatamente falta no PV-005
 
@@ -375,30 +379,27 @@ confirmação, limite de 100 por chamada e validação de que todos os IDs perte
 Critério: risco vivo primeiro, depois valor de negócio, depois dívida. Dentro disso, o que é barato e
 destrava leitura futura vem antes do que é caro.
 
+O PV-020 saiu desta fila: foi executado em 17/08 e a régua de registro já está confiável.
+
 | # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de |
 |---|---|---|---|---|---|---|
-| 1 | PV-020 | Corrigir `[skip ci]` / deploy de docs | P1 higiene | baixo | gpt-5.6-terra | — |
-| 2 | PV-019 | Remover fluxo de pasta de teste (rota + UI) | **P0 higiene** | baixo | gpt-5.6-terra | — |
-| 3 | PV-005 | Fluxo visual de correção | **P0 produto** | alto | gpt-5.6-terra | PV-004 |
-| 4 | PV-009 | Planner público e PDF | P1 comercial | alto | gpt-5.6-sol | PV-007 |
-| 5 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 |
-| 6 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
-| 7 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
-| 8 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008 |
-| 9 | PV-010 | Redesign interno principal | P2 visual | alto | gpt-5.6-terra | **PV-005** |
-| 10 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-009, PV-010, PV-011 |
-| 11 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
-| 12 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
+| 1 | PV-019 | Remover fluxo de pasta de teste (rota + UI) | **P0 higiene** | baixo | gpt-5.6-terra | — |
+| 2 | PV-005 | Fluxo visual de correção | **P0 produto** | alto | gpt-5.6-terra | PV-004 |
+| 3 | PV-009 | Planner público e PDF | P1 comercial | alto | gpt-5.6-sol | PV-007 |
+| 4 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 |
+| 5 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
+| 6 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
+| 7 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008 |
+| 8 | PV-010 | Redesign interno principal | P2 visual | alto | gpt-5.6-terra | **PV-005** |
+| 9 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-009, PV-010, PV-011 |
+| 10 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
+| 11 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
 
-**Por que o PV-020 vem antes de tudo, sendo P1 e não P0:** ele custa minutos e distorce o registro de
-todos os cards seguintes. Enquanto ele não fecha, cada linha "Produção: nenhuma ação remota" que
-escrevermos pode ser falsa. Arrumar a régua antes de medir mais coisa.
-
-**Alternativa defensável — janela de higiene primeiro.** PV-020, PV-019, PV-015, PV-018 e o resto do
-PV-017 somam cinco cards de esforço baixo. Fechar os cinco de uma vez limpa a fila de ruído e deixa
-só o trabalho grande (PV-005 → PV-009) visível. Custa um ciclo e não protege documento de cliente —
-se a prioridade for risco, o PV-005 vem antes deles, com o PV-019 na frente por ser barato demais
-para esperar.
+**Alternativa defensável — janela de higiene primeiro.** PV-019, PV-015, PV-018 e o resto do PV-017
+somam quatro cards de esforço baixo. Fechar os quatro de uma vez limpa a fila de ruído e deixa só o
+trabalho grande (PV-005 → PV-009) visível. Custa um ciclo e não protege documento de cliente — se a
+prioridade for risco, o PV-005 vem antes deles, com o PV-019 na frente por ser barato demais para
+esperar.
 
 ### 4.5 Decisões resolvidas em 17/08
 
@@ -1617,9 +1618,75 @@ mostra que **neste projeto não está**.
 
 `chore: stop docs commits from redeploying production`
 
----
+### Resultado — 17/08/2026
 
-## 6. Registro de execução
+**Concluído.** Commit de implementação: `2826545`.
+
+#### Diagnóstico, medido e não presumido
+
+- `vercel.json` continha **apenas** `$schema` e `framework: nextjs`. Não havia `ignoreCommand` nem
+  qualquer filtro — nada no repositório jamais pediu para a Vercel pular build de documentação.
+- A documentação da Vercel confirma o contrato do `ignoreCommand`, que é contraintuitivo e vale
+  registrar: **exit 0 ignora o build; exit 1 segue com o build.**
+- Confirmada a evidência do achado: `99e97bc` (`dpl_Fm5dc9tp…`) e `536e055` (`dpl_8tjBFone…`), ambos
+  `[skip ci]` e sem uma linha de código, geraram deployment de produção `READY`.
+- Causa: `[skip ci]` é convenção de mensagem de commit que **este projeto nunca respeitou**. A régua
+  estava só no texto do commit, onde nada a fazia valer.
+
+#### Decisão
+
+Escolhida a primeira opção do card — `ignoreCommand` por diff de caminho — e **não** a segunda
+(aceitar o redeploy e corrigir só a convenção). Motivo: a segunda opção conserta o registro mas mantém
+o desperdício, e depende de todo agente futuro lembrar de uma regra escrita em prosa. O filtro por
+caminho é versionado, roda sozinho e não depende de disciplina.
+
+- `vercel.json` ganhou `"ignoreCommand": "node scripts/vercel-ignore-build.js"`.
+- Criado `scripts/vercel-ignore-build.js`: compara `VERCEL_GIT_PREVIOUS_SHA..HEAD` e devolve 0
+  (ignorar) **somente** quando todo caminho alterado casa com `docs/**` ou `*.md`.
+
+**Princípio de projeto do script, que não deve ser removido em manutenção futura:** toda dúvida
+resolve para **build**, nunca para skip. `VERCEL_GIT_PREVIOUS_SHA` ausente, `git diff` falhando em
+clone raso e diff vazio todos saem com 1. Build extra custa minutos e aparece no painel; deploy que
+silenciosamente não acontece deixa produção atrás do repositório sem ninguém perceber — foi exatamente
+o modo de falha que abriu este card.
+
+#### Testes locais dos quatro ramos, contra histórico real
+
+| Cenário | `VERCEL_GIT_PREVIOUS_SHA` | Exit | Efeito |
+|---|---|---:|---|
+| Diff só de documentação | `5e446e8` | **0** | ignora o build |
+| Diff toca `package.json` | `cbfe5bd` | **1** | segue com o build |
+| Variável ausente | — | **1** | segue com o build |
+| SHA inexistente no clone | `000…0` | **1** | segue com o build |
+
+#### Aceite verificado
+
+| Verificação | Resultado |
+| --- | --- |
+| `npm.cmd run test:run` | 19 arquivos, 95 testes, todos passaram |
+| `npx.cmd tsc --noEmit` | exit 0 |
+| `npm.cmd run lint` | sem avisos nem erros |
+| `npm.cmd run check:deploy` | concluído sem falhas |
+| `npm.cmd run build` | exit 0 |
+
+Evidência remota, com o estado anterior registrado antes de cada passo:
+
+- **Antes:** último deployment `dpl_AQScP8noUGmpg4YaxiGKuynRvczm` (commit `1ae52d4`, docs, `READY`).
+- **Commit de código `2826545` (toca `vercel.json` e `scripts/`):** gerou
+  `dpl_D1FGTxCsrivVUGDjHbpR5XJaHQ6Z`, target `production`. **Este é o teste que não pode falhar** —
+  filtro que bloqueia deploy de código é pior que o problema original.
+- **Commit de documentação seguinte:** evidência registrada em `#### Confirmação do filtro` abaixo,
+  acrescentada depois de medir na Vercel.
+
+#### Convenção que passa a valer
+
+- `[skip ci]` na mensagem **não faz nada** neste projeto e deve sair das mensagens novas: era enganoso
+  justamente porque parecia funcionar. A regra 4 da seção 1 foi corrigida.
+- O que decide agora é **o caminho do arquivo**, não o texto do commit. Commit que mistura documentação
+  e código deploya, como deve.
+- A coluna "Produção" da seção 6 continua marcada como não confiável para as linhas anteriores a
+  17/08. Não foram reescritas uma a uma: os deployments antigos existem e estão listados na Vercel, e
+  reescrever da memória introduziria erro novo. O aviso nomeia o motivo.
 
 | Data | Card | Estado | Commit | Produção | Observação |
 |---|---|---|---|---|---|
@@ -1636,7 +1703,8 @@ mostra que **neste projeto não está**.
 | 17/08/2026 | PV-004 | Concluído com ressalva | `9ed5856` | **Deployado** (via `99e97bc`/`536e055`) | Motor reescrito com preflight, trava 409 e preservação estrutural. 95 testes + smoke em 900 documentos reais (zero falhas; A/B mostrou 1 dano estrutural e 6 não-aplicações do motor antigo). `hashOrigem` opcional até o PV-005; nenhum documento aberto no Word. |
 | 17/08/2026 | PV-013 | **Parado na verificação** | `cbfe5bd` | Deploy de produção (o `[skip ci]` não impediu) | Cláusula de parada do próprio card acionada: a rota `/api/pastas/teste` tem chamador de UI, ao contrário do que o card afirmava. Achado registrado, nada removido. |
 | 17/08/2026 | PV-013 | **Parcial — achado 2** | `5e446e8` | `dpl_CLTUwEkGMyJ5jaZyttBuD7qwweYn` `READY` | `docxtemplater-image-module-free` removido; 2 pacotes fora, incluindo `xmldom@0.1.31`. `npm audit` 19→17, **crítica 1→0**. Sem `npm audit fix`, então a queda é atribuível. Suíte (95), tsc, lint, `check:deploy` e build aprovados. A rota de teste **continua em produção** → PV-019. |
-| 17/08/2026 | Revisão do mapa de cards | Concluído | — | — | Seção 4 reescrita: vocabulário de estado, painel com os 21 cards, os 4 itens que faltam no PV-005 registrados por escrito, fila reordenada. Abertos PV-019 e PV-020. Corrigido o SHA de 2.1, que apontava para `c702ec3` quando `origin` já estava em `536e055`. |
+| 17/08/2026 | Revisão do mapa de cards | Concluído | `1ae52d4` | `dpl_AQScP8no…` `READY` (docs ainda deployava) | Seção 4 reescrita: vocabulário de estado, painel com os 21 cards, os 4 itens que faltam no PV-005 registrados por escrito, fila reordenada. Abertos PV-019 e PV-020. Corrigido o SHA de 2.1, que apontava para `c702ec3` quando `origin` já estava em `536e055`. |
+| 17/08/2026 | PV-020 | Concluído | `2826545` | `dpl_D1FGTxCsrivVUGDjHbpR5XJaHQ6Z` `READY` | `ignoreCommand` em `vercel.json` apontando para `scripts/vercel-ignore-build.js`: ignora build só quando todo caminho alterado é `docs/**` ou `*.md`, e resolve toda dúvida para build. 4 ramos testados localmente contra histórico real. Commit de código continua deployando — comprovado por este próprio deployment. `[skip ci]` removido das convenções. |
 
 **Aviso sobre a coluna "Produção" nas linhas acima de 17/08.** Ela não é confiável. Foi preenchida
 assumindo que `[skip ci]` impedia deploy, o que é falso neste projeto (ver PV-020). Onde se lê
