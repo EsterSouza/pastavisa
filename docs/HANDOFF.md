@@ -1109,9 +1109,10 @@ Dois achados independentes, ambos de correção trivial e risco funcional nulo:
 
 ### Resultado — 17/08/2026
 
-**Parado na verificação prévia.** Nenhuma alteração de código, dependência ou banco foi feita. O
-card acionou a própria cláusula de parada: *"Se houver chamador, o card muda de escopo — registre e
-pare."*
+**Parcialmente concluído, por decisão de escopo da Ester.** O card acionou a própria cláusula de
+parada: *"Se houver chamador, o card muda de escopo — registre e pare."* O achado 1 foi registrado e
+**não** executado; o achado 2 foi executado isolado. A rota `/api/pastas/teste` **continua em
+produção**.
 
 #### Achado 1 — premissa incorreta: a rota **tem** caminho de UI
 
@@ -1135,34 +1136,57 @@ Não foi registrada a contagem de pastas de teste já existentes no banco: essa 
 card que efetivamente remover o fluxo, e não se justifica tocar o banco de produção com o card
 parado.
 
-#### Achado 2 — confirmado, **não** executado
+#### Achado 2 — **executado**
 
-A premissa do módulo de imagem se sustenta integralmente, mas a remoção não foi feita para manter a
-parada do card íntegra e o commit fiel à mensagem especificada (que cobre os dois achados juntos).
-Verificação registrada:
+Premissa confirmada antes da remoção:
 
-- `docxtemplater-image-module-free` e `ImageModule` não aparecem em nenhum arquivo de código. As
-  únicas ocorrências no repositório são `package.json:37`, `package-lock.json` e este `docs/HANDOFF.md`.
-- `package-lock.json:4769-4777` confirma que o módulo é a **única** origem de `xmldom`, e
-  `npm audit` confirma a atribuição pelo campo `effects`:
-  `xmldom severity=critical fixAvailable=false effects=docxtemplater-image-module-free`.
-- `package-lock.json:11190-11196` — `xmldom@0.1.31`, deprecado, `CVE-2021-21366` resolvido só na 0.5.0.
-- O `docxtemplater` em uso **não** depende disso: `package-lock.json:4763` mostra que ele usa
-  `@xmldom/xmldom@^0.9.8` (pacote distinto, sem a vulnerabilidade). A remoção não afeta a geração de DOCX.
+- `docxtemplater-image-module-free` e `ImageModule` não apareciam em nenhum arquivo de código. As
+  únicas ocorrências no repositório eram `package.json`, `package-lock.json` e este `docs/HANDOFF.md`.
+- O módulo era a **única** origem de `xmldom`, atribuição confirmada pelo campo `effects` do
+  `npm audit`: `xmldom severity=critical fixAvailable=false effects=docxtemplater-image-module-free`.
+  A versão presa era `xmldom@0.1.31`, deprecada, `CVE-2021-21366` resolvido só na 0.5.0.
+- O `docxtemplater` em uso **não** dependia disso: ele usa `@xmldom/xmldom@^0.9.8`, pacote distinto e
+  sem a vulnerabilidade. Por isso a remoção não tinha como afetar a geração de DOCX — e não afetou.
 
-`npm audit` de referência (antes, grafo intocado):
+`npm.cmd uninstall docxtemplater-image-module-free` removeu **2 pacotes** (o módulo e o `xmldom`).
+`npm audit fix` **não** foi executado, conforme o card, para que a queda fosse atribuível somente a
+esta remoção. Nenhuma outra dependência foi tocada.
 
-| Severidade | Contagem |
+`npm audit` antes e depois:
+
+| Severidade | Antes | Depois |
+| --- | --- | --- |
+| crítica | 1 | **0** |
+| alta | 13 | 13 |
+| moderada | 5 | 4 |
+| **total** | **19** | **17** |
+
+A moderada extra que caiu era o segundo aviso do próprio `xmldom`. `xmldom` e
+`docxtemplater-image-module-free` não constam mais no `package.json` nem no `package-lock.json`, e o
+`npm audit` não os lista mais.
+
+#### Aceite verificado
+
+| Verificação | Resultado |
 | --- | --- |
-| crítica | 1 |
-| alta | 13 |
-| moderada | 5 |
-| **total** | **19** |
+| `npm.cmd run test:run` | 19 arquivos, 95 testes, todos passaram |
+| `npx.cmd tsc --noEmit` | exit 0 |
+| `npm.cmd run lint` | sem avisos nem erros |
+| `npm.cmd run check:deploy` | concluído sem falhas |
+| `npm.cmd run build` | exit 0, 9 páginas e 37 rotas compiladas |
 
-#### Próximo passo
+Nenhuma `Pasta` real foi removida — este recorte não tocou o banco.
 
-Decisão da Ester: dividir o PV-013 em (a) remoção do módulo de imagem, pronta para execução imediata
-e isolada, e (b) remoção do fluxo de pasta de teste incluindo a UI, com escopo revisto.
+Observação não relacionada ao card: o `npm` emite `EBADENGINE` porque o ambiente local roda Node
+v25.8.0 e o `package.json` exige `22.x`. Pré-existente, não introduzido aqui, e sem efeito sobre
+build ou suíte. Vale um card próprio se a divergência incomodar.
+
+#### Pendente — achado 1
+
+A rota `/api/pastas/teste` e o botão "🧪 Pasta de teste" continuam em produção, com o risco descrito
+acima intacto. Precisa de um card próprio, com escopo de UI: remover rota, botão, handler
+`handleCriarTeste` e estado `criandoTeste`, mais a contagem de pastas de teste já existentes no banco
+para a Ester decidir sobre exclusão. O smoke de 404 previsto no PV-013 não se aplica a este recorte.
 
 ---
 
