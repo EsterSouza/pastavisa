@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import path from "path";
 import { prisma } from "@/lib/prisma";
 import { readStorageBuffer, saveGeneratedDocx } from "@/lib/file-storage";
-import { applyBatchChanges, Substituicao } from "@/lib/header-footer-replace";
+import { applyBatchChanges, hashDocx, Substituicao } from "@/lib/header-footer-replace";
 import { createOutputDocxFileName } from "@/lib/generator";
 
 export const runtime = "nodejs";
@@ -16,31 +16,36 @@ interface ItemResultado {
   aplicadas?: string[];
   naoEncontradas?: string[];
   logoSubstituida?: boolean;
+  contagens?: Array<{ de: string; total: number; corpo: number; cabecalho: number; rodape: number }>;
+  hashOrigem?: string;
   erro?: string;
 }
 
-// Processes exactly one document per call (like /api/gerar). Applying an
-// entire batch inside a single request had two problems in practice: no
-// per-document progress for the operator, and a real risk of hitting the
-// serverless function time limit on large folders (40-100+ docs) with zero
-// feedback if it did. The client now loops one document at a time instead.
+// Processa exatamente um documento por chamada (como /api/gerar). Aplicar um lote
+// inteiro dentro de uma única requisição tinha dois problemas na prática: nenhum
+// progresso por documento para o operador, e risco real de estourar o limite de
+// tempo da função em pastas grandes (40-100+ docs) sem qualquer retorno. O cliente
+// percorre um documento por vez.
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const contentType = req.headers.get("content-type") || "";
   let docId = "";
   let substituicoes: Substituicao[] = [];
   let logoBuffer: Buffer | undefined;
+  let hashOrigem = "";
 
   try {
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
       docId = String(formData.get("docId") || "");
       substituicoes = JSON.parse(String(formData.get("substituicoes") || "[]"));
+      hashOrigem = String(formData.get("hashOrigem") || "");
       const logo = formData.get("logo") as File | null;
       if (logo && logo.size > 0) logoBuffer = Buffer.from(await logo.arrayBuffer());
     } else {
       const body = await req.json();
       docId = String(body.docId || "");
       substituicoes = Array.isArray(body.substituicoes) ? body.substituicoes : [];
+      hashOrigem = String(body.hashOrigem || "");
     }
   } catch {
     return NextResponse.json({ error: "Corpo da requisicao invalido" }, { status: 400 });
@@ -65,19 +70,47 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "Documento nao encontrado" }, { status: 404 });
   }
 
+  // Lê a base e confere o hash antes de marcar o documento como em processamento:
+  // uma base divergente não pode deixar o registro num estado intermediário.
+  const baseRef = doc.outputPath || doc.uploadPath;
+  let inputBuffer: Buffer;
+  let hashAtual: string;
+  try {
+    inputBuffer = await readStorageBuffer(baseRef);
+    hashAtual = hashDocx(inputBuffer);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Erro desconhecido";
+    await prisma.documentoUpload.update({
+      where: { id: doc.id },
+      data: { status: "erro", mensagemErro: msg },
+    });
+    return NextResponse.json({ docId: doc.id, status: "erro", erro: msg } satisfies ItemResultado);
+  }
+
+  // `hashOrigem` é opcional para não quebrar quem ainda aplica sem analisar antes.
+  // Quando enviado, ele é a trava: o documento mudou desde a análise e os números
+  // que o operador viu não valem mais.
+  if (hashOrigem && hashOrigem !== hashAtual) {
+    return NextResponse.json(
+      {
+        error: `O documento ${doc.nomeArquivo} mudou desde a analise. Analise novamente antes de aplicar.`,
+        docId: doc.id,
+        hashOrigem: hashAtual,
+      },
+      { status: 409 }
+    );
+  }
+
   const outputDir = path.join(process.cwd(), "storage", "output", params.id);
   let resultado: ItemResultado;
 
   try {
     await prisma.documentoUpload.update({ where: { id: doc.id }, data: { status: "processando" } });
 
-    const baseRef = doc.outputPath || doc.uploadPath;
-    const inputBuffer = await readStorageBuffer(baseRef);
-
-    const { buffer, aplicadas, naoEncontradas, logoSubstituida } = await applyBatchChanges(inputBuffer, {
-      logoBuffer,
-      substituicoes: substituicoesValidas,
-    });
+    const { buffer, aplicadas, naoEncontradas, logoSubstituida, contagens } = await applyBatchChanges(
+      inputBuffer,
+      { logoBuffer, substituicoes: substituicoesValidas }
+    );
 
     const versionId = `v${doc.versoes.length + 1}_${randomUUID()}`;
     const fileName = createOutputDocxFileName(`CORRIGIDO_${doc.nomeArquivo}`);
@@ -97,7 +130,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }),
     ]);
 
-    resultado = { docId: doc.id, status: "processado", aplicadas, naoEncontradas, logoSubstituida };
+    resultado = {
+      docId: doc.id,
+      status: "processado",
+      aplicadas,
+      naoEncontradas,
+      logoSubstituida,
+      contagens: contagens.map(({ de, total, corpo, cabecalho, rodape }) => ({
+        de,
+        total,
+        corpo,
+        cabecalho,
+        rodape,
+      })),
+      hashOrigem: hashAtual,
+    };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Erro desconhecido";
     await prisma.documentoUpload.update({

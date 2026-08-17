@@ -31,7 +31,13 @@ function lineAndColumn(xml: string, index: number): string {
   return `linha ${lines.length}, coluna ${lines[lines.length - 1].length + 1}`;
 }
 
-function validateXmlWellFormed(xml: string): string | null {
+/**
+ * Verifica se um XML solto está bem formado, devolvendo a descrição do primeiro
+ * problema ou null. Exportado para que quem reescreve uma parte do .docx possa
+ * validá-la antes de devolvê-la ao pacote, em vez de só descobrir o estrago na
+ * validação final do arquivo inteiro.
+ */
+export function validateXmlWellFormed(xml: string): string | null {
   const stack: Array<{ name: string; index: number }> = [];
   let i = 0;
 
