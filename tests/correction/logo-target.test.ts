@@ -42,9 +42,12 @@ function desenho(rId: string): string {
   );
 }
 
-function celulaComDesenho(rId: string, larguraTwips: number): string {
+function celulaComDesenho(rId: string, larguraTwips: number, alturaLinhaTwips?: number): string {
+  const trPr = alturaLinhaTwips
+    ? `<w:trPr><w:trHeight w:val="${alturaLinhaTwips}" w:hRule="atLeast"/></w:trPr>`
+    : "";
   return (
-    "<w:tbl><w:tr><w:tc>" +
+    `<w:tbl><w:tr>${trPr}<w:tc>` +
     `<w:tcPr><w:tcW w:w="${larguraTwips}" w:type="dxa"/></w:tcPr>` +
     `<w:p><w:r>${desenho(rId)}</w:r></w:p>` +
     "</w:tc></w:tr></w:tbl>"
@@ -63,6 +66,8 @@ function midia(marcador: number): Buffer {
 interface Opcoes {
   /** Quando falso, nenhum `<w:sectPr>` referencia cabeçalho — grafo irresolvível. */
   comSectPr?: boolean;
+  /** Altura declarada da linha da logo, em twips. Ausente = linha sem altura. */
+  alturaLinhaTwips?: number;
 }
 
 /**
@@ -70,7 +75,7 @@ interface Opcoes {
  * menor e a logo dentro de uma célula — mais uma imagem só declarada no rels. Um
  * segundo cabeçalho (header2) existe no zip mas nenhum `<w:sectPr>` o referencia.
  */
-function montarDocxComLogo({ comSectPr = true }: Opcoes = {}): PizZip {
+function montarDocxComLogo({ comSectPr = true, alturaLinhaTwips }: Opcoes = {}): PizZip {
   const zip = new PizZip();
 
   zip.file(
@@ -105,7 +110,8 @@ function montarDocxComLogo({ comSectPr = true }: Opcoes = {}): PizZip {
 
   zip.file(
     "word/header1.xml",
-    `<w:hdr ${W} ${R}><w:p><w:r>${desenho("rId5")}</w:r></w:p>${celulaComDesenho("rId7", 4000)}</w:hdr>`
+    `<w:hdr ${W} ${R}><w:p><w:r>${desenho("rId5")}</w:r></w:p>` +
+      `${celulaComDesenho("rId7", 4000, alturaLinhaTwips)}</w:hdr>`
   );
   zip.file(
     "word/_rels/header1.xml.rels",
@@ -210,6 +216,47 @@ describe("alvo da troca de logo", () => {
     // da logo, entregando um cabeçalho com imagem distorcida.
     expect(daFoto).toContain('cx="111"');
     expect(daFoto).toContain('cy="222"');
+  });
+
+  it("respeita a altura declarada da linha em vez do teto fixo", async () => {
+    // Logo 300x100 (3:1) numa célula de 4000 twips. Largura útil = 2.336.800 EMU.
+    // Com o teto fixo de 684.000 EMU (1,9 cm) a altura limita e a logo sai estreita;
+    // com a linha declarando 1700 twips a largura passa a limitar e ela preenche.
+    const larguraUtilEmu = Math.round(4000 * 635 * 0.92);
+
+    const semAltura = montarDocxComLogo();
+    await replaceLogoInHeadersAndFooters(semAltura, await logoNova());
+    const cxSemAltura = Number(
+      semAltura.files["word/header1.xml"].asText().match(/wp:extent[^>]*?\scx="(\d+)"/)?.[1]
+    );
+
+    const comAltura = montarDocxComLogo({ alturaLinhaTwips: 1700 });
+    await replaceLogoInHeadersAndFooters(comAltura, await logoNova());
+    const xmlComAltura = comAltura.files["word/header1.xml"].asText();
+    const daLogo = (xmlComAltura.match(/<w:drawing[\s\S]*?<\/w:drawing>/g) ?? []).find((bloco) =>
+      bloco.includes('r:embed="rId7"')
+    );
+    const cxComAltura = Number(daLogo?.match(/wp:extent[^>]*?\scx="(\d+)"/)?.[1]);
+
+    expect(cxSemAltura).toBeLessThan(larguraUtilEmu);
+    expect(cxComAltura).toBe(larguraUtilEmu);
+    expect(cxComAltura).toBeGreaterThan(cxSemAltura);
+  });
+
+  it("nunca passa da largura da célula, que alargaria a tabela do cabeçalho", async () => {
+    const larguraUtilEmu = Math.round(4000 * 635 * 0.92);
+    // Altura declarada folgada de propósito: mesmo com espaço vertical de sobra, a
+    // largura da célula continua sendo limite duro.
+    const zip = montarDocxComLogo({ alturaLinhaTwips: 20_000 });
+
+    await replaceLogoInHeadersAndFooters(zip, await logoNova());
+
+    const daLogo = (zip.files["word/header1.xml"].asText().match(/<w:drawing[\s\S]*?<\/w:drawing>/g) ?? [])
+      .find((bloco) => bloco.includes('r:embed="rId7"'));
+    const cx = Number(daLogo?.match(/wp:extent[^>]*?\scx="(\d+)"/)?.[1]);
+
+    expect(cx).toBe(larguraUtilEmu);
+    expect(cx).toBeLessThanOrEqual(4000 * 635);
   });
 
   it("não relata substituição quando nenhuma imagem da parte vigente é desenhada", async () => {

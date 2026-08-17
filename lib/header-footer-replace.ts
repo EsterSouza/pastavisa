@@ -25,7 +25,11 @@ export interface AplicarBatchResult {
 
 const TWIP_TO_EMU = 635;
 const HEADER_CELL_INSET = 0.92; // ~8% de recuo das bordas da célula, igual ao fluxo principal
-const HEADER_MAX_HEIGHT_EMU = 684_000; // ~1,9cm — impede a linha do cabeçalho de crescer
+// Teto de altura de último recurso, usado só quando a linha do cabeçalho não
+// declara altura própria. Conservador de propósito: sem geometria declarada, deixar
+// a logo preencher a largura faria a faixa do cabeçalho crescer sem limite (uma logo
+// quadrada numa célula de 8 cm viraria um cabeçalho de 8 cm de altura).
+const HEADER_MAX_HEIGHT_EMU = 684_000; // ~1,9 cm
 
 /** Um rId de imagem está de fato desenhado nesta parte (e não só declarado no rels)? */
 function isImageEmbedded(partXml: string, rId: string): boolean {
@@ -97,6 +101,30 @@ function findImageCellWidthTwips(xml: string, rId: string): number | null {
       const match = cell.match(/<w:tcW\s+w:w="(\d+)"/);
       if (match) return parseInt(match[1], 10);
     }
+  }
+  return null;
+}
+
+/**
+ * Altura declarada (em twips) da linha de tabela que contém o desenho de `rId`.
+ *
+ * É o teto de altura correto para a logo: quem desenhou o cabeçalho já decidiu a
+ * altura da faixa, e essa decisão está no documento. Sem isto o código usava um
+ * teto fixo de 1,9 cm, que fazia qualquer logo menos larga que ~3,9:1 sair
+ * estreita — uma logo 2:1 ocupava metade da célula, uma quadrada um quarto.
+ *
+ * `null` quando a linha não declara altura (cresce com o conteúdo), caso em que o
+ * chamador não tem geometria para respeitar e volta ao teto conservador.
+ *
+ * Assume tabela de cabeçalho simples, sem tabela aninhada — a mesma premissa que
+ * `findImageCellWidthTwips` já fazia.
+ */
+function findImageRowHeightTwips(xml: string, rId: string): number | null {
+  const rows = xml.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) || [];
+  for (const row of rows) {
+    if (!row.includes(`r:embed="${rId}"`)) continue;
+    const match = row.match(/<w:trHeight\b[^>]*\sw:val="(\d+)"/);
+    return match ? parseInt(match[1], 10) : null;
   }
   return null;
 }
@@ -176,8 +204,16 @@ export async function replaceLogoInHeadersAndFooters(
     const cellWidthTwips = findImageCellWidthTwips(partXml, ref.rId);
     if (!cellWidthTwips) continue; // sem célula em volta da imagem — não mexe no tamanho
 
+    // A largura da célula é um limite duro: passar dela obriga o Word a alargar a
+    // célula, e com ela a tabela do cabeçalho.
     const maxWidthEmu = Math.round(cellWidthTwips * TWIP_TO_EMU * HEADER_CELL_INSET);
-    const scale = Math.min(maxWidthEmu / naturalWEmu, HEADER_MAX_HEIGHT_EMU / naturalHEmu);
+    // A altura vem da linha quando o documento a declara. O teto fixo é só o caso
+    // em que não há geometria declarada para respeitar.
+    const rowHeightTwips = findImageRowHeightTwips(partXml, ref.rId);
+    const maxHeightEmu = rowHeightTwips
+      ? Math.round(rowHeightTwips * TWIP_TO_EMU * HEADER_CELL_INSET)
+      : HEADER_MAX_HEIGHT_EMU;
+    const scale = Math.min(maxWidthEmu / naturalWEmu, maxHeightEmu / naturalHEmu);
     const targetCx = Math.round(naturalWEmu * scale);
     const targetCy = Math.round(naturalHEmu * scale);
 
