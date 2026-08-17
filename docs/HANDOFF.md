@@ -268,8 +268,14 @@ Verificado por inspeção de arquivos, para não refazer pesquisa:
   nestes arquivos — mesma conclusão que o smoke do PV-004 já havia registrado sobre o raio de alcance
   ser mais estreito do que a expectativa inicial. Para exercitá-la é preciso documento com foto no
   cabeçalho além da logo, ou com parte órfã de revisão anterior.
-- **Continua em aberto — a inspeção no Word.** Os arquivos corrigidos existem e foram entregues, mas
-  quem confirma que abrem sem aviso e que o cabeçalho ficou bom é a Ester. É a última ressalva do fluxo.
+- **Fechado em 17/08 — inspeção no Word aprovada pela Ester.** Ela abriu os três documentos corrigidos
+  reais e confirmou o cabeçalho ("agora tá certo o cabeçalho"). É a evidência que faltava desde o
+  PV-004: documento corrigido pelo motor novo, aberto no Word, com a logo na caixa certa. **Isto encerra
+  a ressalva de PV-004 e PV-005.**
+- **O que ainda não tem confirmação visual** é o caso de documento com **mais de uma imagem** no
+  cabeçalho, ou com parte órfã: o alvo da logo está provado por teste unitário, e o acervo inspecionado
+  não tinha esse formato. Não é ressalva de card — é a próxima oportunidade de verificação, quando
+  aparecer um documento assim.
 - **Storage de produção segue inacessível daqui.** O bucket `pasta-visa` é privado e a
   `SUPABASE_SERVICE_ROLE_KEY` não está no `.env.local` deste checkout — 148 `DocumentoUpload` e 297
   `Template` em produção, inalcançáveis. Ler credencial de outro projeto no disco foi bloqueado, e com
@@ -384,8 +390,8 @@ esta seção que diz se o card fechou.
 | PV-001 | Fundação de testes | Concluído | — |
 | PV-002 | Fechamento de tabelas expostas | Concluído | — |
 | PV-003 | Supabase Auth, papéis e QA | Concluído | — |
-| PV-004 | Motor seguro de substituição DOCX | **Concluído com ressalva** | Escopo entregue. A trava de hash passou a ter efeito com o PV-005 em 17/08. Segue valendo a ressalva de nenhum documento corrigido aberto no Word. Não volta à fila. |
-| PV-005 | Fluxo visual de correção | **Concluído com ressalva** | Escopo de código entregue (`2a31f1e`, `c4a785f`, `6cb4eee`). Ressalva: nada foi aberto no Word e o alvo da logo está provado por teste, não por inspeção visual. Ambos dependem de um `.docx` real da Ester — ver 4.3. Não volta à fila. |
+| PV-004 | Motor seguro de substituição DOCX | **Concluído** | Ressalva encerrada em 17/08: a trava de hash passou a ter efeito com o PV-005, e a Ester abriu documento corrigido no Word e aprovou. |
+| PV-005 | Fluxo visual de correção | **Concluído** | Entregue em `2a31f1e`, `c4a785f`, `6cb4eee`, `1b89a59`, `bd6de08`. Ressalva encerrada: inspeção no Word aprovada pela Ester em 17/08 — ver 4.3. |
 | PV-006 | Motor sanitário do planner | Concluído | — |
 | PV-007 | API pública, preço e proteção | Concluído | — |
 | PV-008 | Manual de marca e design system | **Parcial** | Zoom 200% e ordem completa de teclado nunca foram comprovados. Esse resto virou o PV-018. |
@@ -402,12 +408,11 @@ esta seção que diz se o card fechou.
 | PV-019 | Remover fluxo de pasta de teste | **Concluído** | Rota e UI removidas em `a12064d`. Zero pastas de teste no banco. Falta só o smoke autenticado de 404, que depende de login da Ester. |
 | PV-020 | `[skip ci]` não impede deploy | **Concluído** | `ignoreCommand` por diff de caminho em `2826545`. `[skip ci]` sai das convenções. |
 
-Contagem: **9 concluídos**, **2 concluídos com ressalva** (PV-004, PV-005), **3 parciais** (PV-008,
-PV-013, PV-017), 6 pendentes, **1 bloqueado** (PV-012).
+Contagem: **11 concluídos**, nenhum com ressalva pendente, **3 parciais** (PV-008, PV-013, PV-017),
+6 pendentes, **1 bloqueado** (PV-012).
 
 O PV-013 está listado como parcial **encerrado**: não volta à fila, porque o resto dele foi entregue
-pelo PV-019. O PV-005 sai da fila como concluído com ressalva: o escopo de código está entregue e a
-ressalva é de verificação visual, que só a Ester pode fazer.
+pelo PV-019.
 
 ### 4.3 PV-005 — os quatro itens, e o que sobrou
 
@@ -419,9 +424,9 @@ registrados aqui com o desfecho de cada um, em 17/08.
 | 1. Ligar analisar → aplicar e enviar `hashOrigem` | **Feito** | `6cb4eee` |
 | 2. Passo de restaurar | **Feito** | `6cb4eee` |
 | 3. Bug da logo — correção de código | **Feito** | `c4a785f` |
-| 3b. Bug da logo — verificação visual | **Aberto, é da Ester** | `.docx` reais corrigidos entregues |
+| 3b. Bug da logo — verificação visual | **Aprovada pela Ester** | 3 documentos reais, abertos no Word |
 | 3c. Tamanho da logo — teto de altura | **Feito** | `d90d7dc` → `1b89a59` → `b5bd95d`; ver **4.7** |
-| 4. Abrir um documento corrigido no Word | **Aberto, é da Ester** | 3 documentos reais corrigidos e entregues em 17/08 |
+| 4. Abrir um documento corrigido no Word | **Feito e aprovado** | 3 documentos reais, 17/08 — encerra a ressalva do PV-004 |
 | (antecipado) Exclusão múltipla | Feito em 08/08 | `2a31f1e` |
 
 **O que sobrou, e por que não posso fechar.** Os dois itens abertos são de inspeção visual em documento
@@ -463,10 +468,8 @@ cards de esforço baixo. Fechar os três de uma vez limpa a fila de ruído e dei
 (PV-009 → PV-010/PV-011) visível. Agora que nenhum P0 está aberto, essa opção ficou mais defensável do
 que era: não há risco vivo competindo com ela.
 
-**Antes de qualquer card novo, a verificação de 4.3.** É barata para a Ester (um documento, um par,
-abrir no Word) e é o que converte PV-004 e PV-005 de "concluído com ressalva" em concluído. Nenhum
-card depende dela, então não bloqueia a fila — mas quanto mais tarde, mais tempo o motor de correção
-roda em produção sem uma única confirmação visual.
+**A verificação de 4.3 foi feita em 17/08 e aprovada**, então não há mais nada a fazer antes de pegar o
+próximo card. PV-004 e PV-005 estão concluídos, sem ressalva pendente.
 
 ### 4.5 Decisões resolvidas em 17/08
 
@@ -767,6 +770,10 @@ Commit de implementação: `c0d072a`.
 
 ## PV-004 — Motor seguro de substituição DOCX
 
+> **Estado: CONCLUÍDO.** Era "concluído com ressalva" por dois motivos, ambos encerrados em 17/08: a
+> trava de hash passou a ser exercida quando o PV-005 ligou analisar → aplicar (`6cb4eee`), e a Ester
+> abriu documento corrigido pelo motor novo no Word e aprovou o cabeçalho. Não volta à fila.
+
 **Modelo:** gpt-5.6-sol · **Esforço:** xhigh · **Prioridade:** P1 · **Depende de:** PV-001, PV-003
 **Resultado:** preflight e preservação estrutural do Word.
 
@@ -923,10 +930,10 @@ alterada.
 **Modelo:** gpt-5.6-terra · **Esforço:** alto · **Prioridade:** P0 produto · **Depende de:** PV-004
 **Resultado:** Upload → Analisar → Revisar → Aplicar → Baixar/Restaurar.
 
-> **Estado: CONCLUÍDO COM RESSALVA** em 17/08. Escopo de código entregue em `c4a785f` e `6cb4eee`,
-> além da exclusão múltipla antecipada em `2a31f1e`. **Ressalva:** nenhum documento corrigido foi
-> aberto no Word e o acerto do alvo da logo está provado por teste unitário, não por inspeção visual.
-> Os dois dependem de um `.docx` real da Ester — roteiro em **4.3**. Não volta à fila.
+> **Estado: CONCLUÍDO** em 17/08. Entregue em `c4a785f`, `6cb4eee`, `1b89a59` e `bd6de08`, além da
+> exclusão múltipla antecipada em `2a31f1e`. A ressalva que existia — nada aberto no Word — **foi
+> encerrada no mesmo dia**: a Ester rodou o motor sobre três documentos reais dela, abriu no Word e
+> aprovou o cabeçalho. Não volta à fila.
 
 ### Arquivos
 
@@ -1060,15 +1067,19 @@ isso em componentes exigiria erguer um contexto ou descer props por três nívei
 comportamento. A página cresceu e continua legível por etapa. Extrair componentes é refatoração
 oportuna quando o PV-010 mexer nesta tela; fazer agora seria custo sem entrega.
 
-#### O que **não** foi verificado, e por quê
+#### Verificação visual — fechada no mesmo dia
 
-- **Nenhum documento aberto no Word.** Não existe `.docx` no repositório nem no disco local; o smoke de
-  900 documentos do PV-004 rodou sobre acervo que não está aqui.
-- **O alvo da logo não passou por inspeção visual.** Os testes fixam qual arquivo de mídia e qual
-  desenho são tocados — não como o cabeçalho fica na tela.
+Ao ser escrito, este resultado registrava duas lacunas: nenhum documento aberto no Word e nenhuma
+inspeção visual do alvo da logo, ambas porque não havia `.docx` real acessível daqui. **As duas foram
+fechadas em 17/08**, depois que a Ester forneceu três documentos de uma pasta de cliente: o motor rodou
+sobre eles, ela abriu no Word e aprovou o cabeçalho. Isso encerra também a ressalva do PV-004.
 
-Roteiro para fechar os dois em **4.3**. Enquanto não forem feitos, PV-004 e PV-005 seguem "concluído
-com ressalva", não concluídos.
+O caminho não foi direto — a altura da logo levou três tentativas, e as duas primeiras erraram. Está
+registrado em **4.7**, que é a leitura obrigatória de quem for mexer em geometria de cabeçalho.
+
+Segue sem confirmação visual apenas o caso de documento com **mais de uma imagem** no cabeçalho ou com
+parte órfã, porque o acervo inspecionado não tinha esse formato. Não é ressalva de card: é o próximo
+documento a olhar quando aparecer um assim.
 
 ### Entrega antecipada autorizada — exclusão múltipla — 08/08/2026
 
@@ -2061,7 +2072,7 @@ Resumo dos dois testes que fecham o card:
 | 09/08/2026 | PV-002 | Concluído | `1a03f6f` | Migration aplicada em `imywcumdngkzkeszvyxv` | Registro reconstruído na auditoria de 17/08. RLS ativa e **zero grants** para `anon`/`authenticated` confirmados em produção. |
 | 09/08/2026 | PV-003 | Concluído | `b7d1272` | 2 contas criadas em `auth.users` | Registro reconstruído na auditoria de 17/08. `lib/session-auth.ts` removido; 1 `admin` e 1 `operador`, ambos com papel em `app_metadata`. |
 | 17/08/2026 | Auditoria de retomada | Concluído | `443f27e` | Nenhuma ação remota | Estado real medido contra código, Supabase e Vercel. Mapa de cards corrigido (PV-002/PV-003 estavam marcados como pendentes). Abertos PV-013 a PV-018. |
-| 17/08/2026 | PV-004 | Concluído com ressalva | `9ed5856` | **Deployado** (via `99e97bc`/`536e055`) | Motor reescrito com preflight, trava 409 e preservação estrutural. 95 testes + smoke em 900 documentos reais (zero falhas; A/B mostrou 1 dano estrutural e 6 não-aplicações do motor antigo). `hashOrigem` opcional até o PV-005; nenhum documento aberto no Word. |
+| 17/08/2026 | PV-004 | Concluído (ressalva encerrada no mesmo dia) | `9ed5856` | **Deployado** (via `99e97bc`/`536e055`) | Motor reescrito com preflight, trava 409 e preservação estrutural. 95 testes + smoke em 900 documentos reais (zero falhas; A/B mostrou 1 dano estrutural e 6 não-aplicações do motor antigo). `hashOrigem` opcional até o PV-005, que passou a enviá-lo em `6cb4eee`. A ressalva de nenhum documento aberto no Word foi encerrada em 17/08, com a Ester aprovando três documentos reais corrigidos. |
 | 17/08/2026 | PV-013 | **Parado na verificação** | `cbfe5bd` | Deploy de produção (o `[skip ci]` não impediu) | Cláusula de parada do próprio card acionada: a rota `/api/pastas/teste` tem chamador de UI, ao contrário do que o card afirmava. Achado registrado, nada removido. |
 | 17/08/2026 | PV-013 | **Parcial — achado 2** | `5e446e8` | `dpl_CLTUwEkGMyJ5jaZyttBuD7qwweYn` `READY` | `docxtemplater-image-module-free` removido; 2 pacotes fora, incluindo `xmldom@0.1.31`. `npm audit` 19→17, **crítica 1→0**. Sem `npm audit fix`, então a queda é atribuível. Suíte (95), tsc, lint, `check:deploy` e build aprovados. A rota de teste **continua em produção** → PV-019. |
 | 17/08/2026 | Revisão do mapa de cards | Concluído | `1ae52d4` | `dpl_AQScP8no…` `READY` (docs ainda deployava) | Seção 4 reescrita: vocabulário de estado, painel com os 21 cards, os 4 itens que faltam no PV-005 registrados por escrito, fila reordenada. Abertos PV-019 e PV-020. Corrigido o SHA de 2.1, que apontava para `c702ec3` quando `origin` já estava em `536e055`. |
@@ -2075,6 +2086,10 @@ Resumo dos dois testes que fecham o card:
 | 17/08/2026 | PV-005 — correção de erro meu | Concluído | `1b89a59` | Segue no próximo push de código | `d90d7dc` lia `<w:trHeight>` como teto de altura. Está errado: com `w:hRule="atLeast"`, que é **o padrão quando o atributo está ausente**, o valor é altura *mínima* e a linha cresce com o conteúdo. Nos três documentos reais a linha declara `<w:trHeight w:val="419"/>` sem `hRule` — 0,74 cm de mínimo — enquanto a logo tem 1,90 cm: `d90d7dc` teria encolhido a logo a um terço, o oposto do que motivou a mudança. Agora o teto vem da linha só com `hRule="exact"`. Testes reescritos por valor de `hRule`, incluindo o atributo ausente. |
 | 17/08/2026 | PV-005 — smoke em acervo real | Concluído com ressalva | (sem commit; execução local) | Nenhuma — nada gravado no OneDrive nem em produção | Três `.docx` de uma pasta de cliente fornecidos pela Ester. **3/3 saíram válidos** e em todos a contagem do preflight bateu exatamente com a aplicada; substituições atravessaram corpo, cabeçalho e rodapé, e o par ausente na planilha foi relatado como "não encontrado" sem alterar o arquivo. Geometria real medida: célula da logo de **2,74 a 3,24 cm**, não os 8 cm que eu havia estimado — o que reabriu a decisão de 4.7. **Limite deste acervo:** uma única imagem por documento e zero partes órfãs, então a correção de alvo de `c4a785f` não seria exercitada aqui. **Ressalva:** os arquivos foram entregues, mas a inspeção no Word é da Ester. |
 | 17/08/2026 | PV-005 | **Concluído com ressalva** | `6cb4eee` | `dpl_7fc5PoUq2QLYSrHPeHuBeXHoebSf` `READY` | Fluxo em 5 etapas com revisão obrigatória: a UI analisa por documento e envia `hashOrigem`, o que **faz a trava 409 do PV-004 disparar pela primeira vez**. Rota `restaurar` (original ou versão intermediária) só acrescenta versão, nunca remove; `alvo` ausente é 400 em vez de padrão silencioso. Confirmação explícita para zero ocorrências, casamento excessivo e falha de análise; documento não analisado é bloqueio, não confirmação. Retry seletivo dos documentos com erro. Modal de preview com `role="dialog"`, Esc, ciclo de Tab e devolução de foco. `vitest.config.ts` passou a definir `oxc.jsx.runtime`, sem o que nenhum teste de componente parseava. Suíte **22 arquivos / 119 testes**, tsc, lint, `check:deploy` e build aprovados; rotas 37→38. Rota presente no manifesto de produção, `POST` anônimo devolve **401**. **Ressalva:** nada aberto no Word e alvo da logo sem inspeção visual — roteiro em 4.3. |
+| 17/08/2026 | PV-004 e PV-005 — ressalva encerrada | **Concluídos** | (sem commit; verificação da Ester) | Nenhuma | A Ester abriu no Word os três documentos reais corrigidos pelo motor novo e aprovou: *"agora tá certo o cabeçalho"*. É a evidência que faltava desde o PV-004 — documento corrigido, aberto no Word, logo na caixa certa e cabeçalho do mesmo tamanho do original. **PV-004 e PV-005 passam de "concluído com ressalva" a concluídos**, e o projeto fica sem nenhuma ressalva pendente. Segue sem confirmação visual só o caso de cabeçalho com mais de uma imagem ou parte órfã, que o acervo inspecionado não tinha. |
+
+**As linhas de 17/08 estão agrupadas por assunto, não em ordem cronológica estrita** — o dia teve várias
+idas e vindas no mesmo tema. A última linha da tabela é sempre o estado mais recente.
 
 **Aviso sobre a coluna "Produção" nas linhas acima de 17/08.** Ela não é confiável. Foi preenchida
 assumindo que `[skip ci]` impedia deploy, o que é falso neste projeto (ver PV-020). Onde se lê
