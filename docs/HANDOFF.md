@@ -153,7 +153,7 @@ Verificado por inspeção de arquivos, para não refazer pesquisa:
 | API pública de análise | `app/api/planejamento-comercial/analisar/route.ts` | Existe |
 | Supabase Auth | `lib/supabase/{browser,server,middleware}.ts`, `lib/auth/authorization.ts` | Existe |
 | Design system | `docs/DESIGN.md`, `components/{brand,shell,theme,ui}` | Existe |
-| Preflight DOCX | `lib/docx-replacement-plan.ts`, rota `preflight` | **Ausente** (PV-004) |
+| Preflight DOCX | `lib/docx-replacement-plan.ts`, rota `preflight` | Existe (PV-004, 17/08) |
 | Fluxo visual de correção | `components/correction/`, rota `restaurar` | **Ausente** (PV-005) |
 | Planner público e PDF | `app/(public)/planner/page.tsx`, rota `pdf`, `render-pdf.ts`, `pdf-lib` | **Ausente** (PV-009) |
 | E2E | `tests/e2e/`, `playwright.config.ts`, `scripts/check-public-boundary.mjs` | **Ausente** (PV-012) |
@@ -164,18 +164,19 @@ Verificado por inspeção de arquivos, para não refazer pesquisa:
 - Aplicação: `app/api/pastas/[id]/uploads-corrigidos/aplicar/route.ts` e
   `lib/header-footer-replace.ts` (476 linhas).
 - A rota processa **um documento por chamada** (o cliente faz o laço), com `maxDuration = 60`.
-- **Sem preflight, sem hash de origem, sem restauração.**
-- A base de cada correção é `doc.outputPath || doc.uploadPath` — ou seja, correções são **cumulativas
-  sobre a saída anterior**, não sobre o original. Um par aplicado por engano não tem como ser
-  desfeito.
-- `applyMergedRunSubstitutions` continua concentrando o parágrafo inteiro no primeiro run
-  (`lib/header-footer-replace.ts:234-237`), preservando apenas o `<w:rPr>` desse run. Formatação
-  mista dentro do parágrafo é perdida.
-- **Inconsistência não registrada antes:** a substituição de texto usa as partes *ativas* resolvidas
-  por `sectPr` (`listActiveHeaderFooterParts`), mas `replaceLogoInHeadersAndFooters` continua
-  iterando `HEADER_FOOTER_PARTS` — todas as partes presentes no zip, órfãs incluídas — e troca a
-  imagem de menor `rId` de cada uma. Em documento com imagem que não é logo, a imagem errada pode ser
-  substituída. Corrigir dentro do PV-004.
+- **Resolvido pelo PV-004 em 17/08:** existe preflight, existe trava de hash 409, e o motor
+  preserva a estrutura do Word em vez de concentrar o parágrafo no primeiro run.
+- **Continua em aberto — restauração.** A base de cada correção é `doc.outputPath || doc.uploadPath`,
+  ou seja, correções são **cumulativas sobre a saída anterior**, não sobre o original. Um par aplicado
+  por engano ainda não tem como ser desfeito; o passo de restaurar é entrega do PV-005. O preflight
+  ao menos avisa: devolve `baseCorrigida: true` quando a base já é uma correção.
+- **Continua em aberto — trava de hash inativa.** `hashOrigem` é opcional na rota aplicar até o
+  PV-005 ligar analisar → aplicar. Enquanto isso a proteção existe mas não é exercida pela UI.
+- **Continua em aberto — logo.** A substituição de texto usa as partes *ativas* resolvidas por
+  `sectPr`, mas `replaceLogoInHeadersAndFooters` ainda itera todas as partes presentes no zip, órfãs
+  incluídas, trocando a imagem de menor `rId` de cada uma. Em documento com imagem que não é logo, a
+  imagem errada pode ser substituída. Ficou **fora** do PV-004 por exigir verificação visual; tratar
+  junto do PV-005, que já prevê QA com DOCX real.
 - Em erro, a rota responde **HTTP 200** com `status: "erro"` no corpo. É intencional para o laço do
   cliente; qualquer monitoramento externo precisa saber disso.
 
@@ -268,8 +269,8 @@ pendentes e estão concluídos e comprovados** (ver 2.3).
 | PV-001 | Fundação de testes | gpt-5.6-terra | médio | P0 | PV-000 | Concluído |
 | PV-002 | Fechamento de tabelas expostas | gpt-5.6-sol | alto | P0 segurança | PV-000 | **Concluído** (`1a03f6f`); zero grants confirmado em produção |
 | PV-003 | Supabase Auth, papéis e QA | gpt-5.6-sol | alto | P0 segurança | PV-001, PV-002 | **Concluído** (`b7d1272`); 2 contas com papel em produção |
-| PV-004 | Motor seguro de substituição | gpt-5.6-sol | xhigh | P1 principal | PV-001, PV-003 | Pendente |
-| PV-005 | Fluxo visual de correção | gpt-5.6-terra | alto | P1 principal | PV-004 | Pendente (exclusão múltipla já antecipada) |
+| PV-004 | Motor seguro de substituição | gpt-5.6-sol | xhigh | P1 principal | PV-001, PV-003 | **Concluído** (`9ed5856`); preflight, trava de hash 409 e preservação estrutural |
+| PV-005 | Fluxo visual de correção | gpt-5.6-terra | alto | P1 principal | PV-004 | Pendente — **liberado**; deve consumir preflight e enviar `hashOrigem` |
 | PV-006 | Motor sanitário do planner | gpt-5.6-sol | xhigh | P1 sanitário | PV-001 | Concluído |
 | PV-007 | API pública, preços e proteção | gpt-5.6-sol | alto | P1 segurança | PV-003, PV-006 | Concluído; segredo, WAF Hobby e 429 comprovados |
 | PV-008 | Manual de marca e design system | gpt-5.6-terra | alto | P1 visual | Manual | Publicado; **zoom 200% e teclado seguem sem evidência** (ver PV-018) |
@@ -294,8 +295,9 @@ Cards abertos pela auditoria de 17/08/2026:
 1. **PV-013** — baixo esforço, elimina a única vulnerabilidade crítica e uma rota que escreve lixo em
    produção. Nada depende dele; faça primeiro.
 2. **PV-018** e **PV-015** — pequenos, fecham dívidas abertas sem tocar em fluxo.
-3. **PV-004 → PV-005** — o par de maior risco técnico do produto (correção de documentos prontos hoje
-   é irreversível e perde formatação).
+3. ~~PV-004~~ → **PV-005** — o PV-004 já entregou o motor seguro e a análise prévia; falta a UI
+   consumir o preflight, enviar `hashOrigem` e oferecer restauração. A correção continua cumulativa
+   sobre a saída anterior até o PV-005 entregar o passo de restaurar.
 4. **PV-009** — a maior lacuna de negócio: o planner comercial existe do lado do servidor e está
    pago em WAF e segredo, mas não tem página pública nem PDF.
 5. **PV-014** e **PV-016** — mexem em dependências e modelo; exigem build e suíte verdes antes.
@@ -551,6 +553,79 @@ Commit de implementação: `c0d072a`.
 ### Commit
 
 `feat: add safe DOCX replacement preflight`
+
+### Resultado — 17/08/2026
+
+**Concluído.** Commit de implementação: `9ed5856`.
+
+#### Alterações entregues
+
+- Criado `lib/docx-replacement-plan.ts`, agora **fonte única** da contagem prévia e da
+  aplicação: `planejarSubstituicoes` e `aplicarSubstituicoes` percorrem o mesmo código com uma flag.
+  Contagem e escrita não podem divergir por construção, e há teste fixando essa igualdade.
+- O motor mapeia cada caractere visível ao `<w:t>` que o contém e aplica **do fim para o início**,
+  distribuindo pelos runs. O fallback que concentrava o parágrafo inteiro no primeiro run foi
+  **removido** — era ele que destruía formatação mista.
+- Apenas o conteúdo textual de `<w:t>` é reescrito. Nenhum elemento é criado, movido ou removido,
+  então imagens, `<w:tab/>`, quebras, bookmarks, `<w:proofErr>`, campos `<w:instrText>`, rsids,
+  `<w:rPr>` e relações sobrevivem **por construção**, não por cuidado pontual.
+- As ocorrências são localizadas sobre o texto original antes de qualquer escrita: um par nunca
+  reprocessa o resultado de outro (`alpha→beta` seguido de `beta→gama` não encadeia). Sobreposição é
+  resolvida pela ordem dos pares, e o par perdedor é reportado com zero em vez de aplicado pela metade.
+- `xml:space="preserve"` é acrescentado quando o texto restante tem espaço nas bordas.
+- `lib/docx-validator.ts` passou a exportar `validateXmlWellFormed`, e cada parte reescrita é
+  validada **antes** de voltar ao pacote; a falha nomeia a parte responsável.
+- Criada `POST /api/pastas/[id]/uploads-corrigidos/preflight`: conta o impacto sem alterar nada e
+  devolve total, quebra por corpo/cabeçalho/rodapé, contexto com o trecho delimitado por «», o
+  SHA-256 da base e `baseCorrigida`, que avisa quando o operador está corrigindo sobre uma correção
+  anterior.
+- `aplicar` agora lê a base e confere o hash **antes** de marcar o documento como `processando`, de
+  modo que uma recusa não deixa o registro em estado intermediário. Hash divergente devolve **409**.
+  A resposta ganhou `contagens` e `hashOrigem`, sem remover nenhum campo existente.
+
+#### Decisões que valem para os próximos cards
+
+- **`hashOrigem` é opcional na rota aplicar.** Torná-lo obrigatório quebraria a página de correção em
+  produção hoje, já que a UI é escopo do PV-005. A trava só passa a valer de fato quando o PV-005
+  ligar analisar → aplicar. **PV-005 deve passar a enviar `hashOrigem`.**
+- **Sem alteração de schema.** O hash é calculado sobre o buffer no momento do uso e trafega no
+  round-trip preflight → aplicar. Não há coluna nova, migration Prisma ou migration Supabase.
+- **A logo não foi tocada.** A auditoria registrou que `replaceLogoInHeadersAndFooters` ainda varre
+  todas as partes do zip, e não as ativas, podendo trocar a imagem errada em documento que tenha
+  outra imagem. O card é sobre substituição de texto, e uma mudança na logo exige verificação visual
+  que não existe aqui. Segue registrado como pendência, agora isolada no único ponto do arquivo que
+  não passa pelo motor novo.
+
+#### Limite conhecido
+
+Quando um par atravessa uma tabulação, o texto novo entra inteiro antes dela e a tabulação sobra ao
+final do trecho, o que pode desalinhar um layout `rótulo <tab> valor`. O documento continua íntegro e
+o texto correto, e nada é perdido — o comportamento anterior também quebrava esse caso, removendo a
+tabulação. Está documentado no código e contornável casando rótulo e valor em pares separados.
+
+#### Evidência de validação
+
+- `npm.cmd run test:run`: **19 arquivos e 95 testes aprovados** (eram 16 e 61). Os 34 novos cobrem
+  run simples, runs múltiplos, formatação mista, cabeçalho/rodapé/tabela, acentos e entidades sem
+  escape duplo, tolerância a espaço sem aceitar regex livre, sobreposição, ausência de encadeamento,
+  zero e múltiplas ocorrências, contexto, preservação de desenho e relação, cabeçalho órfão, fallback
+  quando o `sectPr` não resolve, igualdade plano/aplicado, pureza do plano, arquivo corrompido,
+  estabilidade do hash e par vazio.
+- `tests/correction/word-real-noise.test.ts` exercita XML com o ruído que o Word realmente emite —
+  rsids, `<w:proofErr>` cortando a razão social ao meio, bookmark, `<w:lastRenderedPageBreak/>`,
+  campo `<w:instrText>`, tabulação entre runs e tabela aninhada logo após parágrafo vazio
+  auto-fechado — e passou na primeira execução.
+- `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run check:deploy`, `git diff --check` e
+  `npm.cmd run build`: aprovados. As 9 páginas foram preservadas e a rota `preflight` aparece no
+  mapa de rotas do build.
+- **Sem smoke com DOCX real de cliente.** Não há `.docx` no checkout e as credenciais de Storage não
+  estão no ambiente local. O teste de ruído do Word é o substituto automatizado; a abertura de um
+  documento real no Word continua sendo item de QA do PV-005.
+
+#### Produção e dados
+
+Nenhuma migration, escrita em banco, objeto de Storage, variável de ambiente ou regra Vercel foi
+alterada.
 
 ---
 
@@ -1186,4 +1261,5 @@ inspeção manual na próxima vez.
 | 10/08/2026 | PV-008 | Correção publicada | `0c15e69` | Vercel Production `success`; smoke público aprovado | Logos e favicons 200, tema persistente, login 200 e fronteira interna preservada; zoom 200% e ordem completa de teclado pendentes. |
 | 09/08/2026 | PV-002 | Concluído | `1a03f6f` | Migration aplicada em `imywcumdngkzkeszvyxv` | Registro reconstruído na auditoria de 17/08. RLS ativa e **zero grants** para `anon`/`authenticated` confirmados em produção. |
 | 09/08/2026 | PV-003 | Concluído | `b7d1272` | 2 contas criadas em `auth.users` | Registro reconstruído na auditoria de 17/08. `lib/session-auth.ts` removido; 1 `admin` e 1 `operador`, ambos com papel em `app_metadata`. |
-| 17/08/2026 | Auditoria de retomada | Concluído | — | Nenhuma ação remota | Estado real medido contra código, Supabase e Vercel. Mapa de cards corrigido (PV-002/PV-003 estavam marcados como pendentes). Abertos PV-013 a PV-018. |
+| 17/08/2026 | Auditoria de retomada | Concluído | `443f27e` | Nenhuma ação remota | Estado real medido contra código, Supabase e Vercel. Mapa de cards corrigido (PV-002/PV-003 estavam marcados como pendentes). Abertos PV-013 a PV-018. |
+| 17/08/2026 | PV-004 | Concluído | `9ed5856` | Nenhuma ação remota | Motor de substituição reescrito com preflight, trava de hash 409 e preservação estrutural. 95 testes aprovados. `hashOrigem` opcional até o PV-005 ligar analisar → aplicar. |
