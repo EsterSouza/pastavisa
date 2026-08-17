@@ -5,21 +5,14 @@ import { assertValidDocxBuffer } from "./docx-validator";
 import {
   aplicarSubstituicoes,
   hashDocx,
+  listActiveHeaderFooterParts,
+  listHeaderFooterParts,
   type Substituicao,
   type SubstituicaoPlanejada,
 } from "./docx-replacement-plan";
 
 export type { Substituicao, SubstituicaoPlanejada };
 export { hashDocx };
-
-const HEADER_FOOTER_PARTS = [
-  "word/header1.xml",
-  "word/header2.xml",
-  "word/header3.xml",
-  "word/footer1.xml",
-  "word/footer2.xml",
-  "word/footer3.xml",
-];
 
 export interface AplicarBatchResult {
   buffer: Buffer;
@@ -34,14 +27,39 @@ const TWIP_TO_EMU = 635;
 const HEADER_CELL_INSET = 0.92; // ~8% de recuo das bordas da célula, igual ao fluxo principal
 const HEADER_MAX_HEIGHT_EMU = 684_000; // ~1,9cm — impede a linha do cabeçalho de crescer
 
+/** Um rId de imagem está de fato desenhado nesta parte (e não só declarado no rels)? */
+function isImageEmbedded(partXml: string, rId: string): boolean {
+  // O sufixo `"` fecha o valor do atributo, então rId5 não casa com rId50.
+  return new RegExp(`r:(?:embed|link)="${rId}"`).test(partXml);
+}
+
 /**
- * Lê todo `<Relationship .../>` de um rels independentemente da ordem dos atributos
- * e devolve a imagem de menor rId — documentos reais, editados à mão ao longo do
- * tempo, nem sempre mantêm `Id`/`Type`/`Target` na ordem que o fluxo principal gera.
+ * Escolhe, dentro de uma parte, qual imagem é a logo.
+ *
+ * Lê todo `<Relationship .../>` independentemente da ordem dos atributos, porque
+ * documentos reais, editados à mão ao longo do tempo, nem sempre mantêm
+ * `Id`/`Type`/`Target` na ordem que o fluxo principal gera.
+ *
+ * A escolha é feita em duas peneiras, e não pelo menor rId direto:
+ *
+ * 1. Só entram imagens efetivamente desenhadas nesta parte. Um rels pode declarar
+ *    imagens que sobraram de revisões anteriores e que nenhum `<a:blip>` referencia
+ *    — trocar os bytes dessas não muda nada no que o Word renderiza e, pior, o
+ *    arquivo de mídia pode ser compartilhado com outra parte, onde a troca aparece
+ *    como imagem errada substituída.
+ * 2. Entre as desenhadas, tem prioridade a que está dentro de uma célula de tabela
+ *    com largura declarada — o formato do slot de logo em todo este projeto. Numa
+ *    parte que tem uma foto no corpo do cabeçalho e a logo na célula, o menor rId
+ *    podia ser a foto.
+ *
+ * O menor rId continua sendo o desempate, agora só entre candidatas do mesmo grupo.
  */
-function findPartImageReference(relsXml: string): { rId: string; target: string } | null {
+function findPartImageReference(
+  relsXml: string,
+  partXml: string
+): { rId: string; target: string } | null {
   const relationships = Array.from(relsXml.matchAll(/<Relationship\b[^>]*\/>/g)).map((m) => m[0]);
-  const images: Array<{ id: number; target: string }> = [];
+  const images: Array<{ id: number; rId: string; target: string }> = [];
 
   for (const rel of relationships) {
     const typeMatch = rel.match(/Type="([^"]*)"/);
@@ -49,12 +67,17 @@ function findPartImageReference(relsXml: string): { rId: string; target: string 
     const idMatch = rel.match(/Id="rId(\d+)"/);
     const targetMatch = rel.match(/Target="([^"]+)"/);
     if (!idMatch || !targetMatch) continue;
-    images.push({ id: parseInt(idMatch[1], 10), target: targetMatch[1] });
+    const rId = `rId${idMatch[1]}`;
+    if (!isImageEmbedded(partXml, rId)) continue;
+    images.push({ id: parseInt(idMatch[1], 10), rId, target: targetMatch[1] });
   }
 
   if (images.length === 0) return null;
   images.sort((a, b) => a.id - b.id);
-  return { rId: `rId${images[0].id}`, target: images[0].target };
+
+  const emCelula = images.filter((img) => findImageCellWidthTwips(partXml, img.rId) !== null);
+  const escolhida = emCelula.length > 0 ? emCelula[0] : images[0];
+  return { rId: escolhida.rId, target: escolhida.target };
 }
 
 /** Reescreve o atributo `Target` do `<Relationship>` com o rId informado. */
@@ -88,6 +111,13 @@ function findImageCellWidthTwips(xml: string, rId: string): number | null {
  * casar com o tamanho pré-definido da célula, não preservar a resolução nativa da
  * foto enviada. Partes cuja imagem não está dentro de uma célula ficam no tamanho
  * original, já que não há caixa contra a qual medir.
+ *
+ * Só percorre as partes que o corpo realmente referencia via `<w:sectPr>`, pelo mesmo
+ * motivo que a substituição de texto: partes órfãs de revisões anteriores continuam
+ * dentro do zip, e mexer nelas relata sucesso sem alterar o que o Word renderiza —
+ * podendo ainda atingir um arquivo de mídia compartilhado com a parte vigente. Quando
+ * o grafo de referências não pode ser resolvido, cai para as partes existentes, que é
+ * o comportamento anterior.
  */
 export async function replaceLogoInHeadersAndFooters(
   zip: PizZip,
@@ -106,13 +136,14 @@ export async function replaceLogoInHeadersAndFooters(
   const naturalHEmu = naturalH * 9144;
 
   let substituida = false;
+  const partes = listActiveHeaderFooterParts(zip) ?? listHeaderFooterParts(zip);
 
-  for (const partName of HEADER_FOOTER_PARTS) {
+  for (const partName of partes) {
     if (!zip.files[partName]) continue;
     const relsPath = relsPathFor(partName);
     if (!zip.files[relsPath]) continue;
 
-    const ref = findPartImageReference(zip.files[relsPath].asText());
+    const ref = findPartImageReference(zip.files[relsPath].asText(), zip.files[partName].asText());
     if (!ref) continue;
 
     const zipPath = ref.target.startsWith("media/") ? `word/${ref.target}` : ref.target;
@@ -150,11 +181,20 @@ export async function replaceLogoInHeadersAndFooters(
     const targetCx = Math.round(naturalWEmu * scale);
     const targetCy = Math.round(naturalHEmu * scale);
 
-    let resizedXml = partXml;
-    resizedXml = resizedXml.replace(/(wp:extent[^>]*?\scx=")[^"]*(")/g, `$1${targetCx}$2`);
-    resizedXml = resizedXml.replace(/(wp:extent[^>]*?\scy=")[^"]*(")/g, `$1${targetCy}$2`);
-    resizedXml = resizedXml.replace(/(a:ext[^>]*?\scx=")[^"]*(")/g, `$1${targetCx}$2`);
-    resizedXml = resizedXml.replace(/(a:ext[^>]*?\scy=")[^"]*(")/g, `$1${targetCy}$2`);
+    // Só o desenho que embute a logo é redimensionado. Aplicar os regexes de
+    // extent na parte inteira também esticava qualquer outra imagem do cabeçalho
+    // para a caixa da logo — a mídia certa era preservada, mas a foto ao lado saía
+    // distorcida. `<w:drawing>` não aninha, então o recorte não-guloso é seguro;
+    // desenhos em VML antigo, que não têm esse invólucro, ficam sem redimensionar,
+    // o que é preferível a redimensionar o alvo errado.
+    const resizedXml = partXml.replace(/<w:drawing[\s\S]*?<\/w:drawing>/g, (bloco) => {
+      if (!bloco.includes(`r:embed="${ref.rId}"`)) return bloco;
+      return bloco
+        .replace(/(wp:extent[^>]*?\scx=")[^"]*(")/g, `$1${targetCx}$2`)
+        .replace(/(wp:extent[^>]*?\scy=")[^"]*(")/g, `$1${targetCy}$2`)
+        .replace(/(a:ext[^>]*?\scx=")[^"]*(")/g, `$1${targetCx}$2`)
+        .replace(/(a:ext[^>]*?\scy=")[^"]*(")/g, `$1${targetCy}$2`);
+    });
     zip.file(partName, resizedXml);
   }
 
