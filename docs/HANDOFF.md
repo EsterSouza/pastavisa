@@ -243,10 +243,11 @@ Verificado por inspeção de arquivos, para não refazer pesquisa:
   preenchia a célula: uma 2:1 saía com **52%** da largura, uma quadrada com **26%**. Agora o teto vem do
   `<w:trHeight>` da linha que contém a logo, e o fixo é só o caso sem altura declarada. A largura da
   célula segue limite duro, porque passar dela alarga a tabela do cabeçalho.
-- **Continua em aberto — quanto o cabeçalho pode crescer.** Preencher 7,36 cm de largura com logo 2:1
-  exige 3,68 cm de altura; com logo quadrada, 7,36 cm. É aritmética, não defeito. Enquanto o teto padrão
-  for 1,9 cm, logo não-larga continua saindo estreita em template que não declara altura de linha.
-  **Decisão da Ester** — ver 4.7.
+- **Decidido pela Ester em 17/08 — o teto padrão fica em 1,9 cm.** Preencher 7,36 cm de largura com logo
+  2:1 exigiria 3,68 cm de altura, e ela optou por manter a faixa do cabeçalho baixa. Consequência a
+  conhecer, não é defeito: em template que **não** declara `<w:trHeight>`, logo 2:1 sai com ~52% da
+  largura da célula e quadrada com ~26%. **A saída, quando isso incomodar num template específico, é
+  declarar a altura da linha naquele template** — o código passou a respeitá-la em `d90d7dc`. Ver 4.7.
 - **Continua em aberto — verificação visual.** Nenhum documento corrigido foi **aberto no Word** a
   partir de documento de cliente, e o acerto do alvo da logo está provado por teste unitário. Em 17/08
   foram gerados `.docx` sintéticos passados pelo motor real para a Ester abrir no Word; o motor é o de
@@ -472,7 +473,18 @@ não) valeu.
 
 Não há decisão de priorização em aberto.
 
-### 4.7 Decisão de produto em aberto — altura do cabeçalho na troca de logo
+### 4.7 Altura do cabeçalho na troca de logo — decidida em 17/08
+
+> **Decisão da Ester: o teto padrão fica em 1,9 cm.** Nenhuma mudança de código foi necessária — é o que
+> `d90d7dc` já entrega. O ganho daquele commit permanece: template que declara `<w:trHeight>` passa a
+> mandar, então a geometria pode ser afrouxada template por template, sem tocar em código.
+>
+> **A tensão com o pedido original fica registrada, uma vez.** O pedido era que a logo preenchesse toda
+> a largura; o teto de 1,9 cm significa que, em template sem altura de linha declarada, logo 2:1 sai com
+> ~52% da largura e quadrada com ~26%. Se aparecer um caso concreto onde a logo ficou pequena, o
+> conserto é declarar a altura da linha naquele template — e aí ela preenche. Não precisa de card.
+
+O levantamento e as medições que embasaram a decisão:
 
 Levantada pela Ester em 17/08: *"a logo tem que caber em toda a largura do espaço do cabeçalho pra não
 ficar pequena e nem grande demais, aumentando a largura da tabela do cabeçalho onde ela fica."*
@@ -489,20 +501,17 @@ menciona. Medido numa célula de logo de 8 cm (largura útil 7,36 cm após o rec
 | 1:1 | 7,36 cm | **7,36 cm** |
 
 Preencher a largura e manter a faixa do cabeçalho baixa são **incompatíveis** para logo que não seja
-faixa larga. A largura da célula já é limite duro — a tabela nunca alarga. O que falta decidir é o teto
-de **altura** quando o template não declara `<w:trHeight>`:
+faixa larga. A largura da célula já é limite duro — a tabela nunca alarga. O que estava em jogo era o
+teto de **altura** quando o template não declara `<w:trHeight>`. As três opções apresentadas:
 
-- **manter 1,9 cm:** cabeçalho baixo, logo 2:1 sai com 52% da largura (é o que ela reclamou);
-- **subir para 3 cm:** logo 3:1 preenche 100%, 2:1 chega a 75%, cabeçalho no máximo 2,76 cm — foi a
-  minha recomendação;
-- **largura sempre ganha:** preenche 100% sempre, mas logo quadrada gera cabeçalho de 7,4 cm.
+| opção | logo 3:1 | logo 2:1 | altura máxima do cabeçalho |
+|---|---:|---:|---:|
+| manter 1,9 cm — **escolhida** | 77% | 52% | 1,90 cm |
+| subir para 3 cm — recomendada por mim | 100% | 75% | 2,76 cm |
+| largura sempre ganha | 100% | 100% | até 7,36 cm |
 
-**Atalho que dispensa a decisão:** declarar a altura da linha nos templates. O código de 17/08 já
-respeita `<w:trHeight>`, então a geometria passa a morar no template, onde a decisão de design pertence
-— e cada template pode ter a sua. Isso exige medir os templates reais, o que depende de um `.docx`
-acessível (ver 2.6).
-
-Segue em aberto também a pergunta antiga do PV-017: o que fazer com `entregas/templates-subcisao`.
+**A única pendência de decisão que resta no projeto** é a antiga do PV-017: o que fazer com
+`entregas/templates-subcisao`.
 
 ---
 
