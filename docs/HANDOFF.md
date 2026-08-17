@@ -1107,6 +1107,63 @@ Dois achados independentes, ambos de correção trivial e risco funcional nulo:
 
 `chore: remove test route and unused image module`
 
+### Resultado — 17/08/2026
+
+**Parado na verificação prévia.** Nenhuma alteração de código, dependência ou banco foi feita. O
+card acionou a própria cláusula de parada: *"Se houver chamador, o card muda de escopo — registre e
+pare."*
+
+#### Achado 1 — premissa incorreta: a rota **tem** caminho de UI
+
+O card afirma que "não há caminho de UI que a use". Há. `app/(internal)/page.tsx` expõe um botão
+visível **"🧪 Pasta de teste"** no cabeçalho do dashboard interno, ao lado de "+ Nova Pasta":
+
+- `app/(internal)/page.tsx:58-67` — `handleCriarTeste()` faz `POST /api/pastas/teste` e redireciona
+  para `/pasta/${json.pastaId}/editar`.
+- `app/(internal)/page.tsx:89-95` — o botão que dispara `handleCriarTeste`.
+- `app/(internal)/page.tsx:29` — estado `criandoTeste` que controla o rótulo "Criando…".
+
+Remover apenas `app/api/pastas/teste/route.ts` deixaria um botão de produção que falha em 404 e cai
+no `catch` silencioso da linha 64 — sem mensagem para o operador. O escopo real é maior que o
+descrito: envolve remover botão, handler e estado, e é uma **mudança de UI do dashboard**, não a
+higiene trivial que o card previa. Fica para um card próprio.
+
+Observação de risco: a existência do botão **agrava** o achado em vez de atenuá-lo. Qualquer conta
+interna, incluindo `operador`, cria dados falsos em produção com um clique, sem confirmação.
+
+Não foi registrada a contagem de pastas de teste já existentes no banco: essa consulta pertence ao
+card que efetivamente remover o fluxo, e não se justifica tocar o banco de produção com o card
+parado.
+
+#### Achado 2 — confirmado, **não** executado
+
+A premissa do módulo de imagem se sustenta integralmente, mas a remoção não foi feita para manter a
+parada do card íntegra e o commit fiel à mensagem especificada (que cobre os dois achados juntos).
+Verificação registrada:
+
+- `docxtemplater-image-module-free` e `ImageModule` não aparecem em nenhum arquivo de código. As
+  únicas ocorrências no repositório são `package.json:37`, `package-lock.json` e este `docs/HANDOFF.md`.
+- `package-lock.json:4769-4777` confirma que o módulo é a **única** origem de `xmldom`, e
+  `npm audit` confirma a atribuição pelo campo `effects`:
+  `xmldom severity=critical fixAvailable=false effects=docxtemplater-image-module-free`.
+- `package-lock.json:11190-11196` — `xmldom@0.1.31`, deprecado, `CVE-2021-21366` resolvido só na 0.5.0.
+- O `docxtemplater` em uso **não** depende disso: `package-lock.json:4763` mostra que ele usa
+  `@xmldom/xmldom@^0.9.8` (pacote distinto, sem a vulnerabilidade). A remoção não afeta a geração de DOCX.
+
+`npm audit` de referência (antes, grafo intocado):
+
+| Severidade | Contagem |
+| --- | --- |
+| crítica | 1 |
+| alta | 13 |
+| moderada | 5 |
+| **total** | **19** |
+
+#### Próximo passo
+
+Decisão da Ester: dividir o PV-013 em (a) remoção do módulo de imagem, pronta para execução imediata
+e isolada, e (b) remoção do fluxo de pasta de teste incluindo a UI, com escopo revisto.
+
 ---
 
 ## PV-014 — Senha vazada e redução de vulnerabilidades
