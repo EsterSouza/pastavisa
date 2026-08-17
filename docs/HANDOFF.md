@@ -632,9 +632,47 @@ tabulação. Está documentado no código e contornável casando rótulo e valor
 - `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run check:deploy`, `git diff --check` e
   `npm.cmd run build`: aprovados. As 9 páginas foram preservadas e a rota `preflight` aparece no
   mapa de rotas do build.
-- **Sem smoke com DOCX real de cliente.** Não há `.docx` no checkout e as credenciais de Storage não
-  estão no ambiente local. O teste de ruído do Word é o substituto automatizado; a abertura de um
-  documento real no Word continua sendo item de QA do PV-005.
+#### Smoke em acervo real — 17/08/2026
+
+Executado contra o acervo local de documentos finalizados
+(`…/Consultoria/Clientes ONLINE/Pasta Personalizada`, 2007 arquivos), com harness temporário que foi
+removido ao fim. Nenhum conteúdo de cliente foi impresso, gravado ou versionado, e nenhum arquivo de
+saída ficou nas pastas.
+
+Critério por documento: pacote válido pelo `validateDocxBuffer`, contagens idênticas de `<w:r>`,
+`<w:drawing>`, `<w:tab/>`, `<w:br/>`, `<w:tc>`, `<w:tbl>`, `<a:blip>` e mídia, contagem do plano igual
+à aplicada, e texto novo efetivamente presente.
+
+| Amostra | Documentos | Resultado |
+|---|---:|---|
+| Pasta `EXEMPLO` | 32 (32 com imagem, 32 com tabela) | **32/32**, 102 substituições, zero falhas |
+| Acervo de clientes, par dentro de um run | 900 (842 com imagem, 811 com tabela) | **900/900**, 2.189 substituições, zero falhas |
+| Acervo de clientes, par atravessando runs | 899 | **899/899**, zero falhas |
+
+**A/B contra o motor antigo**, mesmo documento e mesmo par, com pares que atravessam runs — o caso
+que o PV-004 endereça:
+
+| Motor | ok | dano estrutural | não aplicou | regressões |
+|---|---:|---:|---:|---:|
+| Antigo (`443f27e`) | 892 | 1 | 6 | — |
+| Novo (`9ed5856`) | **899** | **0** | **0** | **0** |
+
+O dano do motor antigo, caracterizado: em `IMPLEMENTAÇÃO DO PROCESSO DE ENFERMAGEM.docx` ele
+**apagou uma tabulação** (`<w:tab/>` 211 → 210), efeito direto do fallback que fundia o parágrafo; e
+em 6 cópias de `GUIA DE UTILIZAÇÃO DA PASTA SANITÁRIA.DOCX` ele **não aplicou nada** onde o motor novo
+aplicou, que é o "zero não é sucesso" na prática — o operador leria "não encontrado" e concluiria que
+o texto não existe.
+
+**Onde a evidência não chega — e uma correção à expectativa inicial:**
+
+- **Os documentos não foram abertos no Word.** A validação estrutural é o substituto automatizado;
+  abrir um documento corrigido no Word segue como QA do PV-005.
+- **O dano do motor antigo neste acervo foi mais estreito do que eu supunha.** O caminho destrutivo
+  só dispara quando o par atravessa runs; com pares que cabem em um único run, o motor antigo passou
+  em 899 de 900. A correção é real e mensurável, mas o raio de alcance neste corpus é modesto — o
+  ganho maior é a garantia estrutural por construção, não um incêndio apagado.
+- **Os pares foram gerados automaticamente**, não são os pares reais que você digitaria. Eles
+  exercitam o motor, não o julgamento de quem corrige.
 
 #### Produção e dados
 
@@ -1276,4 +1314,4 @@ inspeção manual na próxima vez.
 | 09/08/2026 | PV-002 | Concluído | `1a03f6f` | Migration aplicada em `imywcumdngkzkeszvyxv` | Registro reconstruído na auditoria de 17/08. RLS ativa e **zero grants** para `anon`/`authenticated` confirmados em produção. |
 | 09/08/2026 | PV-003 | Concluído | `b7d1272` | 2 contas criadas em `auth.users` | Registro reconstruído na auditoria de 17/08. `lib/session-auth.ts` removido; 1 `admin` e 1 `operador`, ambos com papel em `app_metadata`. |
 | 17/08/2026 | Auditoria de retomada | Concluído | `443f27e` | Nenhuma ação remota | Estado real medido contra código, Supabase e Vercel. Mapa de cards corrigido (PV-002/PV-003 estavam marcados como pendentes). Abertos PV-013 a PV-018. |
-| 17/08/2026 | PV-004 | Concluído | `9ed5856` | Nenhuma ação remota | Motor de substituição reescrito com preflight, trava de hash 409 e preservação estrutural. 95 testes aprovados. `hashOrigem` opcional até o PV-005 ligar analisar → aplicar. |
+| 17/08/2026 | PV-004 | Concluído | `9ed5856` | Nenhuma ação remota | Motor reescrito com preflight, trava 409 e preservação estrutural. 95 testes + smoke em 900 documentos reais (zero falhas; A/B mostrou 1 dano estrutural e 6 não-aplicações do motor antigo). `hashOrigem` opcional até o PV-005. |
