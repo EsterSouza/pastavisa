@@ -1,6 +1,6 @@
 # Handoff único — PASTAVISA
 
-**Última atualização:** 10/08/2026 (BRT), durante a correção de aceite do PV-008
+**Última atualização:** 17/08/2026 (BRT), após auditoria completa de retomada
 **Repositório:** `EsterSouza/pastavisa`
 **Checkout oficial:** `C:\Saas\PASTAVISA`
 **Branch:** `main`
@@ -53,83 +53,151 @@ A Ester troca o modelo no seletor; o agente nunca afirma ter feito essa troca.
 
 ---
 
-## 2. Estado verificado em 08/08/2026
+## 2. Estado verificado em 17/08/2026
 
-### 2.1 Checkout e Git
+Esta seção substitui a auditoria de 08/08/2026, que ficou desatualizada. Todos os números abaixo
+foram medidos nesta data, contra o checkout, o Supabase de produção e a Vercel.
 
-- Checkout fora do OneDrive em `C:\Saas\PASTAVISA`.
-- `main = origin/main = c071873d2e151fdbc0ba6575d9ba1f0e6f69498a` no início do PV-000.
-- Remoto: `https://github.com/EsterSouza/pastavisa.git`.
-- O diretório já continha `TreinaVISA - Manual de Marca 2.0.pdf`; foi preservado, está ignorado por
-  `/*.pdf` e não pertence ao PV-000.
-- O projeto declara Node `22.x`; a máquina usa Node `v25.8.0` e npm `11.11.0`. O build deve ser a
-  evidência, sem atribuir falha apenas ao aviso de engine.
-- GitHub CLI instalado, mas a sessão `gh` local estava com token inválido. Fetch público funcionou
-  por git; o push precisa ser comprovado no resultado.
+### 2.1 Checkout, Git e produção
 
-### 2.2 Código
+- Checkout fora do OneDrive em `C:\Saas\PASTAVISA`; worktree **limpo**.
+- `HEAD = main = origin/main = c702ec34e254e71f93bbe6248f36f153a6cbb938` (10/08/2026).
+- Remoto: `https://github.com/EsterSouza/pastavisa.git` (repositório **público**).
+- Vercel: projeto `pasta-visa` (`prj_3hksb7xOH6gQbc2lnOsKpFOsHYUa`, team `estersouzas-projects`).
+  O deployment de produção mais recente é do commit `c702ec3` e está `READY`. **Repositório, `origin`
+  e produção estão no mesmo SHA** — não há trabalho publicado fora do git nem commit não deployado.
+- `TreinaVISA - Manual de Marca 2.0.pdf` continua na raiz, local e ignorado por `/*.pdf`.
+- O projeto declara Node `22.x`; a máquina usa Node `v25.8.0`. Continue usando o build como evidência.
 
-| Item | Estado |
+### 2.2 Código e qualidade
+
+| Item | Estado em 17/08/2026 |
 |---|---:|
-| Páginas `page.tsx` | 9 |
-| Rotas API `route.ts` | 36 |
+| Páginas `page.tsx` | 9 (`(internal)` 8, `(public)` 1) |
+| Rotas API `route.ts` | 37 |
 | Modelos em `prisma/schema.prisma` | 8 |
 | Migrations Prisma | 13 |
-| Migrations Supabase versionadas | 6 |
+| Migrations Supabase versionadas | 7 |
 | Stack | Next.js 14.2.35, React 18, Tailwind 3.4.1, Prisma 7.8 |
-| Arquivos | filesystem local ou Supabase Storage |
-| Geração | DOCX, docxtemplater/PizZip, Mammoth, Sharp e Anthropic |
-| Testes no início | sem runner automatizado configurado |
+| Testes | Vitest, **16 arquivos / 61 testes, todos aprovados** |
+| `npx tsc --noEmit` | aprovado, sem erros |
+| `npm run lint` | aprovado, 0 erros e 0 avisos |
 
-`npm.cmd ci` instalou 607 pacotes e o audit do npm informou 18 vulnerabilidades no grafo atual:
-6 moderadas, 11 altas e 1 crítica. O PV-000 não executou `npm audit fix` nem alterou dependências;
-o PV-001 deve registrar o baseline detalhado antes de qualquer correção seletiva.
+Todas as 37 rotas declaram `runtime = "nodejs"` e `dynamic = "force-dynamic"`. Não há `TODO`,
+`FIXME` ou `HACK` no código de aplicação.
+
+**Baseline de dependências (regressão desde 08/08):** `npm audit` informa **19 vulnerabilidades —
+5 moderadas, 13 altas e 1 crítica**. Detalhamento acionável:
+
+- **Crítica — `xmldom@0.1.31`, sem correção disponível.** Entra exclusivamente por
+  `docxtemplater-image-module-free@1.1.1`, que está declarado em `package.json` mas **não é
+  importado em nenhum arquivo do projeto**. Remover a dependência elimina a única crítica sem risco
+  funcional. Ver PV-013.
+- **Altas com correção por major:** `next` (→16, mais de 20 CVEs incluindo SSRF, cache poisoning e
+  XSS no App Router), `eslint-config-next` (→16), `sharp` (→0.35.3, CVEs do libvips).
+- **Altas com correção compatível:** `brace-expansion`, `fast-uri`, `js-yaml`, `deepmerge-ts`,
+  `@prisma/config`, `prisma`, `hono`, `postcss`.
 
 Scripts: `dev`, `build`, `start`, `check:deploy`, `backup:local`, `migrate:local-to-supabase`,
-`migrate:storage-to-supabase`, `repair:docx`, `lint` e `sync:templates`.
+`migrate:storage-to-supabase`, `repair:docx`, `lint`, `sync:templates`, `test`, `test:run`,
+`test:watch`.
 
 ### 2.3 Supabase de produção
 
-Projeto confirmado: `pastavisa`, ref `imywcumdngkzkeszvyxv`.
+Projeto: `pastavisa`, ref `imywcumdngkzkeszvyxv`, região `sa-east-1`, Postgres 17, `ACTIVE_HEALTHY`.
 
-| Objeto | Estado em 08/08/2026 |
-|---|---:|
-| `Template` | 295 registros |
-| `Pasta` | 6 registros |
-| `storage.objects` | 1.236 objetos |
-| `auth.users` | 0 usuários |
-| `hotmart_vendas` | RLS desligada; `SELECT` para `anon`/`authenticated`; zero policies |
-| `manychat_leads` | RLS desligada; sem grant de navegador listado; zero policies |
+| Objeto | 08/08/2026 | 17/08/2026 |
+|---|---:|---:|
+| `Template` | 295 | **297** |
+| `Pasta` | 6 | 6 |
+| `Legislacao` | — | 82 |
+| `DocumentoGerado` | — | 405 |
+| `DocumentoUpload` | — | 148 |
+| `storage.objects` | 1.236 | **1.410** |
+| `auth.users` | 0 | **2** (1 `admin`, 1 `operador`, zero sem papel) |
 
-O PV-000 não altera o banco. O risco das duas tabelas pertence exclusivamente ao PV-002. A contagem
-de Storage não prova objetos órfãos; não apagar objetos sem auditoria de referências.
+**PV-002 e PV-003 estão comprovados em produção**, o que a seção 4 antiga ainda registrava como
+pendente:
 
-### 2.4 Vercel
+- `information_schema.role_table_grants` para `anon` e `authenticated` no schema `public` retorna
+  **zero linhas** — nenhuma tabela é alcançável pelo navegador.
+- Todas as tabelas de negócio, além de `hotmart_vendas` e `manychat_leads`, estão com **RLS ativa e
+  zero policies** (negação total; apenas a service role passa). O Advisor classifica isso como
+  `INFO`, não como risco — é o desenho pretendido.
+- Existem exatamente 2 contas, ambas com papel válido em `app_metadata.role`.
 
-- Código e documentação histórica apontam para `pasta-visa` na conta da Ester.
-- Link fornecido: `https://vercel.com/estersouzas-projects/pasta-visa`.
-- A conexão Vercel desta task retornou zero equipes; projeto, envs, deployment e smoke autenticado
-  não foram comprovados no início do PV-000.
-- `vercel.json` define apenas o schema e `framework: nextjs`.
-- Push na `main` normalmente dispara produção, mas `Ready` não substitui smoke.
+**Único achado de segurança aberto no Supabase:** o Advisor reporta `WARN
+auth_leaked_password_protection` — a verificação contra HaveIBeenPwned está desligada. Ver PV-014.
 
-### 2.5 Auth e fronteira pública
+### 2.4 Auth e fronteira pública
 
-- `middleware.ts` protege tudo, exceto `/login` e `/api/auth/*`.
-- Auth atual usa `APP_BASIC_AUTH_USER`, `APP_BASIC_AUTH_PASSWORD` e cookie HMAC em
-  `lib/session-auth.ts`; não existem usuários Supabase Auth.
-- Supabase Auth e papéis `admin`/`operador` pertencem ao PV-003.
-- O planner público ainda não existe.
+- `lib/session-auth.ts` foi removido; Basic Auth não existe mais.
+- `middleware.ts` usa `updateSession` (Supabase SSR) + RBAC. O matcher exclui apenas
+  `_next/static`, `_next/image`, `brand/` e `favicon.ico`.
+- `isPublicPath` libera: `/login`, `/api/auth/*`, `/api/health`, `/planner*`,
+  `/api/planejamento-comercial/analisar` e `/api/planejamento-comercial/pdf`.
+- `isAdminOnlyPath` cobre `/templates`, `/legislacoes`, `/api/templates`, `/api/legislacoes`.
+- `requireAdmin()` protege o `DELETE` no handler em 5 rotas; `check:deploy` audita que **toda** rota
+  com `DELETE` tenha essa proteção.
+- **Rotas públicas declaradas mas inexistentes:** `/planner` e `/api/planejamento-comercial/pdf`
+  estão liberadas no middleware e na regra WAF, mas os arquivos não existem — hoje retornam 404.
+  Pertencem ao PV-009 e não são vazamento.
 
-### 2.6 Correção de documentos prontos
+### 2.5 O que existe e o que não existe
 
-- UI: `app/pasta/[id]/corrigir-lote/page.tsx`.
+Verificado por inspeção de arquivos, para não refazer pesquisa:
+
+| Entrega | Arquivos | Estado |
+|---|---|---|
+| Motor sanitário do planner | `lib/commercial-planner/*` (12 módulos) | Existe |
+| API pública de análise | `app/api/planejamento-comercial/analisar/route.ts` | Existe |
+| Supabase Auth | `lib/supabase/{browser,server,middleware}.ts`, `lib/auth/authorization.ts` | Existe |
+| Design system | `docs/DESIGN.md`, `components/{brand,shell,theme,ui}` | Existe |
+| Preflight DOCX | `lib/docx-replacement-plan.ts`, rota `preflight` | **Ausente** (PV-004) |
+| Fluxo visual de correção | `components/correction/`, rota `restaurar` | **Ausente** (PV-005) |
+| Planner público e PDF | `app/(public)/planner/page.tsx`, rota `pdf`, `render-pdf.ts`, `pdf-lib` | **Ausente** (PV-009) |
+| E2E | `tests/e2e/`, `playwright.config.ts`, `scripts/check-public-boundary.mjs` | **Ausente** (PV-012) |
+
+### 2.6 Correção de documentos prontos — risco técnico atual
+
+- UI: `app/(internal)/pasta/[id]/corrigir-lote/page.tsx` (698 linhas).
 - Aplicação: `app/api/pastas/[id]/uploads-corrigidos/aplicar/route.ts` e
-  `lib/header-footer-replace.ts`.
-- Usa pares antigo/novo e logo, processa sequencialmente e cria `DocumentoUploadVersao`.
-- Não há preflight com contagem/contexto, hash de origem ou restauração.
-- O fallback para texto dividido entre runs concentra o parágrafo no primeiro run e pode degradar
-  formatação mista. A correção pertence aos PV-004/PV-005.
+  `lib/header-footer-replace.ts` (476 linhas).
+- A rota processa **um documento por chamada** (o cliente faz o laço), com `maxDuration = 60`.
+- **Sem preflight, sem hash de origem, sem restauração.**
+- A base de cada correção é `doc.outputPath || doc.uploadPath` — ou seja, correções são **cumulativas
+  sobre a saída anterior**, não sobre o original. Um par aplicado por engano não tem como ser
+  desfeito.
+- `applyMergedRunSubstitutions` continua concentrando o parágrafo inteiro no primeiro run
+  (`lib/header-footer-replace.ts:234-237`), preservando apenas o `<w:rPr>` desse run. Formatação
+  mista dentro do parágrafo é perdida.
+- **Inconsistência não registrada antes:** a substituição de texto usa as partes *ativas* resolvidas
+  por `sectPr` (`listActiveHeaderFooterParts`), mas `replaceLogoInHeadersAndFooters` continua
+  iterando `HEADER_FOOTER_PARTS` — todas as partes presentes no zip, órfãs incluídas — e troca a
+  imagem de menor `rId` de cada uma. Em documento com imagem que não é logo, a imagem errada pode ser
+  substituída. Corrigir dentro do PV-004.
+- Em erro, a rota responde **HTTP 200** com `status: "erro"` no corpo. É intencional para o laço do
+  cliente; qualquer monitoramento externo precisa saber disso.
+
+### 2.7 Modelos de IA em uso
+
+`lib/ai.ts` chama a API Anthropic em 5 pontos, sem `temperature`, `top_p` ou `thinking`:
+
+| Linha | Modelo | Uso |
+|---|---|---|
+| 46 | `claude-sonnet-4-5-20250929` | Motor sanitário do planner (`runCommercialPlannerAnalysis`) |
+| 173 | `claude-haiku-4-5-20251001` | `extractClienteData` |
+| 339 | `claude-haiku-4-5-20251001` | `extractClienteDataFromElaboracaoText` |
+| 400, 955 | `claude-haiku-4-5-20251001` (padrão) | `adaptTrecho`, `processAdaptBlock` |
+
+`claude-haiku-4-5` continua sendo modelo **atual** — não há nada a fazer nesses quatro pontos.
+`claude-sonnet-4-5` é legado, ainda ativo e sem data de aposentadoria anunciada. Ver PV-016.
+
+### 2.8 Artefatos locais fora do git
+
+Não rastreados e sem valor de continuidade: `.pv008-dev.log`, `.pv008-dev.err.log`,
+`tsconfig.tsbuildinfo`, `.next/` e o diretório vazio `entregas/templates-subcisao` (criado em
+16/08/2026, sem conteúdo e sem card correspondente). Ver PV-017.
 
 ---
 
@@ -191,21 +259,47 @@ pagamento ou envio automático.
 
 ## 4. Mapa dos cards
 
+Estado revisado contra o código e a produção em 17/08/2026. **PV-002 e PV-003 constavam como
+pendentes e estão concluídos e comprovados** (ver 2.3).
+
 | Card | Entrega | Modelo | Esforço | Prioridade | Depende de | Estado |
 |---|---|---|---|---|---|---|
 | PV-000 | Checkout e handoff único | gpt-5.6-terra | médio | P0 | — | Concluído |
 | PV-001 | Fundação de testes | gpt-5.6-terra | médio | P0 | PV-000 | Concluído |
-| PV-002 | Fechamento de tabelas expostas | gpt-5.6-sol | alto | P0 segurança | PV-000 | Pendente |
-| PV-003 | Supabase Auth, papéis e QA | gpt-5.6-sol | alto | P0 segurança | PV-001, PV-002 | Pendente |
+| PV-002 | Fechamento de tabelas expostas | gpt-5.6-sol | alto | P0 segurança | PV-000 | **Concluído** (`1a03f6f`); zero grants confirmado em produção |
+| PV-003 | Supabase Auth, papéis e QA | gpt-5.6-sol | alto | P0 segurança | PV-001, PV-002 | **Concluído** (`b7d1272`); 2 contas com papel em produção |
 | PV-004 | Motor seguro de substituição | gpt-5.6-sol | xhigh | P1 principal | PV-001, PV-003 | Pendente |
-| PV-005 | Fluxo visual de correção | gpt-5.6-terra | alto | P1 principal | PV-004 | Pendente |
+| PV-005 | Fluxo visual de correção | gpt-5.6-terra | alto | P1 principal | PV-004 | Pendente (exclusão múltipla já antecipada) |
 | PV-006 | Motor sanitário do planner | gpt-5.6-sol | xhigh | P1 sanitário | PV-001 | Concluído |
 | PV-007 | API pública, preços e proteção | gpt-5.6-sol | alto | P1 segurança | PV-003, PV-006 | Concluído; segredo, WAF Hobby e 429 comprovados |
-| PV-008 | Manual de marca e design system | gpt-5.6-terra | alto | P1 visual | Manual | Correção publicada; zoom 200% e teclado pendentes |
-| PV-009 | Planner público e PDF | gpt-5.6-sol | alto | P1 comercial | PV-007, PV-008 | Pendente |
+| PV-008 | Manual de marca e design system | gpt-5.6-terra | alto | P1 visual | Manual | Publicado; **zoom 200% e teclado seguem sem evidência** (ver PV-018) |
+| PV-009 | Planner público e PDF | gpt-5.6-sol | alto | P1 comercial | PV-007, PV-008 | Pendente — **maior lacuna de negócio** |
 | PV-010 | Redesign interno principal | gpt-5.6-terra | alto | P2 visual | PV-005, PV-008 | Pendente |
 | PV-011 | Redesign templates/legislações | gpt-5.6-terra | alto | P2 manutenção | PV-003, PV-008 | Pendente |
 | PV-012 | E2E e homologação final | gpt-5.6-sol | alto | P1 lançamento | PV-009, PV-010, PV-011 | Pendente |
+
+Cards abertos pela auditoria de 17/08/2026:
+
+| Card | Entrega | Modelo | Esforço | Prioridade | Depende de | Estado |
+|---|---|---|---|---|---|---|
+| PV-013 | Remover rota de teste e dependência crítica | gpt-5.6-terra | baixo | **P0 higiene** | — | Pendente |
+| PV-014 | Endurecer senha e reduzir vulnerabilidades | gpt-5.6-sol | médio | P1 segurança | PV-013 | Pendente |
+| PV-015 | Restringir superfície de `/api/health` | gpt-5.6-terra | baixo | P2 segurança | — | Pendente |
+| PV-016 | Atualizar modelo do motor sanitário | gpt-5.6-sol | médio | P2 | PV-006 | Pendente |
+| PV-017 | Limpeza de artefatos locais | gpt-5.6-terra | baixo | P3 | — | Pendente |
+| PV-018 | Fechar aceite de acessibilidade do PV-008 | gpt-5.6-terra | baixo | P1 visual | PV-008 | Pendente |
+
+### Ordem recomendada de execução
+
+1. **PV-013** — baixo esforço, elimina a única vulnerabilidade crítica e uma rota que escreve lixo em
+   produção. Nada depende dele; faça primeiro.
+2. **PV-018** e **PV-015** — pequenos, fecham dívidas abertas sem tocar em fluxo.
+3. **PV-004 → PV-005** — o par de maior risco técnico do produto (correção de documentos prontos hoje
+   é irreversível e perde formatação).
+4. **PV-009** — a maior lacuna de negócio: o planner comercial existe do lado do servidor e está
+   pago em WAF e segredo, mas não tem página pública nem PDF.
+5. **PV-014** e **PV-016** — mexem em dependências e modelo; exigem build e suíte verdes antes.
+6. **PV-010 → PV-011 → PV-012** — visual e homologação final.
 
 ---
 
@@ -836,6 +930,249 @@ O navegador integrado desta task não alcançou `127.0.0.1` e o Chrome controlá
 
 ---
 
+## PV-013 — Rota de teste e dependência crítica
+
+**Modelo:** gpt-5.6-terra · **Esforço:** baixo · **Prioridade:** P0 higiene · **Depende de:** —
+**Resultado:** produção sem rota que cria dados falsos e sem a única vulnerabilidade crítica.
+
+### Contexto
+
+Dois achados independentes, ambos de correção trivial e risco funcional nulo:
+
+1. `app/api/pastas/teste/route.ts` cria uma `Pasta` completa de mentira (“Clínica Teste”, CNPJ
+   `00.000.000/0001-00`, RT fictícia) mais 3 `DocumentoGerado`, direto no banco. Está atrás do
+   middleware, então exige login — mas **qualquer conta interna, incluindo `operador`, pode poluir a
+   produção com um único POST**, e não há caminho de UI que a use.
+2. `docxtemplater-image-module-free@1.1.1` está em `dependencies` mas **não é importado em lugar
+   nenhum** (`grep` por `docxtemplater-image-module-free` e `ImageModule` em `lib/`, `app/` e
+   `scripts/` não retorna nada). Ele é a única origem de `xmldom@0.1.31`, a **vulnerabilidade
+   crítica sem correção disponível** do grafo.
+
+### Arquivos
+
+- Remover `app/api/pastas/teste/route.ts`.
+- Modificar `package.json` e `package-lock.json` (remover `docxtemplater-image-module-free`).
+- Modificar `docs/HANDOFF.md`.
+
+### Implementação
+
+- Antes de remover a rota, confirmar por busca que nenhum componente, teste ou script chama
+  `/api/pastas/teste`. Se houver chamador, o card muda de escopo — registre e pare.
+- `npm.cmd uninstall docxtemplater-image-module-free`. Não executar `npm audit fix` neste card:
+  a remoção deve ser a única mudança de grafo, para que a queda de vulnerabilidades seja atribuível.
+- Registrar o `npm audit` antes e depois no resultado.
+
+### Testes e aceite
+
+- `npm.cmd run test:run`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run check:deploy` e
+  `npm.cmd run build` aprovados.
+- `npm audit` deixa de listar `xmldom` e a contagem de críticas cai para **0**.
+- Smoke em produção: `POST /api/pastas/teste` autenticado retorna 404.
+- Nenhuma `Pasta` real removida. Se já existirem pastas de teste no banco, **apenas registrar a
+  contagem** — a exclusão é decisão da Ester, não deste card.
+
+### Fora de escopo
+
+- Atualizar qualquer outra dependência, mexer em `next`, `sharp` ou executar `npm audit fix`.
+- Apagar dados existentes.
+
+### Commit
+
+`chore: remove test route and unused image module`
+
+---
+
+## PV-014 — Senha vazada e redução de vulnerabilidades
+
+**Modelo:** gpt-5.6-sol · **Esforço:** médio · **Prioridade:** P1 segurança · **Depende de:** PV-013
+**Resultado:** proteção contra senha vazada ativa e grafo sem altas corrigíveis por patch.
+
+### Contexto
+
+- O Advisor de segurança do Supabase reporta `WARN auth_leaked_password_protection`: a verificação
+  contra HaveIBeenPwned está desligada no projeto `imywcumdngkzkeszvyxv`. Com apenas duas contas
+  internas o risco é baixo, mas a correção é uma chave no painel.
+- Depois do PV-013 restam 13 altas. Elas se dividem em dois grupos com risco muito diferente:
+  **corrigíveis sem major** (`brace-expansion`, `fast-uri`, `js-yaml`, `deepmerge-ts`,
+  `@prisma/config`, `prisma`, `hono`, `postcss` transitivo) e **exigindo major**
+  (`next` 14→16, `eslint-config-next` 14→16, `sharp` 0.34→0.35).
+
+### Implementação
+
+- Ativar a proteção de senha vazada no Supabase Auth. Registrar que foi ativada; **não** registrar
+  nenhum valor de configuração.
+- Aplicar **somente** as atualizações sem major, uma leva por vez, com build e suíte entre elas.
+- **Não** subir `next` para 16 neste card. A major traz mudanças de App Router e o projeto tem 9
+  páginas, 37 rotas e um middleware de Auth em produção — isso é um card próprio, com smoke completo.
+  Registrar aqui a lista de CVEs do `next` 14.2.35 e a recomendação, sem executar.
+- `sharp` 0.35 mexe em geração de logo e DOCX. Se entrar, exige teste visual de logo clara/escura em
+  documento real antes do push; se não houver como testar, adiar e registrar.
+
+### Testes e aceite
+
+- Suíte, TypeScript, lint, `check:deploy` e build aprovados após cada leva.
+- `npm audit` registrado antes e depois; queda de altas comprovada por número.
+- Login e logout continuam funcionando em produção com as duas contas.
+- Geração de um DOCX real com logo continua abrindo no Word, se `sharp` tiver sido tocado.
+
+### Fora de escopo
+
+- Migração para Next 16 e qualquer alteração de comportamento de aplicação.
+
+### Commit
+
+`security: enable leaked password protection and patch dependencies`
+
+---
+
+## PV-015 — Superfície de `/api/health`
+
+**Modelo:** gpt-5.6-terra · **Esforço:** baixo · **Prioridade:** P2 segurança · **Depende de:** —
+**Resultado:** health check público sem contagem de dados nem detalhe interno.
+
+### Contexto
+
+`/api/health` é público (`isPublicPath`) e responde com `pastaCount` — o número real de pastas de
+clientes em produção — mais a lista completa de checks de readiness por nome. Não expõe segredo, mas
+entrega telemetria de negócio e mapa de configuração a qualquer visitante do domínio.
+
+### Implementação
+
+- Manter público apenas `{ ok, storageDriver }` e o status HTTP (200/503), que é o que um health
+  check externo precisa.
+- Mover `pastaCount` e `readiness.checks` para trás de autenticação: ou uma rota interna separada, ou
+  a mesma rota respondendo o corpo detalhado somente quando houver sessão válida.
+- Preservar o contrato de status: 503 quando readiness ou banco falham.
+
+### Testes e aceite
+
+- Teste cobrindo: anônimo não recebe `pastaCount` nem `readiness`; autenticado recebe; o código de
+  status continua igual nos dois casos.
+- Smoke em produção anônimo confirmando o corpo reduzido.
+
+### Fora de escopo
+
+- Alterar o que `getReadinessSummary` verifica.
+
+### Commit
+
+`security: reduce public health endpoint surface`
+
+---
+
+## PV-016 — Modelo do motor sanitário
+
+**Modelo:** gpt-5.6-sol · **Esforço:** médio · **Prioridade:** P2 · **Depende de:** PV-006
+**Resultado:** planner comercial em modelo atual, com qualidade sanitária comprovada por teste.
+
+### Contexto
+
+`lib/ai.ts:46` usa `claude-sonnet-4-5-20250929` no `runCommercialPlannerAnalysis`. O modelo continua
+ativo e sem aposentadoria anunciada, então **isto não é urgente**. Os outros quatro pontos de
+`lib/ai.ts` usam `claude-haiku-4-5-20251001`, que é modelo atual — **não mexer neles**.
+
+Se a Ester quiser mais precisão sanitária, o alvo é `claude-sonnet-5` ou `claude-opus-5`. Nenhuma
+chamada usa `temperature`, `top_p` ou `budget_tokens`, então não há mudança quebrando a migração —
+mas há mudanças de comportamento relevantes:
+
+- Em `claude-sonnet-5` e `claude-opus-5` o *thinking* adaptativo passa a rodar quando o campo é
+  omitido. Como `max_tokens` limita pensamento **mais** resposta, os `max_tokens: 8192` atuais podem
+  truncar. Revisar antes de trocar.
+- `claude-sonnet-5` usa tokenizador novo: o mesmo texto rende cerca de 30% mais tokens. Recalcular
+  custo e limites com `count_tokens` contra o modelo novo, sem aplicar multiplicador de memória.
+
+### Implementação
+
+- Trocar apenas a linha 46. Manter os quatro pontos em `claude-haiku-4-5`.
+- Revisar `max_tokens` e o `effort` do pedido.
+- Rodar a suíte sanitária de `tests/commercial-planner/` inteira contra o modelo novo e comparar a
+  saída caso a caso: produto/marca não vira procedimento, toxina e preenchimento continuam distintos,
+  esterilização só com reutilização e autoclave, TCLE amplo não absorve específico sem equivalência.
+
+### Testes e aceite
+
+- 12 testes sanitários aprovados **e** comparação manual das saídas antes/depois registrada.
+- Nenhum campo interno (ID, cobertura, pontuação, prompt) aparece na saída pública.
+- Smoke no alias de produção com o mesmo pedido usado no fechamento do PV-007.
+
+### Fora de escopo
+
+- Trocar os modelos de extração; alterar prompts sanitários.
+
+### Commit
+
+`feat: update commercial planner model`
+
+---
+
+## PV-017 — Limpeza de artefatos locais
+
+**Modelo:** gpt-5.6-terra · **Esforço:** baixo · **Prioridade:** P3 · **Depende de:** —
+**Resultado:** checkout sem restos de sessões anteriores.
+
+### Implementação
+
+Remover, conferindo o caminho absoluto antes de qualquer remoção recursiva:
+
+- `C:\Saas\PASTAVISA\.pv008-dev.log` e `.pv008-dev.err.log` — logs de servidor local do PV-008.
+- `C:\Saas\PASTAVISA\tsconfig.tsbuildinfo` e `C:\Saas\PASTAVISA\.next` — caches de build.
+- `C:\Saas\PASTAVISA\entregas\templates-subcisao` — diretório **vazio**, criado em 16/08/2026, sem
+  card correspondente. Antes de remover, perguntar à Ester se havia trabalho previsto de templates de
+  subcisão; se houver, abrir card em vez de apagar.
+
+Preservar: `node_modules`, o manual de marca PDF, `public/brand/`, tudo rastreado pelo git e qualquer
+backup.
+
+### Testes e aceite
+
+- `git status` continua limpo; `npm.cmd run build` reconstrói normalmente.
+- Registrar exatamente o que foi removido.
+
+### Commit
+
+Sem commit de código; apenas o registro no handoff.
+
+---
+
+## PV-018 — Fechar o aceite de acessibilidade do PV-008
+
+**Modelo:** gpt-5.6-terra · **Esforço:** baixo · **Prioridade:** P1 visual · **Depende de:** PV-008
+**Resultado:** os dois critérios que o PV-008 deixou sem evidência, comprovados.
+
+### Contexto
+
+O PV-008 foi publicado e o smoke de produção passou, mas o próprio resultado declara: “Zoom exato de
+200% e ordem completa de teclado continuam sem evidência automatizada e não foram declarados
+aprovados.” O card ficou marcado como concluído com esses dois itens em aberto.
+
+### Implementação
+
+Em navegador real, em `/login` e no shell interno:
+
+- Zoom de 200% em 1280 px de largura: sem overflow horizontal, sem texto cortado, sem sobreposição.
+- Percurso completo por `Tab`: ordem lógica, foco sempre visível, seletor de tema alcançável e
+  operável por teclado, nenhum elemento focável fora da tela.
+- Alvos de toque mínimos de 44 px conferidos nos controles principais.
+
+Onde for possível, transformar o que foi verificado em teste em `tests/ui/`, para não depender de
+inspeção manual na próxima vez.
+
+### Testes e aceite
+
+- Evidência descrita item a item no resultado, incluindo o que falhou e foi corrigido.
+- Suíte, lint, TypeScript e build aprovados se houver mudança de código.
+- Screenshots temporários removidos ao fim do card.
+
+### Fora de escopo
+
+- Redesenhar telas; isso é PV-010 e PV-011.
+
+### Commit
+
+`fix: complete PastaVISA accessibility acceptance`
+
+---
+
 ## 6. Registro de execução
 
 | Data | Card | Estado | Commit | Produção | Observação |
@@ -847,3 +1184,6 @@ O navegador integrado desta task não alcançou `127.0.0.1` e o Chrome controlá
 | 09/08/2026 | PV-008 | Implementação local | `3c77a71` | Nenhuma ação remota | Design system, shells e ativo oficial; screenshot/zoom/teclado em navegador local ou QA pendentes. |
 | 10/08/2026 | PV-007 | Concluído | `e9de691` | Vercel Production `Ready`; WAF `live`; 429 comprovado | Segredo sensível configurado; uma regra Hobby para os dois POSTs; observação, revisão e publicação concluídas. |
 | 10/08/2026 | PV-008 | Correção publicada | `0c15e69` | Vercel Production `success`; smoke público aprovado | Logos e favicons 200, tema persistente, login 200 e fronteira interna preservada; zoom 200% e ordem completa de teclado pendentes. |
+| 09/08/2026 | PV-002 | Concluído | `1a03f6f` | Migration aplicada em `imywcumdngkzkeszvyxv` | Registro reconstruído na auditoria de 17/08. RLS ativa e **zero grants** para `anon`/`authenticated` confirmados em produção. |
+| 09/08/2026 | PV-003 | Concluído | `b7d1272` | 2 contas criadas em `auth.users` | Registro reconstruído na auditoria de 17/08. `lib/session-auth.ts` removido; 1 `admin` e 1 `operador`, ambos com papel em `app_metadata`. |
+| 17/08/2026 | Auditoria de retomada | Concluído | — | Nenhuma ação remota | Estado real medido contra código, Supabase e Vercel. Mapa de cards corrigido (PV-002/PV-003 estavam marcados como pendentes). Abertos PV-013 a PV-018. |
