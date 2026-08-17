@@ -62,6 +62,13 @@ function relacaoImagem(rId: string, target: string): string {
   return `<Relationship Id="${rId}" Type="${TIPO_IMAGEM}" Target="${target}"/>`;
 }
 
+/**
+ * Espelha `HEADER_MAX_HEIGHT_EMU` da biblioteca: o teto de altura usado quando a
+ * linha não impõe um próprio. Mudar lá exige mudar aqui, de propósito — o valor é
+ * decisão de produto (ver 4.7 do handoff) e não deve escorregar sem alguém notar.
+ */
+const TETO_ALTURA_PADRAO_EMU = 936_000; // 2,6 cm
+
 /** Bytes distintos por arquivo, para saber exatamente qual mídia foi reescrita. */
 function midia(marcador: number): Buffer {
   return Buffer.from([0x89, 0x50, 0x4e, 0x47, marcador]);
@@ -202,10 +209,9 @@ describe("alvo da troca de logo", () => {
     await replaceLogoInHeadersAndFooters(zip, await logoNova());
 
     // A escala é o menor entre caber na largura útil da célula (4000 twips * 635
-    // EMU * 0,92 de recuo) e respeitar o teto de altura do cabeçalho (684.000 EMU).
-    // Para uma logo de 300x100 px é a altura que limita.
+    // EMU * 0,92 de recuo) e respeitar o teto de altura padrão.
     const larguraUtilEmu = Math.round(4000 * 635 * 0.92);
-    const escala = Math.min(larguraUtilEmu / (300 * 9144), 684_000 / (100 * 9144));
+    const escala = Math.min(larguraUtilEmu / (300 * 9144), TETO_ALTURA_PADRAO_EMU / (100 * 9144));
     const cx = Math.round(300 * 9144 * escala);
     const cy = Math.round(100 * 9144 * escala);
 
@@ -235,12 +241,16 @@ describe("alvo da troca de logo", () => {
 
   it("usa o teto da linha quando ela é de altura exata", async () => {
     // `hRule="exact"` corta o que passar da linha, então o valor é teto de verdade e
-    // dimensionar por ele evita a logo ser cortada.
+    // dimensionar por ele evita a logo ser cortada. 800 twips é apertado o bastante
+    // para amarrar antes da largura, o que prova que o teto da linha foi lido.
+    const tetoLinhaEmu = Math.round(800 * 635 * 0.92);
     const cx = await larguraDaLogo(
-      montarDocxComLogo({ altura: { twips: 1700, hRule: "exact" } })
+      montarDocxComLogo({ altura: { twips: 800, hRule: "exact" } })
     );
 
-    expect(cx).toBe(LARGURA_UTIL_EMU);
+    // Logo 3:1 limitada pela altura: largura = 3 x o teto de altura.
+    expect(cx).toBe(tetoLinhaEmu * 3);
+    expect(cx).toBeLessThan(LARGURA_UTIL_EMU);
   });
 
   it("ignora `atLeast`, que é altura mínima e não máxima", async () => {

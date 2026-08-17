@@ -25,11 +25,20 @@ export interface AplicarBatchResult {
 
 const TWIP_TO_EMU = 635;
 const HEADER_CELL_INSET = 0.92; // ~8% de recuo das bordas da célula, igual ao fluxo principal
-// Teto de altura de último recurso, usado só quando a linha do cabeçalho não
-// declara altura própria. Conservador de propósito: sem geometria declarada, deixar
-// a logo preencher a largura faria a faixa do cabeçalho crescer sem limite (uma logo
-// quadrada numa célula de 8 cm viraria um cabeçalho de 8 cm de altura).
-const HEADER_MAX_HEIGHT_EMU = 684_000; // ~1,9 cm
+// Teto de altura padrão da logo, usado quando a linha do cabeçalho não impõe um
+// teto próprio via `w:hRule="exact"`.
+//
+// Era 684.000 EMU (1,9 cm), e esse valor é que fazia a logo sair estreita: como a
+// escala preserva a proporção, um teto de altura baixo amarra a largura. Nos
+// documentos reais desta consultoria a célula da logo tem 2,74 a 3,24 cm e a logo é
+// praticamente quadrada, então 1,9 cm de altura a deixava com 67% a 79% da largura
+// da célula.
+//
+// 2,6 cm foi a escolha da Ester em 17/08, entre preencher a largura nos três
+// documentos medidos (2,9 cm) e não mexer (1,9 cm). Custo: a faixa do cabeçalho
+// cresce até 0,7 cm. Sem um teto, logo quadrada em célula larga geraria cabeçalho
+// desproporcional — por isso ele continua existindo.
+const HEADER_MAX_HEIGHT_EMU = 936_000; // 2,6 cm
 
 /** Um rId de imagem está de fato desenhado nesta parte (e não só declarado no rels)? */
 function isImageEmbedded(partXml: string, rId: string): boolean {
