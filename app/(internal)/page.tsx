@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 interface Pasta {
   id: string;
@@ -20,13 +19,11 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 export default function Dashboard() {
-  const router = useRouter();
   const [pastas, setPastas] = useState<Pasta[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState<Pasta | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
-  const [criandoTeste, setCriandoTeste] = useState(false);
 
   useEffect(() => {
     fetch("/api/pastas")
@@ -55,17 +52,6 @@ export default function Dashboard() {
     }
   }
 
-  async function handleCriarTeste() {
-    setCriandoTeste(true);
-    try {
-      const res = await fetch("/api/pastas/teste", { method: "POST" });
-      const json = await res.json();
-      router.push(`/pasta/${json.pastaId}/editar`);
-    } catch {
-      setCriandoTeste(false);
-    }
-  }
-
   async function atualizarStatusPasta(pastaId: string, status: "rascunho" | "concluida") {
     const previous = pastas;
     setPastas((prev) => prev.map((p) => p.id === pastaId ? { ...p, status } : p));
@@ -86,13 +72,6 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Pastas Sanitárias</h1>
         <div className="flex gap-2">
-          <button
-            onClick={() => { void handleCriarTeste(); }}
-            disabled={criandoTeste}
-            className="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
-          >
-            {criandoTeste ? "Criando…" : "🧪 Pasta de teste"}
-          </button>
           <Link
             href="/pasta/nova"
             className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
