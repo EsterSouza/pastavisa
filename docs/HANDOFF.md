@@ -1,6 +1,6 @@
 # Handoff único — PASTAVISA
 
-**Última atualização:** 17/08/2026 (BRT), após auditoria completa de retomada
+**Última atualização:** 17/08/2026 (BRT), após a entrega do PV-009
 **Repositório:** `EsterSouza/pastavisa`
 **Checkout oficial:** `C:\Saas\PASTAVISA`
 **Branch:** `main`
@@ -213,7 +213,7 @@ Verificado por inspeção de arquivos, para não refazer pesquisa:
 | Design system | `docs/DESIGN.md`, `components/{brand,shell,theme,ui}` | Existe |
 | Preflight DOCX | `lib/docx-replacement-plan.ts`, rota `preflight` | Existe (PV-004, 17/08) |
 | Fluxo visual de correção | rota `restaurar`, 5 etapas em `corrigir-lote/page.tsx` | Existe (PV-005, 17/08) |
-| Planner público e PDF | `app/(public)/planner/page.tsx`, rota `pdf`, `render-pdf.ts`, `pdf-lib` | **Ausente** (PV-009) |
+| Planner público e PDF | `app/(public)/planner/page.tsx`, rota `pdf`, `render-pdf.ts`, `withdrawal.ts`, `pdf-lib` | **Existe** (PV-009, `8a0aa23`) |
 | E2E | `tests/e2e/`, `playwright.config.ts`, `scripts/check-public-boundary.mjs` | **Ausente** (PV-012) |
 
 ### 2.6 Correção de documentos prontos — risco técnico atual
@@ -395,10 +395,10 @@ esta seção que diz se o card fechou.
 | PV-006 | Motor sanitário do planner | Concluído | — |
 | PV-007 | API pública, preço e proteção | Concluído | — |
 | PV-008 | Manual de marca e design system | **Parcial** | Zoom 200% e ordem completa de teclado nunca foram comprovados. Esse resto virou o PV-018. |
-| PV-009 | Planner público e PDF | Pendente | `/planner` e `/api/planejamento-comercial/pdf` estão liberados no middleware e na WAF, mas os arquivos não existem — hoje dão 404. |
+| PV-009 | Planner público e PDF | **Concluído com ressalva** | Entregue em `8a0aa23`: `/planner` e `/api/planejamento-comercial/pdf` existem, com testes e build. Ressalva: o MCP DesignMD recusou as duas tentativas com 429 (cap diário do plano grátis), então o design saiu de `docs/DESIGN.md` e do manual. Falta `git push` e o smoke em produção. |
 | PV-010 | Redesign interno principal | Pendente | **Desbloqueado em 17/08**: o PV-005 entregou o fluxo de correção. |
 | PV-011 | Redesign de templates e legislações | Pendente | Dependências (PV-003, PV-008) satisfeitas o suficiente. |
-| PV-012 | E2E, segurança e homologação | **Bloqueado** | Depende de PV-009, PV-010 e PV-011. É sempre o último. |
+| PV-012 | E2E, segurança e homologação | **Bloqueado** | O PV-009 caiu; ainda depende de PV-010 e PV-011. É sempre o último. |
 | PV-013 | Rota de teste e dependência crítica | **Parcial, encerrado** | Módulo de imagem removido (`5e446e8`, crítica 1→0). O achado da rota de teste foi entregue pelo **PV-019**. Não volta à fila. |
 | PV-014 | Senha vazada e vulnerabilidades | Pendente | **Desbloqueado hoje**: a dependência era o PV-013, e a parte de dependências dele foi entregue. |
 | PV-015 | Superfície de `/api/health` | Pendente | Independente; cabe em qualquer janela. |
@@ -408,8 +408,8 @@ esta seção que diz se o card fechou.
 | PV-019 | Remover fluxo de pasta de teste | **Concluído** | Rota e UI removidas em `a12064d`. Zero pastas de teste no banco. Falta só o smoke autenticado de 404, que depende de login da Ester. |
 | PV-020 | `[skip ci]` não impede deploy | **Concluído** | `ignoreCommand` por diff de caminho em `2826545`. `[skip ci]` sai das convenções. |
 
-Contagem: **11 concluídos**, nenhum com ressalva pendente, **3 parciais** (PV-008, PV-013, PV-017),
-6 pendentes, **1 bloqueado** (PV-012).
+Contagem: **12 concluídos** (o PV-009 com ressalva de DesignMD e de push), **3 parciais** (PV-008,
+PV-013, PV-017), 5 pendentes, **1 bloqueado** (PV-012).
 
 O PV-013 está listado como parcial **encerrado**: não volta à fila, porque o resto dele foi entregue
 pelo PV-019.
@@ -453,15 +453,14 @@ aberto** — nem de higiene, nem de produto. O topo da fila agora é valor comer
 
 | # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de |
 |---|---|---|---|---|---|---|
-| 1 | PV-009 | Planner público e PDF | P1 comercial | alto | gpt-5.6-sol | PV-007 |
-| 2 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 |
-| 3 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
-| 4 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
-| 5 | PV-010 | Redesign interno principal | P2 visual | alto | gpt-5.6-terra | PV-005 (satisfeito) |
-| 6 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008 |
-| 7 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-009, PV-010, PV-011 |
-| 8 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
-| 9 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
+| 1 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 |
+| 2 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
+| 3 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
+| 4 | PV-010 | Redesign interno principal | P2 visual | alto | gpt-5.6-terra | PV-005 (satisfeito) |
+| 5 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008 |
+| 6 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-009 (entregue), PV-010, PV-011 |
+| 7 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
+| 8 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
 
 **Alternativa defensável — janela de higiene primeiro.** PV-018, PV-015 e o resto do PV-017 somam três
 cards de esforço baixo. Fechar os três de uma vez limpa a fila de ruído e deixa só o trabalho grande
@@ -1344,6 +1343,91 @@ O navegador integrado desta task não alcançou `127.0.0.1` e o Chrome controlá
 ### Commit
 
 `feat: add public commercial planner and PDF`
+
+### Resultado de implementação — 17/08/2026
+
+**Entregue e verificado localmente; nada publicado ainda.** Commit de implementação: `8a0aa23`.
+
+#### O que existe agora
+
+- `/planner` é uma página pública dentro do shell `(public)`, em quatro etapas — cliente e local, operação
+  declarada, revisão, formato e preço. O estado vive só em memória: recarregar a página zera o planejamento, e
+  nenhum componente toca `localStorage`, `sessionStorage`, cookie ou IndexedDB.
+- `POST /api/planejamento-comercial/pdf` valida o token assinado do PV-007, aplica a retirada, **recalcula base,
+  adicional e total no servidor** e devolve o PDF em memória com `Cache-Control: no-store`, `X-Request-Id` e
+  `Content-Disposition: attachment`. Preço enviado pelo navegador é ignorado. Não importa Prisma, Storage,
+  Supabase nem service role, e só exporta `POST`.
+- `lib/commercial-planner/withdrawal.ts` é a função pura da retirada, usada pelo navegador e pelo servidor: o
+  documento cai quando todos os procedimentos que ele atende saem; documento geral, de registro, de equipamento
+  ou de esterilização permanece. Nome fora do plano é ignorado.
+- A saída pública ganhou `vinculos` — documento ↔ nomes de procedimento — porque sem esse vínculo a retirada não
+  teria como derrubar os documentos certos. São **nomes públicos apenas**: nenhum id de catálogo, modo de
+  cobertura, pontuação ou prompt entra na resposta, no PDF ou no navegador.
+- `lib/commercial-planner/render-pdf.ts` compõe o PDF A4 com `pdf-lib` + `@pdf-lib/fontkit`: faixa navy com a
+  marca, filete âmbar, bloco do cliente, procedimentos incluídos e retirados, documentos com selo de tipo,
+  contagem, investimento com base/adicional/total, comparativo dos três formatos, prazo, ressalva oficial e
+  marca-d'água diagonal `PRÉ-PLANEJAMENTO PROVISÓRIO` em todas as páginas.
+
+#### Tipografia da marca no PDF — correção pedida pela Ester
+
+A primeira versão saiu em Helvetica e a Ester reprovou: *"documento com cara e letra de IA"*. O PDF passou a
+incorporar as famílias do próprio manual — **Sora** (Medium e SemiBold) no título, nas seções e no total, e
+**Source Sans 3** (Regular e SemiBold) no texto. Os TTF latinos ficam em `public/brand/fonts/` com as licenças
+OFL correspondentes, e `next.config.mjs` os inclui no pacote da função de PDF por `outputFileTracingIncludes` —
+sem isso o arquivo não chegaria à Vercel e o PDF voltaria à fallback de escritório. O teste confirma que os
+`BaseFont` do PDF são Sora e SourceSans3, e que Helvetica não aparece.
+
+A logo do PDF é `public/brand/treinavisa-logo-print.png`, recorte da margem transparente de
+`treinavisa-logo-on-dark.png` (397 × 108 px). Só corte: sem recoloração, distorção ou redesenho.
+
+#### MCP DesignMD — não foi possível usar, e não foi substituído em silêncio
+
+O card manda usar o MCP DesignMD desde o início. **O servidor recusou as duas tentativas com HTTP 429:** *"You've
+hit today's free MCP limit (150 requests/day)"*. Não havia como cumprir essa etapa nesta janela.
+
+O que foi feito no lugar, explicitamente: o design saiu do sistema já registrado do projeto — `docs/DESIGN.md` e
+os tokens do Manual de Marca TreinaVISA 2.0 entregues no PV-008 — e não de referência visual improvisada.
+`docs/DESIGN.md` ganhou as seções do planner público e da composição do PDF. Se a Ester quiser a passagem pelo
+DesignMD, ela cabe depois: o cap diário zera, ou o plano Pro remove o limite.
+
+#### Correções de contraste que o card encostou
+
+Medição no navegador acusou falhas reais no tema escuro, em tokens que o planner usa:
+
+- `--color-success`, `--color-danger` e `--color-warning` não tinham versão escura; o texto de status ficava em
+  torno de 2,3:1. Agora clareiam no tema escuro.
+- Azul de ação como texto sobre a página dava 2,3:1 no escuro. Entrou `brand.accent`, que troca com o tema.
+- `html`/`body` herdavam o navy fixo, então texto sem classe de cor sumia no tema escuro. Passaram a herdar `ink`.
+
+Depois disso, a varredura de contraste do planner não acusou nenhuma falha AA em nenhum dos dois temas.
+
+#### Evidência local
+
+- `npx.cmd vitest run`: 26 arquivos, 147 testes aprovados. `npx.cmd tsc --noEmit`, `npm.cmd run lint`,
+  `node scripts/check-deploy-readiness.js` (143 OK, zero falhas), `git diff --check` e `npx.cmd next build`
+  passaram; o build lista `/planner` e `/api/planejamento-comercial/pdf`.
+- Testes novos: `withdrawal.test.ts` (retirada, documento exclusivo × compartilhado × geral, acento e caixa,
+  101 → 100 derrubando o adicional), `render-pdf.test.ts` (PDF válido, marca-d'água, cliente, data, incluídos,
+  retirados, documentos, contagem, três preços, prazo, ressalva, termos proibidos ausentes, fontes da marca),
+  `pdf-route.test.ts` (PDF anexado sem cache, preço forjado ignorado, retirada 101 → 100, token alterado,
+  expirado e ausente, formato inválido, retirada total, corpo de 12 KB, sem persistência) e
+  `tests/ui/commercial-planner.test.ts` (teclado, retirada ao vivo, três formatos, erro do servidor,
+  zero persistência).
+- Navegador local, tema claro e escuro: fluxo completo até a etapa de formato; retirada de um procedimento
+  derrubou o POP dele e manteve o TCLE compartilhado e o MBP geral; contagens e total acompanharam. Em 375 px não
+  houve rolagem horizontal em nenhuma etapa e nenhum alvo interativo ficou abaixo de 44 px. Ordem de tabulação
+  natural, sem `tabindex` positivo.
+- Inspeção visual do PDF gerado, página a página, em duas rodadas: a primeira mostrou o título "Investimento"
+  órfão no fim da página, corrigido com reserva de altura por seção.
+
+#### Fora de escopo e não executado
+
+- Nenhum envio, assinatura, pagamento, lead, CRM, e-mail, histórico, migration, escrita em banco ou Storage.
+- Nenhum `git push`, deploy, alteração de variável de ambiente ou regra WAF. A regra de firewall do PV-007 já
+  cobre o caminho `/api/planejamento-comercial/pdf` desde 10/08 e não precisou de mudança.
+- Zoom de 200% continua sem evidência e segue como PV-018.
+- O PDF ponta a ponta com token real ainda não foi baixado por uma pessoa: exige análise real com catálogo e
+  chave da IA. Os testes cobrem a rota com token assinado de verdade.
 
 ---
 
