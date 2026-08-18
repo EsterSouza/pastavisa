@@ -136,8 +136,13 @@ function checkPublicPlanner() {
     }
   }
 
-  if (validation.includes("12 * 1024") && validation.includes("8 * 1024")) {
-    ok("limites de 12 KB e 8 KB continuam definidos");
+  if (
+    validation.includes("12 * 1024") &&
+    validation.includes("8 * 1024") &&
+    validation.includes("MAX_PLANNER_PDF_BODY_BYTES") &&
+    pdfRoute.includes("MAX_PLANNER_PDF_BODY_BYTES")
+  ) {
+    ok("limites de 12 KB, 8 KB e do corpo do PDF continuam definidos");
   } else {
     fail("os limites de payload do planner sumiram");
   }

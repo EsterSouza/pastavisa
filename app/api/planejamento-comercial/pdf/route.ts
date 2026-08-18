@@ -9,7 +9,7 @@ import { renderPlannerPdf } from "@/lib/commercial-planner/render-pdf";
 import { logPlannerRequest } from "@/lib/commercial-planner/safe-logging";
 import { InvalidPlanTokenError, verifyPlan } from "@/lib/commercial-planner/signed-plan";
 import type { PublicCommercialPlan } from "@/lib/commercial-planner/types";
-import { MAX_PLANNER_BODY_BYTES } from "@/lib/commercial-planner/validation";
+import { MAX_PLANNER_PDF_BODY_BYTES } from "@/lib/commercial-planner/validation";
 import { applyWithdrawal } from "@/lib/commercial-planner/withdrawal";
 
 export const runtime = "nodejs";
@@ -45,6 +45,7 @@ function readPlan(value: unknown): SignedPlanPayload | null {
   const raw = value as Record<string, unknown>;
   const plano = raw.plano as PublicCommercialPlan | undefined;
   if (typeof raw.cliente !== "string" || !plano || !Array.isArray(plano.procedimentos)) return null;
+  const vinculos = Array.isArray(plano.vinculos) ? plano.vinculos : [];
 
   return {
     cliente: raw.cliente,
@@ -52,8 +53,12 @@ function readPlan(value: unknown): SignedPlanPayload | null {
     uf: typeof raw.uf === "string" ? raw.uf : undefined,
     plano: {
       ...plano,
-      documentos: Array.isArray(plano.documentos) ? plano.documentos : [],
-      vinculos: Array.isArray(plano.vinculos) ? plano.vinculos : [],
+      // Token novo nao carrega `documentos`: nome e tipo ja estão em `vinculos`, e
+      // repetir os dois dobrava o tamanho do token. Token antigo ainda traz a lista.
+      documentos: Array.isArray(plano.documentos)
+        ? plano.documentos
+        : vinculos.map((vinculo) => ({ nome: vinculo.documento, tipo: vinculo.tipo })),
+      vinculos,
       alertas: Array.isArray(plano.alertas) ? plano.alertas : [],
     },
   };
@@ -88,16 +93,16 @@ export async function POST(request: NextRequest) {
   if (contentType !== "application/json") {
     return failure("Envie o planejamento em JSON.", 400);
   }
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_PLANNER_BODY_BYTES) {
-    return failure("O corpo da solicitação excede 12 KB.", 400);
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_PLANNER_PDF_BODY_BYTES) {
+    return failure("O corpo da solicitação excede 64 KB.", 400);
   }
 
   let raw: unknown;
   try {
     const text = await request.text();
     payloadBytes = bytes(text);
-    if (!text || payloadBytes > MAX_PLANNER_BODY_BYTES) {
-      return failure("O corpo da solicitação é inválido ou excede 12 KB.", 400);
+    if (!text || payloadBytes > MAX_PLANNER_PDF_BODY_BYTES) {
+      return failure("O corpo da solicitação é inválido ou excede 64 KB.", 400);
     }
     raw = JSON.parse(text);
   } catch {

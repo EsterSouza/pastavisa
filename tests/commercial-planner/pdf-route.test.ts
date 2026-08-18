@@ -136,7 +136,7 @@ describe("rota pública de PDF do planejamento", () => {
     }
   });
 
-  it("recusa retirada total, corpo inválido e corpo acima de 12 KB", async () => {
+  it("recusa retirada total, corpo inválido e corpo acima de 64 KB", async () => {
     const total = await POST(
       request({ token: token(), formato: "digital", retirados: ["Limpeza de pele", "Microagulhamento"] })
     );
@@ -144,7 +144,32 @@ describe("rota pública de PDF do planejamento", () => {
 
     expect((await POST(request("{"))).status).toBe(400);
     expect((await POST(request({ token: token(), formato: "digital" }, "text/plain"))).status).toBe(400);
-    expect((await POST(request({ token: token(), padding: "x".repeat(12 * 1024) }))).status).toBe(400);
+    expect((await POST(request({ token: token(), padding: "x".repeat(64 * 1024) }))).status).toBe(400);
+  });
+
+  it("aceita o token de uma pasta grande, que é o tamanho real de um plano", async () => {
+    // O corpo desta rota é o token que o próprio servidor emitiu, e ele cresce com
+    // a pasta: 12 KB deixava de fora qualquer plano com a base obrigatória inteira.
+    const procedimentos = Array.from({ length: 60 }, (_, indice) => `Técnica número ${indice + 1}`);
+    const grande = signPlan({
+      cliente: "Clínica Aurora",
+      municipio: "Belo Horizonte",
+      uf: "MG",
+      plano: {
+        procedimentos,
+        vinculos: procedimentos.flatMap((procedimento) => [
+          { documento: `POP — ${procedimento}`, tipo: "POP", procedimentos: [procedimento] },
+          { documento: `TCLE — ${procedimento}`, tipo: "TCLE", procedimentos: [procedimento] },
+        ]),
+        alertas: [],
+      },
+    });
+
+    expect(Buffer.byteLength(grande, "utf8")).toBeGreaterThan(12 * 1024);
+
+    const resposta = await POST(request({ token: grande, formato: "digital", retirados: [] }));
+    expect(resposta.status).toBe(200);
+    expect(resposta.headers.get("content-type")).toBe("application/pdf");
   });
 
   it("não importa persistência nem expõe outros métodos", () => {

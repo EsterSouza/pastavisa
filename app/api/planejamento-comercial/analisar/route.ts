@@ -88,13 +88,14 @@ export async function POST(request: NextRequest) {
       diasUteis: 15,
       sujeitoConfirmacaoTecnica: procedures > 100,
     };
+    // O token carrega so o que o PDF nao consegue refazer sozinho. Documentos saem
+    // porque vinculos ja tem nome e tipo; preco, prazo, resumo e aviso saem porque o
+    // servidor os recalcula na hora do download.
     const token = signPlan({
       cliente: input.cliente,
       municipio: input.municipio,
       uf: input.uf,
-      plano: plan,
-      preco,
-      prazo,
+      plano: { procedimentos: plan.procedimentos, vinculos: plan.vinculos, alertas: plan.alertas },
     });
 
     return response({ ...plan, preco, prazo, token }, 200);

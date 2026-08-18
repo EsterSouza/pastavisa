@@ -1525,6 +1525,22 @@ A Ester pediu que recarregar a página não custe o atendimento: se a internet c
 - Navegador local: preenchimento, recarga de verdade e retomada com o aviso; **Recomeçar do zero** limpou tela
   e `localStorage`. Sem erro de console vindo do planner.
 
+#### Defeito achado no smoke de produção — corpo do PDF acima de 12 KB
+
+O primeiro smoke após o deploy pegou uma regressão que os testes locais não pegariam: a análise voltou 200 com 41
+documentos, mas o download do PDF respondeu **400 — “O corpo da solicitação excede 12 KB”**. O token assinado
+carrega o plano inteiro, e com a base obrigatória ele passou de 13,3 KB, estourando o limite de corpo da rota.
+
+- O limite de 12 KB nasceu para proteger a rota de **análise**, onde o corpo é texto livre de quem visita. Na rota
+  de PDF o corpo é o token que o próprio servidor emitiu, e ele cresce com o tamanho da pasta: o número estava
+  errado para essa rota. Entrou `MAX_PLANNER_PDF_BODY_BYTES`, de 64 KB, só para ela.
+- O token também emagreceu: `documentos` saiu, porque `vinculos` já traz nome e tipo de cada documento, e
+  `preco`, `prazo`, `resumo` e `aviso` saíram porque o servidor os recalcula no download. Token de 3
+  procedimentos: 13,3 KB → 8,1 KB. Token antigo continua válido — `readPlan` usa a lista quando ela existe e a
+  reconstrói de `vinculos` quando não existe.
+- Teste novo cobre o caso que faltava: um token de 60 procedimentos, acima de 12 KB, tem que devolver 200 e
+  `application/pdf`.
+
 ---
 
 ## PV-010 — Redesign interno principal

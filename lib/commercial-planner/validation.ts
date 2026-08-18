@@ -34,6 +34,11 @@ const restrictionReasons = new Set<RestrictionReason>(["sem_evidencia", "legisla
 
 export const MAX_PLANNER_BODY_BYTES = 12 * 1024;
 export const MAX_PROCEDURES_BYTES = 8 * 1024;
+/**
+ * A rota de PDF recebe o token assinado que o servidor emitiu, e nao texto livre:
+ * o corpo cresce com o tamanho da pasta, nao com o que o visitante digita.
+ */
+export const MAX_PLANNER_PDF_BODY_BYTES = 64 * 1024;
 
 export class PlannerValidationError extends Error {
   constructor(message: string) {
