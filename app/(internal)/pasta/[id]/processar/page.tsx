@@ -1184,14 +1184,18 @@ export default function ProcessarPasta() {
             return (
               <li key={doc.id} className="flex flex-col gap-2 px-4 py-3 sm:px-5">
                 <div className="flex flex-wrap items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={isSelecionado}
-                    disabled={processing}
-                    onChange={() => toggleDoc(doc.id)}
-                    aria-label={`Selecionar ${doc.nomeArquivo}`}
-                    className="h-4 w-4 shrink-0 rounded border-gray-300"
-                  />
+                  {/* O padding leva o alvo de clique a 44px (docs/DESIGN.md); a margem
+                      negativa devolve o espaco, entao nada se move na tela. */}
+                  <label className="-m-3.5 flex shrink-0 cursor-pointer p-3.5">
+                    <input
+                      type="checkbox"
+                      checked={isSelecionado}
+                      disabled={processing}
+                      onChange={() => toggleDoc(doc.id)}
+                      aria-label={`Selecionar ${doc.nomeArquivo}`}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                  </label>
 
                   <span
                     className={`min-w-[16rem] flex-[1_1_24rem] break-words text-sm leading-snug ${

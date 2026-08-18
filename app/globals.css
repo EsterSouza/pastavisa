@@ -16,6 +16,10 @@
   /* Azul de acento sobre a superfície da página; troca com o tema para manter AA. */
   --color-accent-text: 36 74 155;
 
+  /* Anel de foco: mesmo motivo do acento. O azul institucional so alcanca 2,3:1
+     sobre as superficies escuras, abaixo dos 3:1 da WCAG 2.2 SC 1.4.11. */
+  --color-focus-ring: var(--color-blue);
+
   /* Derived tonal ramp for interface hierarchy; never use outside semantic tokens. */
   --color-surface-page: 248 251 255;
   --color-surface-subtle: 234 243 252;
@@ -60,6 +64,7 @@
   --color-shell-muted: 206 224 243;
   --color-shell-hover: 20 46 77;
   --color-accent-text: 143 176 255;
+  --color-focus-ring: var(--color-blue-light);
 
   /* Os tons fortes de status nasceram para fundo claro; no escuro precisam clarear
      para manter os 4,5:1 exigidos em docs/DESIGN.md. */
@@ -89,6 +94,7 @@
     --color-shell-muted: 206 224 243;
     --color-shell-hover: 20 46 77;
     --color-accent-text: 143 176 255;
+    --color-focus-ring: var(--color-blue-light);
     --color-success: 134 239 172;
     --color-success-soft: 10 45 32;
     --color-danger: 252 165 165;
@@ -186,6 +192,10 @@ body {
   min-height: 100vh;
   background: rgb(var(--color-surface-page));
   color: rgb(var(--color-ink));
+  /* Titulo de legislacao e referencia ABNT vem do banco com URL de centenas de
+     caracteres sem espaco. Um unico token desses empurrava a pagina inteira em
+     600px. So quebra palavra que nao caberia de outro jeito. */
+  overflow-wrap: break-word;
 }
 
 h1,
@@ -203,7 +213,7 @@ textarea {
 }
 
 :focus-visible {
-  outline: 3px solid rgb(var(--color-blue));
+  outline: 3px solid rgb(var(--color-focus-ring));
   outline-offset: 3px;
 }
 

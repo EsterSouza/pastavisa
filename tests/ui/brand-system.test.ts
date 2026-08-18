@@ -65,4 +65,65 @@ describe("brand system", () => {
     expect(globals).toContain("--color-surface-card");
     expect(shell).toContain("ThemeToggle");
   });
+
+  it("mantem o anel de foco acima de 3:1 nos dois temas", () => {
+    const globals = read("app/globals.css");
+
+    const bloco = (seletor: string) => {
+      const inicio = globals.indexOf(seletor);
+      expect(inicio).toBeGreaterThan(-1);
+      const corpo = globals.slice(inicio, globals.indexOf("}", inicio));
+      const tokens = new Map<string, string>();
+      const declaracao = /(--color-[\w-]+):\s*([^;]+);/g;
+      let achado: RegExpExecArray | null;
+      while ((achado = declaracao.exec(corpo)) !== null) {
+        tokens.set(achado[1], achado[2].trim());
+      }
+      return tokens;
+    };
+
+    const claro = bloco(":root {");
+    const escuro = bloco(':root[data-theme="dark"] {');
+
+    // Resolve um nivel de var() e cai no tema claro quando o escuro nao redefine.
+    const rgb = (tokens: Map<string, string>, nome: string): [number, number, number] => {
+      let valor = tokens.get(nome) ?? claro.get(nome);
+      const ref = valor?.match(/var\((--[\w-]+)\)/);
+      if (ref) valor = tokens.get(ref[1]) ?? claro.get(ref[1]);
+      const partes = (valor ?? "").split(/\s+/).map(Number);
+      expect(partes).toHaveLength(3);
+      return partes as [number, number, number];
+    };
+
+    const luminancia = ([r, g, b]: [number, number, number]) => {
+      const canal = (v: number) => {
+        const n = v / 255;
+        return n <= 0.03928 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+    };
+
+    const razao = (a: [number, number, number], b: [number, number, number]) => {
+      const [x, y] = [luminancia(a), luminancia(b)].sort((p, q) => q - p);
+      return (x + 0.05) / (y + 0.05);
+    };
+
+    // WCAG 2.2 SC 1.4.11: indicador de foco precisa de 3:1 contra o que o cerca.
+    const superficies = ["--color-surface-page", "--color-surface-card", "--color-surface-subtle", "--color-shell-bg"];
+    for (const [tema, tokens] of [["claro", claro], ["escuro", escuro]] as const) {
+      const anel = rgb(tokens, "--color-focus-ring");
+      for (const superficie of superficies) {
+        const valor = razao(anel, rgb(tokens, superficie));
+        expect(valor, `anel de foco sobre ${superficie} no tema ${tema}`).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
+  it("quebra token sem espaco vindo do banco", () => {
+    // Titulo de legislacao traz URL de centenas de caracteres; sem esta regra um
+    // unico token empurrava a pagina em 600px no desktop.
+    const globals = read("app/globals.css");
+    const corpo = globals.slice(globals.indexOf("body {"), globals.indexOf("}", globals.indexOf("body {")));
+    expect(corpo).toContain("overflow-wrap: break-word");
+  });
 });

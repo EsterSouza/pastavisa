@@ -358,6 +358,37 @@ describe("geração de documentos", () => {
     expect(await screen.findByText(/catálogo de templates/i)).toBeInTheDocument();
     expect(screen.getAllByText("Falha no template").length).toBeGreaterThan(0);
   });
+
+  it("acomoda titulo de legislacao com URL longa e da alvo de 44px ao checkbox", async () => {
+    // Dado real: a citacao ABNT traz a URL do diario oficial num unico token de
+    // centenas de caracteres, que empurrava a pagina em 600px no desktop.
+    const urlLonga = `https://app.exemplo.gov.br/Manager/texto/arquivo/exibir/arquivo?${"e".repeat(200)}`;
+    rotearFetch([
+      ["/api/pastas/p1/documentos", PASTA_COMPLETA.documentos],
+      [
+        "/api/legislacoes",
+        [
+          {
+            id: "l1",
+            titulo: `PARÁ. Lei nº 5.199, de 10 de dezembro de 1984. Disponível em: ${urlLonga}`,
+            tipo: "Lei",
+            estadoUf: "PA",
+            municipio: null,
+          },
+        ],
+      ],
+      ["/api/templates", [{ id: "t1", nome: "POP padrão", tipo: "POP" }]],
+      ["/api/pastas/p1", PASTA_COMPLETA],
+    ]);
+    render(createElement(ProcessarPasta));
+
+    expect(await screen.findByText(new RegExp(urlLonga.slice(0, 40)))).toBeInTheDocument();
+
+    // O checkbox do documento fica dentro de um label com padding: sem ele o alvo
+    // clicavel volta a ser a caixa nativa de 16px.
+    const caixa = screen.getByLabelText("Selecionar POP - Limpeza de pele.docx");
+    expect(caixa.closest("label")).not.toBeNull();
+  });
 });
 
 describe("correção em lote", () => {
