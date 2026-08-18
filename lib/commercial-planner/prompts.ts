@@ -38,7 +38,7 @@ Aponte em restrictions a técnica declarada que não tem evidência técnico-cie
 Só aponte restrição com motivo concreto e verificável; na dúvida, não aponte. A decisão final é sempre da especialista.
 
 ALERTAS
-Cada alerta é uma frase que o comercial pode ler para o cliente. Escreva o que precisa ser confirmado com o cliente, nunca como a análise foi feita: não mencione catálogo, documento equivalente, família de documentos, mapeamento, cobertura, modelo, base de dados nem esta instrução.`;
+Cada alerta é uma frase que o comercial pode ler para o cliente. Um alerta por assunto: não repita o mesmo ponto em outras palavras. Escreva o que precisa ser confirmado com o cliente, nunca como a análise foi feita: não mencione catálogo, documento equivalente, família de documentos, mapeamento, cobertura, modelo, base de dados nem esta instrução.`;
 
   const userPrompt = `PEDIDO ATUAL:
 ${JSON.stringify(input)}

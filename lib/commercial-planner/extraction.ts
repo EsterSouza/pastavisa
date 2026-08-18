@@ -23,6 +23,12 @@ function evidenceExists(source: string, evidence: string): boolean {
   return normalizeTechnique(source).includes(normalizeTechnique(evidence));
 }
 
+/** O termo já apareceu em algum alerta escrito antes? */
+function jaComentado(alerts: readonly string[], termo: string): boolean {
+  const alvo = normalizeTechnique(termo);
+  return alvo.length > 2 && alerts.some((alerta) => normalizeTechnique(alerta).includes(alvo));
+}
+
 const RESTRICTION_TEXT: Record<RestrictionReason, string> = {
   sem_evidencia: "não tem evidência técnico-científica consolidada",
   legislacao_desfavoravel: "tem legislação desfavorável ou restritiva",
@@ -75,6 +81,9 @@ export async function extractExplicitTechniques(
     // Item fora do escopo já tem aviso próprio: pedir confirmação dele confundiria,
     // porque a resposta não é “sim, faço”, e sim “isso não entra nesta pasta”.
     if (outOfScopeReason(mention.name)) continue;
+    // E quando a dúvida sobre aquele termo já foi escrita, repetir em outras
+    // palavras só aumenta a lista que o comercial precisa ler.
+    if (jaComentado(alerts, mention.name)) continue;
     alerts.push(`Confirme se “${mention.name}” é uma técnica realizada no estabelecimento.`);
   }
 
