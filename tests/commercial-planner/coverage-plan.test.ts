@@ -15,6 +15,13 @@ const catalog: PlannerCatalogItem[] = [
   { id: "equipment", name: "POP — Gestão de Equipamentos Eletromédicos", type: "POP" },
 ];
 
+/** Documentos que nascem de uma técnica declarada, sem a base obrigatória da pasta. */
+function porTecnica(plan: { documents: Array<{ role: string; documentName: string }> }): string[] {
+  return plan.documents
+    .filter((doc) => doc.role === "procedure" || doc.role === "consent")
+    .map((doc) => doc.documentName);
+}
+
 function request(overrides: Partial<CommercialPlannerInput> = {}): CommercialPlannerInput {
   return { cliente: "Cliente", procedimentos: "Técnica A e Técnica B", equipamentos: [], ...overrides };
 }
@@ -44,10 +51,7 @@ describe("mapa de cobertura e plano mínimo", () => {
     );
     const plan = buildMinimumPlan(request(), coverage);
 
-    expect(plan.documents.map((doc) => doc.documentName)).toEqual([
-      "POP — Família A e B",
-      "TCLE — Família A e B",
-    ]);
+    expect(porTecnica(plan)).toEqual(["POP — Família A e B", "TCLE — Família A e B"]);
   });
 
   it("não deixa TCLE amplo absorver técnicas sem equivalência material", () => {
@@ -63,13 +67,12 @@ describe("mapa de cobertura e plano mínimo", () => {
     );
     const plan = buildMinimumPlan(request(), coverage);
 
-    expect(plan.documents.map((doc) => doc.documentName)).toEqual([
+    expect(porTecnica(plan)).toEqual([
       "POP — Técnica A",
       "POP — Técnica B",
       "TCLE — Técnica A",
       "TCLE — Técnica B",
     ]);
-    expect(plan.alerts.some((alert) => alert.includes("mantidas separadas"))).toBe(true);
   });
 
   it("inclui esterilização somente com reutilização e autoclave confirmadas", () => {
@@ -85,8 +88,16 @@ describe("mapa de cobertura e plano mínimo", () => {
     expect(withoutAutoclave.documents.some((doc) => doc.role === "sterilization")).toBe(false);
     expect(withoutAutoclave.alerts.some((alert) => alert.includes("autoclave"))).toBe(true);
 
+    // Confirmada a autoclave, entram os dois documentos vindos da declaração e os
+    // três que a pasta traz sempre que há processamento de material.
     const confirmed = buildMinimumPlan(request({ reutilizaMateriais: true, possuiAutoclave: true }), coverage);
-    expect(confirmed.documents.filter((doc) => doc.role === "sterilization")).toHaveLength(2);
+    expect(confirmed.documents.filter((doc) => doc.role === "sterilization").map((doc) => doc.documentName).sort()).toEqual([
+      "POP — Processamento de Materiais Reutilizáveis",
+      "POP — Processamento, Limpeza e Desinfecção de Artigos, Instrumentais e Materiais Reutilizáveis",
+      "POP — Validação e Monitoramento do Processo de Esterilização",
+      "Registro de Esterilização em Autoclave",
+      "Registro de Esterilização em Autoclave",
+    ].sort());
   });
 
   it("não inclui documento de equipamento quando nenhum equipamento foi informado", () => {
@@ -105,7 +116,7 @@ describe("mapa de cobertura e plano mínimo", () => {
     expect(buildMinimumPlan(request({ equipamentos: ["Laser X"] }), coverage).documents.some((doc) => doc.role === "equipment")).toBe(true);
   });
 
-  it("mantém cada técnica coberta e transforma lacuna em alerta", () => {
+  it("cobre a técnica sem documento correspondente com POP e TCLE, sem virar pendência", () => {
     const coverage = buildCoverageMap(extraction(), catalog);
     const plan = buildMinimumPlan(request(), coverage);
 
@@ -113,6 +124,37 @@ describe("mapa de cobertura e plano mínimo", () => {
       expect(plan.documents.some((doc) => doc.role === "procedure" && doc.techniques.includes(technique))).toBe(true);
       expect(plan.documents.some((doc) => doc.role === "consent" && doc.techniques.includes(technique))).toBe(true);
     }
-    expect(plan.alerts.some((alert) => alert.includes("validação técnica"))).toBe(true);
+    expect(plan.alerts).toEqual([]);
+  });
+
+  it("traz a base obrigatória da pasta mesmo sem nenhuma cobertura declarada", () => {
+    const plan = buildMinimumPlan(request(), buildCoverageMap(extraction(), catalog));
+    const nomes = plan.documents.map((doc) => doc.documentName);
+
+    for (const obrigatorio of [
+      "Manual de Boas Práticas em Serviço de Saúde",
+      "Plano de Gerenciamento de Resíduos de Serviços de Saúde (PGRSS)",
+      "Plano de Segurança do Paciente",
+      "Plano de Contingência e Emergências",
+      "POP — Higienização das Mãos",
+      "POP — Paramentação e Uso de Equipamentos de Proteção Individual (EPIs)",
+      "POP — Gerenciamento Interno de Resíduos",
+      "POP — Prevenção e Conduta em Acidentes com Material Biológico",
+      "POP — Consulta e Prontuário",
+      "Planilha de Controle de Limpeza Concorrente e Terminal",
+      "Guia de Utilização da Pasta Sanitária",
+    ]) {
+      expect(nomes).toContain(obrigatorio);
+    }
+  });
+
+  it("não cria termo de consentimento para consulta e avaliação", () => {
+    const coverage = buildCoverageMap(
+      extraction({ techniques: [{ name: "Consulta e avaliação estética", evidence: ["consulta"] }] }),
+      catalog
+    );
+    const plan = buildMinimumPlan(request({ procedimentos: "Consulta e avaliação estética" }), coverage);
+
+    expect(porTecnica(plan)).toEqual(["POP — Consulta e avaliação estética"]);
   });
 });

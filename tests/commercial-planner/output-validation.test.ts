@@ -39,8 +39,10 @@ describe("validação e saída pública", () => {
     const output = toPublicPlannerOutput(internal);
     const serialized = JSON.stringify(output).toLowerCase();
 
-    expect(output.documentos).toEqual([{ nome: "POP MICROAGULHAMENTO", tipo: "POP" }]);
-    expect(output.alertas).toEqual(["Uma correspondência documental precisa de validação técnica."]);
+    // O nome sai da técnica declarada, não do arquivo de origem, e o alerta que só
+    // descreve o funcionamento interno não chega ao comercial.
+    expect(output.documentos).toEqual([{ nome: "POP — Microagulhamento", tipo: "POP" }]);
+    expect(output.alertas).toEqual([]);
     for (const forbidden of ["secret-id", "catalog", "catálogo", "template", "prompt", "score", "coverage", "exact"]) {
       expect(serialized).not.toContain(forbidden);
     }

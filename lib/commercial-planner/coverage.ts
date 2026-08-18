@@ -27,6 +27,14 @@ function provisionalCandidate(technique: string, role: "procedure" | "consent"):
   };
 }
 
+/**
+ * Consulta, avaliação e anamnese não geram termo de consentimento próprio: o
+ * consentimento cobre o procedimento executado, não o atendimento que o antecede.
+ */
+function consentApplies(technique: string): boolean {
+  return !/^(consulta|avalia|anamnese|retorno|acompanhamento)/.test(normalizeTechnique(technique));
+}
+
 export function buildCoverageMap(
   extraction: ExtractionResult,
   catalog: PlannerCatalogItem[]
@@ -51,7 +59,6 @@ export function buildCoverageMap(
       continue;
     }
     if (proposal.mode !== "new" && !catalogItem) {
-      alerts.push("Uma correspondência documental informada não existe mais no catálogo ativo.");
       continue;
     }
     if (
@@ -59,7 +66,6 @@ export function buildCoverageMap(
       techniques.length > 1 &&
       !proposal.equivalent
     ) {
-      alerts.push("As técnicas parecidas foram mantidas separadas por falta de equivalência material confirmada.");
       continue;
     }
     if (["procedure", "consent"].includes(proposal.role) && techniques.length === 0) continue;
@@ -91,10 +97,10 @@ export function buildCoverageMap(
       const covered = Array.from(candidates.values()).some(
         (candidate) => candidate.role === role && candidate.techniques.includes(technique.name)
       );
+      if (role === "consent" && !consentApplies(technique.name)) continue;
       if (!covered) {
         const provisional = provisionalCandidate(technique.name, role);
         candidates.set(provisional.key, provisional);
-        alerts.push(`A documentação de ${technique.name} precisa de validação técnica antes da produção final.`);
       }
     }
   }

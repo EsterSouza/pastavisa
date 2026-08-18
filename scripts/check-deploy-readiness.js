@@ -98,6 +98,9 @@ function checkPublicPlanner() {
     "lib/commercial-planner/safe-logging.ts",
     "lib/commercial-planner/withdrawal.ts",
     "lib/commercial-planner/render-pdf.ts",
+    "lib/commercial-planner/naming.ts",
+    "lib/commercial-planner/baseline.ts",
+    "lib/commercial-planner/references.ts",
     "public/brand/treinavisa-logo-print.png",
     "public/brand/fonts/Sora-Medium.ttf",
     "public/brand/fonts/Sora-SemiBold.ttf",
@@ -148,6 +151,34 @@ function checkPublicPlanner() {
     ok("PDF recalcula preco no servidor a partir do token e da retirada");
   } else {
     fail("PDF deve validar o token e recalcular preco no servidor");
+  }
+
+  const plan = read("lib/commercial-planner/plan.ts");
+  const output = read("lib/commercial-planner/output.ts");
+  if (plan.includes("buildBaselineDocuments") && output.includes("canonicalDocument") && output.includes("procedureDocumentName")) {
+    ok("plano traz a base obrigatoria e a saida usa o nome oficial do documento");
+  } else {
+    fail("plano deve incluir a base obrigatoria e a saida deve nomear pelo documento oficial");
+  }
+
+  // Só os arquivos que carregam texto lido pelo cliente. output.ts fica de fora de
+  // proposito: os termos aparecem la dentro do filtro que existe para barra-los.
+  const publicSources = [
+    read("lib/commercial-planner/references.ts"),
+    read("lib/commercial-planner/baseline.ts"),
+    read("lib/commercial-planner/naming.ts"),
+    read("components/commercial-planner/ReviewStep.tsx"),
+    read("components/commercial-planner/FormatStep.tsx"),
+    read("components/commercial-planner/CommercialPlanner.tsx"),
+    read("app/(public)/planner/page.tsx"),
+  ].join("\n");
+  const vazamentos = [/\btemplate\b/i, /intelig[eê]ncia artificial/i, /\bser[aá]o? gerad/i, /banco de dados/i].filter((termo) =>
+    termo.test(publicSources)
+  );
+  if (vazamentos.length === 0) {
+    ok("texto publico do planner nao cita mecanismo interno");
+  } else {
+    fail(`texto publico do planner cita mecanismo interno: ${vazamentos.map(String).join(", ")}`);
   }
 
   const nextConfig = read("next.config.mjs");

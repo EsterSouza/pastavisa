@@ -1,5 +1,6 @@
 "use client";
 
+import { AUTHORSHIP_NOTE, OUT_OF_FOLDER_NOTE } from "@/lib/commercial-planner/references";
 import type { PublicCommercialPlan } from "@/lib/commercial-planner/types";
 import type { WithdrawalResult } from "@/lib/commercial-planner/withdrawal";
 
@@ -19,7 +20,7 @@ export function ReviewStep({ plano, retirada, retirados, onToggle }: ReviewStepP
         <h2 className="font-display text-xl text-ink">Revise o que entra na pasta</h2>
         <p className="mt-2 text-base leading-6 text-ink-muted">
           Desmarque um procedimento para retirá-lo. Os documentos e o valor adicional são recalculados na hora, e o
-          servidor refaz a conta ao gerar o PDF.
+          servidor confere a conta antes do download.
         </p>
       </div>
 
@@ -81,6 +82,10 @@ export function ReviewStep({ plano, retirada, retirados, onToggle }: ReviewStepP
               </li>
             ))}
           </ul>
+
+          <p className="mt-4 border-t border-gray-200 pt-4 text-sm leading-6 text-ink-muted">
+            {AUTHORSHIP_NOTE} {OUT_OF_FOLDER_NOTE}
+          </p>
         </section>
       </div>
 

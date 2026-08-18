@@ -66,6 +66,10 @@ trilha de etapas anunciada por `aria-current="step"`. Os blocos:
 - **Revisão:** duas colunas em telas largas — procedimentos com caixa de seleção e documentos recalculados —
   com contagens em região `aria-live` e alertas em bloco de atenção.
 - **Formato e preço:** três cartões de rádio comparáveis e um resumo com base, adicional e total.
+- **Rascunho:** o preenchimento fica no `localStorage` de quem atende por duas horas — a mesma validade do token
+  assinado da análise. Recarregar a página, cair a conexão ou fechar a aba não custa o atendimento. Ao retomar,
+  um aviso `role="status"` diz o que aconteceu, e o botão **Recomeçar do zero** apaga o rascunho e limpa a tela.
+  Nada disso vai para o servidor: o rascunho nasce e morre no navegador.
 
 ## Composição do PDF
 
@@ -73,6 +77,16 @@ O PDF A4 usa a mesma paleta e as mesmas famílias da interface: **Sora** no tít
 **Source Sans 3** em texto, listas e tabelas. As fontes ficam em `public/brand/fonts/` sob a licença OFL, junto do
 recorte da logo oficial para superfície escura (`treinavisa-logo-print.png`, corte da margem transparente, sem
 recoloração). Sem esses arquivos o PDF ainda sai, com a fallback de escritório.
+
+Os documentos aparecem com o nome oficial da pasta, e não com o nome do arquivo de origem: POP e TCLE de
+procedimento são nomeados pela técnica declarada, e os institucionais, POPs gerais e registros têm nome próprio
+em `lib/commercial-planner/naming.ts`. A base obrigatória da pasta — institucionais, POPs gerais de biossegurança,
+fichas e planilhas de controle — vem de `lib/commercial-planner/baseline.ts` e entra sempre, com as entradas de
+injetáveis, perfuração, equipamento e esterilização condicionadas ao que o cliente declarou.
+
+O PDF fecha com as principais referências federais, a nota sobre normativas locais, o mapeamento semestral das
+referências acadêmicas e o critério da especialista sobre técnica sem evidência ou com legislação desfavorável
+(`lib/commercial-planner/references.ts`).
 
 A página tem faixa navy com a marca, filete âmbar, bloco de cliente em azul pálido, seções tituladas com filete,
 selo de tipo por documento, bloco de investimento em navy e marca-d'água diagonal `PRÉ-PLANEJAMENTO PROVISÓRIO`

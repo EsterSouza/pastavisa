@@ -53,9 +53,18 @@ export interface AnalysisCoverage {
   alert?: string;
 }
 
+export type RestrictionReason = "sem_evidencia" | "legislacao_desfavoravel" | "fora_de_habilitacao";
+
+export interface AnalysisRestriction {
+  technique: string;
+  reason: RestrictionReason;
+  detail: string;
+}
+
 export interface PlannerAnalysis {
   mentions: AnalysisMention[];
   coverages: AnalysisCoverage[];
+  restrictions: AnalysisRestriction[];
   alerts: string[];
 }
 

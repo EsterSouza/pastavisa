@@ -34,7 +34,7 @@ export function FormatStep({ retirada, formato, onSelect }: FormatStepProps) {
       <div>
         <h2 className="font-display text-xl text-ink">Escolha o formato de entrega</h2>
         <p className="mt-2 text-base leading-6 text-ink-muted">
-          Os três formatos usam o mesmo conteúdo. O valor final é conferido no servidor quando o PDF é gerado.
+          Os três formatos usam o mesmo conteúdo. O valor final é conferido no servidor antes do download.
         </p>
       </div>
 

@@ -1,11 +1,13 @@
 import type {
   AnalysisCoverage,
   AnalysisMention,
+  AnalysisRestriction,
   CommercialPlannerInput,
   CoverageMode,
   DocumentRole,
   MentionKind,
   PlannerAnalysis,
+  RestrictionReason,
 } from "./types";
 
 const mentionKinds = new Set<MentionKind>([
@@ -27,6 +29,8 @@ const documentRoles = new Set<DocumentRole>([
   "sterilization",
   "equipment",
 ]);
+
+const restrictionReasons = new Set<RestrictionReason>(["sem_evidencia", "legislacao_desfavoravel", "fora_de_habilitacao"]);
 
 export const MAX_PLANNER_BODY_BYTES = 12 * 1024;
 export const MAX_PROCEDURES_BYTES = 8 * 1024;
@@ -102,6 +106,16 @@ function parseCoverage(value: unknown): AnalysisCoverage | null {
   };
 }
 
+function parseRestriction(value: unknown): AnalysisRestriction | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const reason = raw.reason as RestrictionReason;
+  const technique = text(raw.technique, 200);
+  return technique && restrictionReasons.has(reason)
+    ? { technique, reason, detail: text(raw.detail, 300) }
+    : null;
+}
+
 export function validatePlannerAnalysis(value: unknown): PlannerAnalysis {
   if (!value || typeof value !== "object") throw new PlannerValidationError("A análise sanitária retornou dados inválidos.");
   const raw = value as Record<string, unknown>;
@@ -114,6 +128,10 @@ export function validatePlannerAnalysis(value: unknown): PlannerAnalysis {
       .map(parseCoverage)
       .filter((item): item is AnalysisCoverage => item !== null)
       .slice(0, 500),
+    restrictions: (Array.isArray(raw.restrictions) ? raw.restrictions : [])
+      .map(parseRestriction)
+      .filter((item): item is AnalysisRestriction => item !== null)
+      .slice(0, 50),
     alerts: (Array.isArray(raw.alerts) ? raw.alerts : [])
       .map((item) => text(item, 400))
       .filter(Boolean)

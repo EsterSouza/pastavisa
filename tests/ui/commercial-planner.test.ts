@@ -5,6 +5,7 @@ import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { CommercialPlanner } from "@/components/commercial-planner/CommercialPlanner";
+import { DRAFT_KEY } from "@/lib/commercial-planner/draft";
 
 /**
  * Fluxo público do comercial: cliente → operação → revisão → formato → PDF.
@@ -136,7 +137,7 @@ describe("planner comercial público", () => {
     expect(screen.queryByRole("heading", { name: /revise o que entra/i })).not.toBeInTheDocument();
   });
 
-  it("não guarda nada no navegador entre sessões", () => {
+  it("só toca o armazenamento do navegador pelo módulo de rascunho", () => {
     const componentes = [
       "components/commercial-planner/CommercialPlanner.tsx",
       "components/commercial-planner/ReviewStep.tsx",
@@ -149,5 +150,41 @@ describe("planner comercial público", () => {
       const fonte = readFileSync(join(process.cwd(), componente), "utf8");
       expect(fonte).not.toMatch(/localStorage|sessionStorage|document\.cookie|indexedDB/);
     }
+  });
+
+  it("retoma o atendimento guardado e o descarta ao recomeçar do zero", async () => {
+    const dados = new Map<string, string>();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: (chave: string) => dados.get(chave) ?? null,
+        setItem: (chave: string, valor: string) => void dados.set(chave, valor),
+        removeItem: (chave: string) => void dados.delete(chave),
+        clear: () => dados.clear(),
+        key: () => null,
+        get length() {
+          return dados.size;
+        },
+      },
+    });
+
+    const { unmount } = render(createElement(CommercialPlanner));
+    preencher("Clínica Aurora", /nome do cliente/i);
+    fireEvent.click(screen.getByRole("button", { name: /continuar/i }));
+    preencher("Limpeza de pele", /procedimentos realizados/i);
+    await waitFor(() => expect(dados.size).toBe(1));
+    unmount();
+    cleanup();
+
+    // Recarregar a página é uma montagem nova do componente.
+    render(createElement(CommercialPlanner));
+    expect(await screen.findByRole("status")).toHaveTextContent("Retomamos o preenchimento");
+    expect(screen.getByLabelText(/procedimentos realizados/i)).toHaveValue("Limpeza de pele");
+
+    fireEvent.click(screen.getByRole("button", { name: /recomeçar do zero/i }));
+
+    await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
+    expect(screen.getByLabelText(/nome do cliente/i)).toHaveValue("");
+    expect(dados.has(DRAFT_KEY)).toBe(false);
   });
 });

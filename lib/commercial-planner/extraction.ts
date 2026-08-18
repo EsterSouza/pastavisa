@@ -5,6 +5,7 @@ import type {
   ExtractionResult,
   PlannerAnalyzer,
   PlannerCatalogItem,
+  RestrictionReason,
 } from "./types";
 import { validatePlannerAnalysis } from "./validation";
 
@@ -19,6 +20,21 @@ export function normalizeTechnique(value: string): string {
 
 function evidenceExists(source: string, evidence: string): boolean {
   return normalizeTechnique(source).includes(normalizeTechnique(evidence));
+}
+
+const RESTRICTION_TEXT: Record<RestrictionReason, string> = {
+  sem_evidencia: "não tem evidência técnico-científica consolidada",
+  legislacao_desfavoravel: "tem legislação desfavorável ou restritiva",
+  fora_de_habilitacao: "pode exigir habilitação profissional específica",
+};
+
+/**
+ * Ressalva sobre a técnica em si, para a especialista decidir se ela entra. O texto
+ * diz o motivo e devolve a decisão a quem tem competência para tomá-la.
+ */
+function restrictionAlert(technique: string, reason: RestrictionReason, detail: string): string {
+  const motivo = `“${technique}” ${RESTRICTION_TEXT[reason]} e fica sujeita à análise da especialista.`;
+  return detail ? `${motivo} ${detail}` : motivo;
 }
 
 export async function extractExplicitTechniques(
@@ -49,6 +65,15 @@ export async function extractExplicitTechniques(
     if (mention.kind === "uncertain") {
       alerts.push(`Confirme se “${mention.name}” é uma técnica realizada no estabelecimento.`);
     }
+  }
+
+  // A restrição só vira ressalva quando recai sobre uma técnica que ficou no plano:
+  // ressalva sobre técnica que não entrou confundiria quem lê.
+  for (const restriction of analysis.restrictions) {
+    const key = normalizeTechnique(restriction.technique);
+    const technique = techniques.get(key);
+    if (!technique) continue;
+    alerts.push(restrictionAlert(technique.name, restriction.reason, restriction.detail));
   }
   if (techniques.size === 0) {
     alerts.push("Nenhuma técnica de procedimento foi identificada de forma explícita.");

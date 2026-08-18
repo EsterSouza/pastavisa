@@ -1,6 +1,14 @@
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage, type RGB } from "pdf-lib";
 import { loadBrandAssets, type BrandAssets } from "./brand-assets";
+import {
+  ACADEMIC_REFERENCES_NOTE,
+  AUTHORSHIP_NOTE,
+  FEDERAL_REFERENCES,
+  LOCAL_REFERENCES_NOTE,
+  OUT_OF_FOLDER_NOTE,
+  TECHNICAL_CRITERIA_NOTE,
+} from "./references";
 import type { PlannerFormat, PlannerPrice } from "./pricing";
 import type { PublicPlannerDocument } from "./types";
 
@@ -47,12 +55,12 @@ export interface PlannerPdfData {
 /** Sora e Source Sans cobrem o latino da marca; o resto sai para não abortar o download. */
 function sanitize(value: string): string {
   return value
-    .replace(/[‐-―]/g, "-")
+    .replace(/[‐-‒―]/g, "-")
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')
     .replace(/…/g, "...")
     .replace(/[   ]/g, " ")
-    .replace(/[^ -ſ]/g, "")
+    .replace(/[^ -ſ\u2013\u2014]/g, "")
     .trim();
 }
 
@@ -238,15 +246,16 @@ export async function renderPlannerPdf(data: PlannerPdfData, assets?: BrandAsset
     cursor -= options.gap ?? 4;
   }
 
-  function bullets(items: string[], marker: RGB) {
+  function bullets(items: string[], marker: RGB, size = 10.5) {
+    const step = size + 3.5;
     for (const item of items) {
-      const lines = wrap(item, fonts.body, 10.5, CONTENT_WIDTH - 20);
-      ensure(lines.length * 14 + 6);
+      const lines = wrap(item, fonts.body, size, CONTENT_WIDTH - 20);
+      ensure(lines.length * step + 6);
       page.drawRectangle({ x: MARGIN + 1, y: cursor + 3, width: 3.5, height: 3.5, color: marker });
       lines.forEach((line, index) => {
-        page.drawText(line, { x: MARGIN + 15, y: cursor - index * 14, size: 10.5, font: fonts.body, color: NAVY });
+        page.drawText(line, { x: MARGIN + 15, y: cursor - index * step, size, font: fonts.body, color: NAVY });
       });
-      cursor -= lines.length * 14 + 5;
+      cursor -= lines.length * step + 5;
     }
     cursor -= 6;
   }
@@ -285,9 +294,13 @@ export async function renderPlannerPdf(data: PlannerPdfData, assets?: BrandAsset
   }
 
   heading(`Documentos previstos (${data.documentos.length})`, 34);
+  const tipoWidth = data.documentos.reduce(
+    (maior, documento) =>
+      Math.max(maior, fonts.bodyStrong.widthOfTextAtSize(sanitize(documento.tipo).toLocaleUpperCase("pt-BR"), 7.5) + 14),
+    38
+  );
   for (const documento of data.documentos) {
     const tipo = sanitize(documento.tipo).toLocaleUpperCase("pt-BR");
-    const tipoWidth = Math.max(fonts.bodyStrong.widthOfTextAtSize(tipo, 7.5) + 14, 38);
     const lines = wrap(documento.nome, fonts.body, 10.5, CONTENT_WIDTH - tipoWidth - 14);
     ensure(lines.length * 14 + 8);
     page.drawRectangle({
@@ -322,6 +335,8 @@ export async function renderPlannerPdf(data: PlannerPdfData, assets?: BrandAsset
     size: 10.5,
     font: fonts.bodyStrong,
   });
+  paragraph(AUTHORSHIP_NOTE, { size: 9.5, color: INK_MUTED, gap: 2 });
+  paragraph(OUT_OF_FOLDER_NOTE, { size: 9.5, color: INK_MUTED });
 
   heading("Investimento", 108);
   ensure(108);
@@ -386,8 +401,14 @@ export async function renderPlannerPdf(data: PlannerPdfData, assets?: BrandAsset
       : `${data.prazo.diasUteis} dias úteis.`
   );
 
-  heading("Ressalva oficial", 44);
-  paragraph(OFFICIAL_CAVEAT, { size: 9.5, color: INK_MUTED, gap: 8 });
+  heading("Referências normativas de base", 40);
+  bullets([...FEDERAL_REFERENCES], ACTION, 9);
+  paragraph(LOCAL_REFERENCES_NOTE, { size: 9.5, color: INK_MUTED, gap: 2 });
+  paragraph(ACADEMIC_REFERENCES_NOTE, { size: 9.5, color: INK_MUTED });
+
+  heading("Ressalva oficial", 56);
+  paragraph(OFFICIAL_CAVEAT, { size: 9.5, color: INK_MUTED, gap: 2 });
+  paragraph(TECHNICAL_CRITERIA_NOTE, { size: 9.5, color: INK_MUTED, gap: 8 });
   if (data.alertas.length > 0) bullets(data.alertas, AMBER);
 
   // A numeração só pode ser escrita depois do fluxo, porque o total de páginas

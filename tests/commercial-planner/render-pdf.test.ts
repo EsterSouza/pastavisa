@@ -4,6 +4,13 @@ import { extractPdfTextFromBuffer } from "@/lib/extractor";
 import { loadBrandAssets } from "@/lib/commercial-planner/brand-assets";
 import { calculatePlannerPrice, PLANNER_FORMATS } from "@/lib/commercial-planner/pricing";
 import { OFFICIAL_CAVEAT, renderPlannerPdf, WATERMARK_TEXT } from "@/lib/commercial-planner/render-pdf";
+import {
+  ACADEMIC_REFERENCES_NOTE,
+  AUTHORSHIP_NOTE,
+  LOCAL_REFERENCES_NOTE,
+  OUT_OF_FOLDER_NOTE,
+  TECHNICAL_CRITERIA_NOTE,
+} from "@/lib/commercial-planner/references";
 import type { PlannerPdfData } from "@/lib/commercial-planner/render-pdf";
 import { warmPdfPipeline, WARMUP_TIMEOUT_MS } from "./warm-pdf";
 
@@ -22,7 +29,7 @@ function data(overrides: Partial<PlannerPdfData> = {}): PlannerPdfData {
     preco: calculatePlannerPrice(2, "colorida"),
     comparativo: PLANNER_FORMATS.map((formato) => calculatePlannerPrice(2, formato)),
     prazo: { diasUteis: 15, sujeitoConfirmacaoTecnica: false },
-    alertas: ["A documentação de Microagulhamento precisa de validação técnica antes da produção final."],
+    alertas: ["Confirme se “Jato de plasma” é uma técnica realizada no estabelecimento."],
     ...overrides,
   };
 }
@@ -63,7 +70,7 @@ describe("PDF do planejamento comercial", () => {
     expect(plano).toContain("R$ 597,00");
     expect(plano).toContain("R$ 797,00");
     expect(plano).toContain("15 dias úteis");
-    expect(plano).toContain("precisa de validação técnica");
+    expect(plano).toContain("é uma técnica realizada no estabelecimento");
   });
 
   it("mostra o adicional e a ressalva de prazo acima de 100 procedimentos", async () => {
@@ -83,8 +90,10 @@ describe("PDF do planejamento comercial", () => {
   });
 
   it("não vaza catálogo, ID, cobertura nem mecanismo técnico", async () => {
+    // O PDF recebe o documento já com o nome público; quem faz essa conversão é a
+    // saída pública, coberta por tests/commercial-planner/document-names.test.ts.
     const { conteudo } = await text({
-      documentos: [{ nome: "TEMPLATE_POP_MICROAGULHAMENTO", tipo: "POP" }],
+      documentos: [{ nome: "POP — Microagulhamento", tipo: "POP" }],
     });
 
     for (const proibido of [
@@ -96,11 +105,36 @@ describe("PDF do planejamento comercial", () => {
       /\bmodelo de IA\b/i,
       /\bID\b/,
       /catalogId/i,
+      /template/i,
+      /intelig[eê]ncia artificial/i,
+      /\bgerad[oa]s?\b/i,
+      /banco de dados/i,
     ]) {
       expect(conteudo).not.toMatch(proibido);
     }
   });
 
+  it("cita as referências federais de base e o alcance das normas locais", async () => {
+    const { conteudo } = await text();
+    const plano = conteudo.replace(/\s+/g, " ");
+
+    expect(plano).toContain("Referências normativas de base");
+    expect(plano).toContain("Estatuto dos Direitos do Paciente");
+    expect(plano).toContain("RDC Anvisa nº 63/2011");
+    expect(plano).toContain("RDC Anvisa nº 222/2018");
+    expect(plano).toContain("NR-32");
+    expect(plano).toContain(LOCAL_REFERENCES_NOTE.replace(/\s+/g, " "));
+    expect(plano).toContain(ACADEMIC_REFERENCES_NOTE.replace(/\s+/g, " "));
+  });
+
+  it("diz quem elabora, o que a pasta não traz e o critério técnico da especialista", async () => {
+    const { conteudo } = await text();
+    const plano = conteudo.replace(/\s+/g, " ");
+
+    expect(plano).toContain(AUTHORSHIP_NOTE.replace(/\s+/g, " "));
+    expect(plano).toContain(OUT_OF_FOLDER_NOTE.replace(/\s+/g, " "));
+    expect(plano).toContain(TECHNICAL_CRITERIA_NOTE.replace(/\s+/g, " "));
+  });
   it("não quebra com caractere fora da fonte nem sem os ativos de marca", async () => {
     const bytes = await renderPlannerPdf({ ...data(), cliente: "Clínica 中文 — Ação" }, {});
     expect(Buffer.from(bytes).subarray(0, 5).toString("latin1")).toBe("%PDF-");

@@ -1466,6 +1466,65 @@ Depois disso, a varredura de contraste do planner não acusou nenhuma falha AA e
 - Nada foi gravado: o planner não cria pasta, lead, histórico nem arquivo em Storage. Nenhuma variável de
   ambiente ou regra WAF foi alterada — a regra do PV-007 já cobria o caminho de PDF.
 
+#### Revisão de conteúdo pedida pela Ester — 18/08/2026
+
+A Ester comparou a saída do planner com os “Documentos em elaboração” de três clientes reais (Camila Costa,
+Taís Pilon e Vanessa Andrade) e apontou que faltava muita coisa, que os nomes saíam como no arquivo de origem
+e que o texto público não pode citar o mecanismo interno. O que mudou:
+
+- **Base obrigatória da pasta** (`lib/commercial-planner/baseline.ts`): institucionais (Relação de Serviços, MBP,
+  PGRSS, Plano de Segurança do Paciente, Plano de Contingência), POPs gerais de biossegurança, limpeza, estrutura
+  e controle, POP de consulta e prontuário, ficha de anamnese, termos gerais e as planilhas de controle entram
+  sempre. Injetáveis, perfuração auricular, material descartável, equipamento e esterilização entram conforme o
+  que o cliente declarou. Uma operação com 7 procedimentos passou de 18 para 45 documentos.
+- **Nome oficial** (`lib/commercial-planner/naming.ts`): POP e TCLE de procedimento são nomeados pela técnica
+  declarada (“POP — Limpeza de Pele”, não “POP Limpeza Pele”); os demais têm verbete próprio, com tipo público
+  melhor que `OUTROS` (PLANO, RELAÇÃO, FORMULÁRIO, REGISTRO, GUIA, TERMO). Nome sem verbete tem só a caixa
+  arrumada — acento não é inventado.
+- **Sem correspondência é rotina, não pendência:** quando não existe documento equivalente, entram o POP e o
+  TCLE da técnica, sem alerta. Consulta, avaliação e anamnese não geram TCLE próprio.
+- **Categorias que a pasta não traz** são barradas na saída pública: contrato, orientação pós-procedimento, anexo,
+  treinamento, certificado, licença e receituário. O “Controle de Entrega de Orientações Pós-Procedimentos” fica,
+  porque é registro da pasta e não a orientação em si.
+- **Vocabulário:** nenhum texto público diz que documento será “gerado”, nem cita template, IA, catálogo, banco de
+  dados ou equivalência material. Alerta que descrevia funcionamento interno deixou de sair. O PDF e a revisão
+  afirmam que a documentação é elaborada pela equipe técnica.
+- **Referências** (`lib/commercial-planner/references.ts`): o PDF fecha com as principais normas federais — vindas
+  da base `@visa/legislacao`, com vigência apurada — mais a nota de que as normativas estaduais e municipais do
+  endereço entram após pesquisa e validação bibliográfica, o mapeamento semestral das referências acadêmicas e a
+  indicação de referências extras no formulário de triagem pós-contratação.
+- **Critério da especialista:** a análise passou a apontar técnica sem evidência técnico-científica, com legislação
+  desfavorável ou fora da habilitação, e isso vira ressalva no PDF e na revisão. O PDF também traz a regra fixa
+  de que essas técnicas não são consideradas, a critério da especialista.
+- **Travessão preservado no PDF:** Sora e Source Sans trazem o glifo, então “POP — …” não vira mais hífen.
+
+#### Rascunho no navegador — muda o aceite de “refresh limpo”
+
+A Ester pediu que recarregar a página não custe o atendimento: se a internet cai ou a aba fecha, refazer tudo
+é caro demais. O card PV-009 pedia “refresh limpo”; **este item foi revisto por decisão dela.**
+
+- `lib/commercial-planner/draft.ts` guarda o preenchimento no `localStorage` da máquina de quem atende, com
+  validade de duas horas — a mesma do token assinado da análise, que depois disso já não vale.
+- Ao retomar, um aviso `role="status"` explica o que aconteceu. O botão **Recomeçar do zero** apaga o rascunho e
+  limpa a tela; formulário vazio não deixa rascunho para trás.
+- Armazenamento bloqueado, incompleto ou com cota estourada não derruba o planner: o rascunho é dispensado.
+- **A persistência zero no servidor continua valendo** — nada de pasta, lead, histórico, banco ou Storage. O
+  rascunho nasce e morre no navegador de quem atende.
+
+#### Evidência desta rodada
+
+- `npx.cmd vitest run`: 32 arquivos, 221 testes aprovados. `npx.cmd tsc --noEmit`, `npm.cmd run lint` e
+  `node scripts/check-deploy-readiness.js` passaram sem falhas.
+- Testes novos: `document-names.test.ts` (nome pela técnica, verbete oficial, idempotência, caixa arrumada,
+  categoria barrada, base obrigatória e suas condições) e `draft.test.ts` (guarda e devolve, vencimento,
+  conteúdo corrompido, limpeza, armazenamento bloqueado e incompleto).
+- Readiness ganhou duas conferências: o plano traz a base obrigatória e a saída usa nome oficial; o texto
+  público do planner não cita mecanismo interno.
+- PDF conferido página a página com uma operação real (8 procedimentos da CCB Estética, um retirado): 4
+  páginas, 45 documentos, referências e ressalvas no fim.
+- Navegador local: preenchimento, recarga de verdade e retomada com o aviso; **Recomeçar do zero** limpou tela
+  e `localStorage`. Sem erro de console vindo do planner.
+
 ---
 
 ## PV-010 — Redesign interno principal

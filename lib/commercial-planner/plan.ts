@@ -1,3 +1,4 @@
+import { buildBaselineDocuments } from "./baseline";
 import type {
   CommercialPlannerInput,
   CoverageCandidate,
@@ -39,7 +40,11 @@ export function buildMinimumPlan(
   coverage: CoverageMap
 ): InternalCommercialPlan {
   const alerts = [...coverage.alerts];
-  const allowed = coverage.candidates.filter((candidate) => {
+  // A base obrigatória entra antes do corte: os documentos de esterilização e de
+  // equipamento dela passam pela mesma conferência de autoclave e de equipamento
+  // declarado que vale para o resto.
+  const baseline = buildBaselineDocuments(input, coverage.techniques.map((technique) => technique.name));
+  const allowed = [...baseline, ...coverage.candidates].filter((candidate) => {
     const normalizedName = candidate.documentName
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")

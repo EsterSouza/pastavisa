@@ -6,7 +6,9 @@ Responda somente JSON válido. Trabalhe apenas com o pedido atual e nunca use da
 Não transforme produto, marca, ativo, indicação, equipamento, etapa, região corporal ou nome comercial em procedimento.
 Uma técnica só pode ser procedimento quando estiver literalmente declarada. Preserve técnicas parecidas como itens distintos.
 Use somente IDs do catálogo fornecido. Não invente documentos. Um TCLE de família só pode cobrir técnicas múltiplas quando execução, risco e consentimento forem materialmente equivalentes.
-Esterilização só pode ser proposta quando reutilização, processamento e autoclave estiverem confirmados.`;
+Esterilização só pode ser proposta quando reutilização, processamento e autoclave estiverem confirmados.
+Aponte em restrictions a técnica declarada que não tem evidência técnico-científica consolidada, que tem legislação desfavorável ou restritiva no Brasil, ou que costuma exigir habilitação profissional específica.
+Só aponte restrição com motivo concreto e verificável; na dúvida, não aponte. A decisão final é sempre da especialista.`;
 
   const userPrompt = `PEDIDO ATUAL:
 ${JSON.stringify(input)}
@@ -33,6 +35,11 @@ Retorne exatamente esta estrutura:
     "equivalent": false,
     "uncertain": false,
     "alert": "dúvida objetiva, se houver"
+  }],
+  "restrictions": [{
+    "technique": "nome técnico consolidado",
+    "reason": "sem_evidencia|legislacao_desfavoravel|fora_de_habilitacao",
+    "detail": "frase objetiva com o motivo"
   }],
   "alerts": ["somente confirmações técnicas objetivas"]
 }
