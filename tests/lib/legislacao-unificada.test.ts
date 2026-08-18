@@ -14,7 +14,7 @@ describe("base unificada projetada no formato da tabela", () => {
       porChave.set(chave, [...(porChave.get(chave) || []), leg.titulo]);
     }
 
-    const colisoes = [...porChave.entries()]
+    const colisoes = Array.from(porChave.entries())
       .filter(([, titulos]) => titulos.length > 1)
       .map(([chave, titulos]) => `${chave}: ${titulos.join(" | ")}`);
 
