@@ -395,7 +395,7 @@ esta seção que diz se o card fechou.
 | PV-006 | Motor sanitário do planner | Concluído | — |
 | PV-007 | API pública, preço e proteção | Concluído | — |
 | PV-008 | Manual de marca e design system | **Parcial** | Zoom 200% e ordem completa de teclado nunca foram comprovados. Esse resto virou o PV-018. |
-| PV-009 | Planner público e PDF | **Concluído com ressalva** | Entregue em `8a0aa23`: `/planner` e `/api/planejamento-comercial/pdf` existem, com testes e build. Ressalva: o MCP DesignMD recusou as duas tentativas com 429 (cap diário do plano grátis), então o design saiu de `docs/DESIGN.md` e do manual. Falta `git push` e o smoke em produção. |
+| PV-009 | Planner público e PDF | **Concluído** | Entregue em `8a0aa23`, publicado em `5f9b3ac`, deployment READY e smoke ponta a ponta em produção. Registrada uma ressalva de processo, não de escopo: o MCP DesignMD recusou as duas tentativas com 429 (cap diário do plano grátis), então o design saiu de `docs/DESIGN.md` e do manual. |
 | PV-010 | Redesign interno principal | Pendente | **Desbloqueado em 17/08**: o PV-005 entregou o fluxo de correção. |
 | PV-011 | Redesign de templates e legislações | Pendente | Dependências (PV-003, PV-008) satisfeitas o suficiente. |
 | PV-012 | E2E, segurança e homologação | **Bloqueado** | O PV-009 caiu; ainda depende de PV-010 e PV-011. É sempre o último. |
@@ -408,7 +408,7 @@ esta seção que diz se o card fechou.
 | PV-019 | Remover fluxo de pasta de teste | **Concluído** | Rota e UI removidas em `a12064d`. Zero pastas de teste no banco. Falta só o smoke autenticado de 404, que depende de login da Ester. |
 | PV-020 | `[skip ci]` não impede deploy | **Concluído** | `ignoreCommand` por diff de caminho em `2826545`. `[skip ci]` sai das convenções. |
 
-Contagem: **12 concluídos** (o PV-009 com ressalva de DesignMD e de push), **3 parciais** (PV-008,
+Contagem: **12 concluídos**, **3 parciais** (PV-008,
 PV-013, PV-017), 5 pendentes, **1 bloqueado** (PV-012).
 
 O PV-013 está listado como parcial **encerrado**: não volta à fila, porque o resto dele foi entregue
@@ -1346,7 +1346,7 @@ O navegador integrado desta task não alcançou `127.0.0.1` e o Chrome controlá
 
 ### Resultado de implementação — 17/08/2026
 
-**Entregue e verificado localmente; nada publicado ainda.** Commit de implementação: `8a0aa23`.
+**Entregue, publicado e verificado em produção.** Commits: `8a0aa23` (implementação) e `5f9b3ac` (resultado).
 
 #### O que existe agora
 
@@ -1426,8 +1426,27 @@ Depois disso, a varredura de contraste do planner não acusou nenhuma falha AA e
 - Nenhum `git push`, deploy, alteração de variável de ambiente ou regra WAF. A regra de firewall do PV-007 já
   cobre o caminho `/api/planejamento-comercial/pdf` desde 10/08 e não precisou de mudança.
 - Zoom de 200% continua sem evidência e segue como PV-018.
-- O PDF ponta a ponta com token real ainda não foi baixado por uma pessoa: exige análise real com catálogo e
-  chave da IA. Os testes cobrem a rota com token assinado de verdade.
+- O PDF ponta a ponta foi gerado em produção nesta task (ver fechamento remoto). Falta apenas a Ester
+  abrir o arquivo e aprovar o visual.
+
+#### Fechamento remoto — 17/08/2026
+
+- `git push origin main` publicado com os dois commits: `8a0aa23` (implementação) e `5f9b3ac` (resultado). O
+  deployment `dpl_FneZAbn8vPeeqEHFZQD9ZPQcs17B` ficou **READY** em produção, com os aliases `pastavisa.vercel.app`
+  e `pasta-visa-estersouzas-projects.vercel.app`.
+- Smoke público no alias de produção: `/planner` respondeu 200 com `no-store`; `/` continuou 307 para o login e
+  `/api/templates` continuou 401; `GET` na rota de PDF respondeu 405; token forjado respondeu 422 com `no-store`
+  e request ID.
+- Ponta a ponta real, sem login: uma análise de duas técnicas devolveu 200 com 20 documentos, `vinculos` e token
+  assinado. O PDF foi pedido em **formato colorida, com `microagulhamento` retirado e um preço forjado de R$ 1**
+  no corpo. A resposta veio `application/pdf`, `attachment`, `no-store`, 58 KB, duas páginas — com **18
+  documentos para 1 procedimento** (o POP e o TCLE da técnica retirada caíram, os gerais ficaram) e **total de
+  R$ 957,00**, o valor recalculado no servidor. O preço forjado foi ignorado.
+- O PDF de produção foi aberto e conferido página a página: logo na faixa navy, marca-d'água em todas as páginas,
+  e `BaseFont` = Sora-Medium, Sora-SemiBold, SourceSans3-Regular e SourceSans3-SemiBold. Nenhuma Helvetica, o que
+  confirma que `outputFileTracingIncludes` levou fontes e logo para dentro da função.
+- Nada foi gravado: o planner não cria pasta, lead, histórico nem arquivo em Storage. Nenhuma variável de
+  ambiente ou regra WAF foi alterada — a regra do PV-007 já cobria o caminho de PDF.
 
 ---
 
