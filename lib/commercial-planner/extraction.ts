@@ -1,5 +1,6 @@
 import { runCommercialPlannerAnalysis } from "@/lib/ai";
 import { buildPlannerPrompts } from "./prompts";
+import { outOfScopeAlerts, outOfScopeReason } from "./scope";
 import type {
   CommercialPlannerInput,
   ExtractionResult,
@@ -60,7 +61,15 @@ export async function extractExplicitTechniques(
     }
   }
 
-  const alerts = [...analysis.alerts];
+  // A fronteira do escopo é barrada aqui, não confiada ao prompt: técnica de outro
+  // regime sanitário — cirurgia, odontologia, imagem, laboratório — não pode virar
+  // POP nem TCLE, ainda que a análise a devolva como procedimento.
+  const alerts = [...analysis.alerts, ...outOfScopeAlerts(input.procedimentos)];
+  for (const key of Array.from(techniques.keys())) {
+    const technique = techniques.get(key);
+    if (technique && outOfScopeReason(technique.name)) techniques.delete(key);
+  }
+
   for (const mention of analysis.mentions) {
     if (mention.kind === "uncertain") {
       alerts.push(`Confirme se “${mention.name}” é uma técnica realizada no estabelecimento.`);

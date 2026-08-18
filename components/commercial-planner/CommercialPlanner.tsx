@@ -313,7 +313,7 @@ export function CommercialPlanner() {
             <TextField
               id="procedimentos"
               label="Procedimentos realizados"
-              hint="Um por linha ou separados por vírgula."
+              hint="Um por linha. Escreva o nome real de cada procedimento, e não o apelido ou o nome do protocolo da casa — quanto mais exato, mais certeiro o planejamento."
               required
               linhas={8}
               value={procedimentos}

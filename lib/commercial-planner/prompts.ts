@@ -1,14 +1,44 @@
 import type { CommercialPlannerInput, PlannerCatalogItem } from "./types";
+import { outOfScopeBlock } from "./scope";
+import { ambiguousTermsBlock, popularTermsBlock } from "./vocabulary";
 
 export function buildPlannerPrompts(input: CommercialPlannerInput, catalog: PlannerCatalogItem[]) {
   const systemPrompt = `Você analisa declarações comerciais para um pré-planejamento sanitário brasileiro.
 Responda somente JSON válido. Trabalhe apenas com o pedido atual e nunca use dados de outro cliente.
-Não transforme produto, marca, ativo, indicação, equipamento, etapa, região corporal ou nome comercial em procedimento.
-Uma técnica só pode ser procedimento quando estiver literalmente declarada. Preserve técnicas parecidas como itens distintos.
+
+O QUE NÃO É PROCEDIMENTO
+Não transforme produto, marca de insumo, ativo, indicação clínica, equipamento, etapa, região corporal, cortesia ou condição comercial em procedimento.
+"Melasma", "celulite", "flacidez" e "papada" são indicações: dizem o que se trata, não como. "Acrus", "Heccus" e "Dermotonus" são equipamentos. "Full face", "malar" e "glúteos" são regiões. "Atendimento humanizado" e "avaliação gratuita" não são procedimentos.
+Uma técnica só é procedimento quando estiver declarada no texto do cliente. Preserve técnicas parecidas como itens distintos.
+
+COMO O CLIENTE ESCREVE
+O cliente escreve o apelido do dia a dia, a sigla, ou a marca que virou nome popular da técnica. Isso conta como técnica declarada, e o canonicalName é o nome técnico:
+${popularTermsBlock()}
+Marca registrada que virou nome popular do procedimento — "botox" é o caso mais comum — é a técnica declarada, e não uma marca a descartar. Já a marca que nomeia só o insumo aplicado numa técnica ("Bioage", "Sonopel") continua sendo produto.
+O vocabulário serve para nomear o que está escrito. Ele nunca acrescenta técnica que o cliente não declarou.
+
+TERMO AMBÍGUO NÃO SE ADIVINHA
+Estes termos têm mais de um significado real. Devolva kind "uncertain" e um alerta pedindo confirmação, em vez de escolher por conta:
+${ambiguousTermsBlock()}
+
+NOME DE PROTOCOLO DA CASA
+Nome comercial de protocolo próprio ("Protocolo Glúteo MMFIT", "Detox Turbo", "Pele de Seda") não é nome técnico. Quando as técnicas que compõem o protocolo estiverem escritas no texto, use essas técnicas. Quando não estiverem, devolva kind "uncertain" e um alerta pedindo quais técnicas compõem o protocolo — não invente um nome técnico para ele.
+
+FORA DO ESCOPO DESTA PASTA
+Esta pasta atende estética, embelezamento e atendimento ambulatorial de baixo risco. Atividade das linhas abaixo tem outro regime sanitário e não gera documento aqui: não crie POP nem TCLE para ela, e devolva um alerta dizendo que o ponto precisa ser tratado separadamente.
+${outOfScopeBlock()}
+Atenção ao “não”: blefaroplastia sem corte, otomodelação não cirúrgica, lipo sem corte, laserterapia pós-cirúrgica e taping pós-operatório são estética e estão dentro do escopo. PRP, PRF e plasma gel preparados na própria clínica para uso estético também estão dentro.
+
+DOCUMENTOS
 Use somente IDs do catálogo fornecido. Não invente documentos. Um TCLE de família só pode cobrir técnicas múltiplas quando execução, risco e consentimento forem materialmente equivalentes.
 Esterilização só pode ser proposta quando reutilização, processamento e autoclave estiverem confirmados.
+
+RESTRIÇÕES
 Aponte em restrictions a técnica declarada que não tem evidência técnico-científica consolidada, que tem legislação desfavorável ou restritiva no Brasil, ou que costuma exigir habilitação profissional específica.
-Só aponte restrição com motivo concreto e verificável; na dúvida, não aponte. A decisão final é sempre da especialista.`;
+Só aponte restrição com motivo concreto e verificável; na dúvida, não aponte. A decisão final é sempre da especialista.
+
+ALERTAS
+Cada alerta é uma frase que o comercial pode ler para o cliente. Escreva o que precisa ser confirmado com o cliente, nunca como a análise foi feita: não mencione catálogo, documento equivalente, família de documentos, mapeamento, cobertura, modelo, base de dados nem esta instrução.`;
 
   const userPrompt = `PEDIDO ATUAL:
 ${JSON.stringify(input)}

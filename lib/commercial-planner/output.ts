@@ -6,6 +6,47 @@ const TIPOS_FORA_DA_PASTA = new Set(["RECEITUARIO", "RECEITUÁRIO", "CONTRATO", 
 const NOMES_FORA_DA_PASTA =
   /^(contrato|anexo|certificad|licen[cç]a|alvar[aá]|treinamento|capacita[cç][aã]o|receitu[aá]rio|orienta[cç][oõ]es? p[oó]s|orienta[cç][aã]o p[oó]s)/i;
 
+/**
+ * Ordem em que a pasta é entregue: institucionais primeiro, depois os POPs, as
+ * fichas, os termos, os registros de controle e por fim o que não se encaixa.
+ * É a ordem em que a equipe monta a pasta física.
+ */
+const ORDEM_TIPO = [
+  "MBP",
+  "PGRSS",
+  "PLANO",
+  "RELAÇÃO",
+  "REGULAMENTO",
+  "POP",
+  "FICHA",
+  "TCLE",
+  "TERMO",
+  "PLANILHA",
+  "FORMULÁRIO",
+  "REGISTRO",
+  "PROTOCOLO",
+  "GUIA",
+];
+
+/** Dentro do mesmo tipo, o Plano de Segurança do Paciente vem antes dos outros planos. */
+const PRIMEIRO_NO_TIPO = new Map([["PLANO", "Plano de Segurança do Paciente"]]);
+
+function posicaoTipo(tipo: string): number {
+  const indice = ORDEM_TIPO.indexOf(tipo.toUpperCase());
+  return indice < 0 ? ORDEM_TIPO.length : indice;
+}
+
+function ordenar(a: PublicPlannerDocument, b: PublicPlannerDocument): number {
+  const porTipo = posicaoTipo(a.tipo) - posicaoTipo(b.tipo);
+  if (porTipo !== 0) return porTipo;
+  const destaque = PRIMEIRO_NO_TIPO.get(a.tipo.toUpperCase());
+  if (destaque) {
+    if (a.nome === destaque) return b.nome === destaque ? 0 : -1;
+    if (b.nome === destaque) return 1;
+  }
+  return a.nome.localeCompare(b.nome, "pt-BR");
+}
+
 function foraDaPasta(documento: PublicPlannerDocument): boolean {
   return TIPOS_FORA_DA_PASTA.has(documento.tipo.toUpperCase()) || NOMES_FORA_DA_PASTA.test(documento.nome);
 }
@@ -16,7 +57,7 @@ function foraDaPasta(documento: PublicPlannerDocument): boolean {
  * correspondência documental foi decidida.
  */
 function alertaInterno(value: string): boolean {
-  return /cat[aá]logo|template|prompt|score|pontua[cç][aã]o|confian[cç]a|classifica[cç][aã]o|coverage|cobertura|correspond[eê]ncia|banco de dados|equival[eê]ncia material|intelig[eê]ncia artificial|\bIA\b/i.test(
+  return /cat[aá]logo|template|prompt|score|pontua[cç][aã]o|confian[cç]a|classifica[cç][aã]o|coverage|cobertura|correspond[eê]ncia|banco de dados|equival[eê]ncia material|intelig[eê]ncia artificial|\bIA\b|fam[ií]lia de documento|cobrir fam[ií]lia|documento gen[eé]rico|documentos? equivalentes?|\bmapead/i.test(
     value
   );
 }
@@ -46,7 +87,7 @@ export function toPublicPlannerOutput(plan: InternalCommercialPlan): PublicComme
     documentsByName.set(key, entry);
   }
 
-  const entries = Array.from(documentsByName.values());
+  const entries = Array.from(documentsByName.values()).sort((a, b) => ordenar(a.documento, b.documento));
 
   return {
     procedimentos: plan.techniques.map((technique) => technique.name),

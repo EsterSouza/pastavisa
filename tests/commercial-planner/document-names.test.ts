@@ -198,3 +198,53 @@ describe("base obrigatória da pasta", () => {
     }
   });
 });
+
+describe("ordem de entrega da pasta", () => {
+  it("entrega institucionais, depois POP, ficha, TCLE, termo, registros e o resto", () => {
+    const tipos = toPublicPlannerOutput(
+      plano(
+        [
+          documento({ key: "guia", documentName: "Guia Utilizacao Pasta Sanitaria", documentType: "GUIA", role: "general", techniques: [] }),
+          documento({ key: "planilha", documentName: "Planilha Controle Temperatura", documentType: "PLANILHA", role: "record", techniques: [] }),
+          documento({ key: "tcle", documentName: "TCLE Limpeza Pele", documentType: "TCLE", role: "consent" }),
+          documento({ key: "ficha", documentName: "Ficha Anamnese Facial", documentType: "FICHA", role: "record", techniques: [] }),
+          documento({ key: "pop", documentName: "POP Limpeza Pele", documentType: "POP", role: "procedure" }),
+          documento({ key: "form", documentName: "FORM EVENTO ADVERSO", documentType: "OUTROS", role: "record", techniques: [] }),
+          documento({ key: "relacao", documentName: "Relacao Servicos Equipamentos", documentType: "OUTROS", role: "general", techniques: [] }),
+          documento({ key: "termo", documentName: "Termo Renuncia Recusa Tratamento", documentType: "TERMO", role: "general", techniques: [] }),
+          documento({ key: "pgrss", documentName: "PGRSS", documentType: "PGRSS", role: "general", techniques: [] }),
+          documento({ key: "mbp", documentName: "MBP Servico Saude", documentType: "MBP", role: "general", techniques: [] }),
+          documento({ key: "psp", documentName: "PSP", documentType: "OUTROS", role: "general", techniques: [] }),
+          documento({ key: "contingencia", documentName: "Plano Contingencia", documentType: "OUTROS", role: "general", techniques: [] }),
+        ],
+        ["Limpeza de Pele"]
+      )
+    ).documentos.map((item) => item.tipo);
+
+    expect(tipos).toEqual([
+      "MBP",
+      "PGRSS",
+      "PLANO",
+      "PLANO",
+      "RELAÇÃO",
+      "POP",
+      "FICHA",
+      "TCLE",
+      "TERMO",
+      "PLANILHA",
+      "FORMULÁRIO",
+      "GUIA",
+    ]);
+  });
+
+  it("põe o Plano de Segurança do Paciente antes dos outros planos", () => {
+    const nomes = toPublicPlannerOutput(
+      plano([
+        documento({ key: "contingencia", documentName: "Plano Contingencia", documentType: "OUTROS", role: "general", techniques: [] }),
+        documento({ key: "psp", documentName: "PSP", documentType: "OUTROS", role: "general", techniques: [] }),
+      ])
+    ).documentos.map((item) => item.nome);
+
+    expect(nomes).toEqual(["Plano de Segurança do Paciente", "Plano de Contingência e Emergências"]);
+  });
+});
