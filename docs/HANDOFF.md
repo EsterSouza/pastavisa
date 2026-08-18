@@ -1564,6 +1564,67 @@ frente do cliente.
   invisível para quem atende. Se aparecer documento faltando na lista, o conserto é acrescentar o verbete —
   nunca reabrir a passagem livre.
 
+#### Calibragem contra escrita real de cliente — 18/08/2026
+
+A Ester pediu três coisas: ordem de entrega por categoria, teste com as várias formas de escrever que as
+clientes usam, e a expertise do vocabulário do setor mapeada — “você não pegou botox, é clássico”.
+
+**Ordem de entrega.** A pasta sai na ordem em que a equipe a monta: MBP, PGRSS, Plano de Segurança do Paciente,
+demais planos, Relação, depois POP, ficha, TCLE, termo, planilha e formulário, e por fim o resto. A ordenação
+acontece na saída pública, sobre o tipo público do documento.
+
+**O corpus.** Doze casos escritos como cliente escreve, rodados contra produção: apelido e abreviação, nome de
+protocolo da casa, marca de produto, nome de equipamento, texto corrido sem separador, caixa alta sem acento,
+indicação clínica, ativo e região do corpo, procedimento misturado com cortesia comercial, técnica com
+evidência fraca, atividade fora do escopo e estética pós-cirúrgica. O harness fica no scratchpad da sessão.
+
+**O que a primeira rodada achou.** O pior caso possível: **“botox” não era extraído.** O modelo lia a marca
+registrada e descartava, então o procedimento mais comum da estética sumia do planejamento. “micro”, “skin” e
+“peim” também caíam. Nome de equipamento, indicação e região já eram recusados corretamente.
+
+**Vocabulário.** `lib/commercial-planner/vocabulary.ts` reúne apelido, sigla e marca que virou nome popular,
+com o nome técnico da equipe — do acervo, dos “Documentos em elaboração” de clientes reais e da conferência do
+vocabulário corrente do setor. A regra é estreita: o vocabulário resolve **como nomear** o que está escrito, e
+nunca acrescenta técnica que o cliente não declarou. Termo com mais de um significado real — micro, plasma,
+peeling, laser, luz, lipo, capilar, íntimo, ultrassom, massagem, detox — volta como dúvida, não como escolha.
+Nome de protocolo da casa não vira nome técnico inventado: volta pedindo quais técnicas o compõem.
+
+**Fronteira do escopo.** `lib/commercial-planner/scope.ts` barra no código, não no prompt: saúde bucal,
+cirurgia, internação, diagnóstico por imagem, análises clínicas, hemoterapia, alta complexidade, farmácia de
+manipulação e veterinária não geram POP nem TCLE, ainda que a análise as devolva como procedimento.
+
+O risco real dessa fronteira é o oposto do óbvio: derrubar estética legítima cujo nome carrega a palavra-
+gatilho. Cada acerto é conferido contra o contexto ao redor, e o teste usa os nomes do próprio acervo —
+blefaroplastia sem corte, otomodelação não cirúrgica, lipo sem corte, laserterapia pós-cirúrgica, taping
+pós-operatório, retirada de pontos cirúrgicos, curativo, PRP, PRF e plasma gel continuam dentro.
+
+**Resultado da segunda rodada.**
+
+| caso | antes | depois |
+| --- | --- | --- |
+| apelido e abreviação | 2 de 6, sem botox | 5 de 6, com botox; “micro” volta como dúvida |
+| protocolo da casa | nome técnico inventado | dúvida pedindo as técnicas de cada protocolo |
+| marca de produto | família certa | igual, com a ressalva do Hyaluron Pen sem registro |
+| nome de equipamento | nada extraído | igual, correto |
+| indicação, ativo e região | nada extraído | igual, correto |
+| fora do escopo | não existia | 3 barrados e explicados, sem POP nem TCLE |
+| estética pós-cirúrgica | não existia | 4 mantidos dentro |
+
+**Ruído, o efeito colateral.** A calibragem gerou repetição: três atividades fora do escopo renderam nove
+alertas, e quatro protocolos da casa renderam doze. A análise explicava cada item pelo nome, a camada
+determinística repetia em termos genéricos e ainda vinha um “confirme se X é uma técnica realizada” para cada.
+Agora as duas camadas automáticas ficam caladas sobre termo que a análise já comentou, e item fora do escopo
+não pede confirmação — a resposta não é “sim, faço”, e sim “isso não entra nesta pasta”. Nove viraram três e
+doze viraram quatro; o corte da técnica fora do escopo continua incondicional.
+
+**Erro meu no caminho.** Criei `tests/commercial-planner/extraction.test.ts` como arquivo novo, mas ele já
+existia com cinco testes, e o sobrescrevi. Recuperei do histórico e juntei aos quatro novos. A lição é conferir
+`git status` antes de escrever arquivo de teste “novo”: `??` é novo, ` M` é sobrescrita.
+
+**Evidência.** 33 arquivos, 238 testes. `scope.test.ts` cobre a fronteira nos dois sentidos e a rede de
+segurança; `extraction.test.ts` cobre o corte fora do escopo e a não repetição de alerta;
+`document-names.test.ts` cobre a ordem de entrega. Segunda rodada do corpus conferida em produção.
+
 ---
 
 ## PV-010 — Redesign interno principal
