@@ -54,9 +54,16 @@ const insert = db.prepare(`
 const findByKey = db.prepare(
   `SELECT id FROM "Legislacao" WHERE "chaveReferencia" = @chaveReferencia`
 );
+// O título é o segundo caminho de casamento, e vale mesmo quando a linha já tem
+// chave: corrigir o algoritmo de chaveReferencia invalida as chaves gravadas, e
+// sem esta busca o seed reinseriria a base inteira em duplicata.
 const findByTitulo = db.prepare(
-  `SELECT id FROM "Legislacao" WHERE titulo = @titulo AND "chaveReferencia" IS NULL`
+  `SELECT id FROM "Legislacao" WHERE titulo = @titulo ORDER BY ("chaveReferencia" IS NULL) LIMIT 1`
 );
+const irmasComMesmoTitulo = db.prepare(
+  `SELECT id FROM "Legislacao" WHERE titulo = @titulo AND id <> @id`
+);
+const apagar = db.prepare(`DELETE FROM "Legislacao" WHERE id = @id`);
 const refresh = db.prepare(
   `UPDATE "Legislacao"
       SET "chaveReferencia" = @chaveReferencia,
@@ -68,8 +75,22 @@ const refresh = db.prepare(
     WHERE id = @id`
 );
 
+// Ids citados por alguma pasta: essas linhas não podem sumir, mesmo duplicadas,
+// senão a pasta perde a referência que já associou.
+const emUso = new Set<string>();
+for (const row of db.prepare(`SELECT legislacaoIds FROM "Pasta" WHERE legislacaoIds IS NOT NULL`).all() as { legislacaoIds: string }[]) {
+  try {
+    const ids = JSON.parse(row.legislacaoIds);
+    if (Array.isArray(ids)) ids.forEach((id) => emUso.add(String(id)));
+  } catch {
+    row.legislacaoIds.split(",").forEach((id) => emUso.add(id.trim()));
+  }
+}
+
 let inseridos = 0;
 let atualizados = 0;
+let removidos = 0;
+let duplicadasEmUso = 0;
 
 const runAll = db.transaction(() => {
   for (const leg of legislacoes) {
@@ -87,8 +108,20 @@ const runAll = db.transaction(() => {
       findByKey.get({ chaveReferencia }) || findByTitulo.get({ titulo: leg.titulo });
 
     if (existing) {
-      refresh.run({ ...linha, id: (existing as { id: string }).id });
+      const id = (existing as { id: string }).id;
+      refresh.run({ ...linha, id });
       atualizados++;
+
+      // Duplicatas do mesmo ato deixadas por uma execução anterior com outro
+      // algoritmo de chave. Some com as que ninguém referenciou.
+      for (const irma of irmasComMesmoTitulo.all({ titulo: leg.titulo, id }) as { id: string }[]) {
+        if (emUso.has(irma.id)) {
+          duplicadasEmUso++;
+          continue;
+        }
+        apagar.run({ id: irma.id });
+        removidos++;
+      }
       continue;
     }
 
@@ -100,5 +133,12 @@ const runAll = db.transaction(() => {
 runAll();
 db.close();
 
-console.log(`\n✓ Seed concluído: ${inseridos} inseridas, ${atualizados} atualizadas.`);
+console.log(
+  `\n✓ Seed concluído: ${inseridos} inseridas, ${atualizados} atualizadas, ${removidos} duplicatas removidas.`
+);
+if (duplicadasEmUso > 0) {
+  console.log(
+    `  ⚠ ${duplicadasEmUso} duplicata(s) mantida(s) por estarem associadas a alguma pasta. Reassocie a pasta e rode de novo.`
+  );
+}
 console.log(`  Total no arquivo: ${legislacoes.length} legislações.\n`);
