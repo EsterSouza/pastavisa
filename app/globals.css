@@ -13,6 +13,9 @@
   --color-blue-pale: 234 243 252;
   --color-amber: 217 151 33;
 
+  /* Azul de acento sobre a superfície da página; troca com o tema para manter AA. */
+  --color-accent-text: 36 74 155;
+
   /* Derived tonal ramp for interface hierarchy; never use outside semantic tokens. */
   --color-surface-page: 248 251 255;
   --color-surface-subtle: 234 243 252;
@@ -56,9 +59,15 @@
   --color-shell-text: 255 255 255;
   --color-shell-muted: 206 224 243;
   --color-shell-hover: 20 46 77;
+  --color-accent-text: 143 176 255;
 
+  /* Os tons fortes de status nasceram para fundo claro; no escuro precisam clarear
+     para manter os 4,5:1 exigidos em docs/DESIGN.md. */
+  --color-success: 134 239 172;
   --color-success-soft: 10 45 32;
+  --color-danger: 252 165 165;
   --color-danger-soft: 58 24 27;
+  --color-warning: 253 211 77;
   --color-warning-soft: 59 44 17;
 }
 
@@ -79,8 +88,12 @@
     --color-shell-text: 255 255 255;
     --color-shell-muted: 206 224 243;
     --color-shell-hover: 20 46 77;
+    --color-accent-text: 143 176 255;
+    --color-success: 134 239 172;
     --color-success-soft: 10 45 32;
+    --color-danger: 252 165 165;
     --color-danger-soft: 58 24 27;
+    --color-warning: 253 211 77;
     --color-warning-soft: 59 44 17;
   }
 }
@@ -162,7 +175,9 @@
 
 html {
   background: rgb(var(--color-surface-page));
-  color: rgb(var(--color-navy));
+  /* Tinta semântica, não o navy fixo: no tema escuro o texto sem classe de cor
+     ficava quase invisível sobre a página. */
+  color: rgb(var(--color-ink));
   font-family: var(--font-source-sans-3), "Segoe UI", sans-serif;
   text-rendering: optimizeLegibility;
 }
@@ -170,7 +185,7 @@ html {
 body {
   min-height: 100vh;
   background: rgb(var(--color-surface-page));
-  color: rgb(var(--color-navy));
+  color: rgb(var(--color-ink));
 }
 
 h1,

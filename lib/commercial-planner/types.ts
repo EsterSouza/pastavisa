@@ -102,9 +102,16 @@ export interface PublicPlannerDocument {
   tipo: string;
 }
 
+export interface PublicPlannerLink {
+  documento: string;
+  tipo: string;
+  procedimentos: string[];
+}
+
 export interface PublicCommercialPlan {
   procedimentos: string[];
   documentos: PublicPlannerDocument[];
+  vinculos: PublicPlannerLink[];
   alertas: string[];
   resumo: {
     totalProcedimentos: number;

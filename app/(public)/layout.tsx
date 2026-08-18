@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { BrandHome } from "@/components/brand/BrandHome";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
@@ -8,9 +8,9 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-surface-page">
       <header className="border-b border-shell-border bg-shell-bg px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-          <Link href="/login" aria-label="TreinaVISA" className="block rounded-md">
+          <BrandHome>
             <BrandLogo priority />
-          </Link>
+          </BrandHome>
           <ThemeToggle />
         </div>
       </header>

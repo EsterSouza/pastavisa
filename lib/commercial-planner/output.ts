@@ -1,4 +1,4 @@
-import type { InternalCommercialPlan, PublicCommercialPlan } from "./types";
+import type { InternalCommercialPlan, PublicCommercialPlan, PublicPlannerDocument } from "./types";
 
 function publicDocumentName(value: string): string {
   return value
@@ -15,24 +15,33 @@ function publicAlert(value: string): string {
 }
 
 export function toPublicPlannerOutput(plan: InternalCommercialPlan): PublicCommercialPlan {
-  const documentsByName = new Map(
-    plan.documents.map((document) => {
-      const publicDocument = {
-        nome: publicDocumentName(document.documentName),
-        tipo: document.documentType,
-      };
-      return [`${publicDocument.tipo}:${publicDocument.nome}`.toLocaleLowerCase("pt-BR"), publicDocument];
-    })
-  );
-  const documentos = Array.from(documentsByName.values());
+  // O vínculo documento → procedimento existe para a retirada do PV-009: sem ele o
+  // comercial não teria como saber quais documentos caem ao tirar um procedimento.
+  // Usa apenas nomes públicos; nunca id de catálogo, modo de cobertura ou pontuação.
+  const documentsByName = new Map<string, { documento: PublicPlannerDocument; procedimentos: Set<string> }>();
+
+  for (const document of plan.documents) {
+    const documento = { nome: publicDocumentName(document.documentName), tipo: document.documentType };
+    const key = `${documento.tipo}:${documento.nome}`.toLocaleLowerCase("pt-BR");
+    const entry = documentsByName.get(key) ?? { documento, procedimentos: new Set<string>() };
+    document.techniques.forEach((technique) => entry.procedimentos.add(technique));
+    documentsByName.set(key, entry);
+  }
+
+  const entries = Array.from(documentsByName.values());
 
   return {
     procedimentos: plan.techniques.map((technique) => technique.name),
-    documentos,
+    documentos: entries.map((entry) => entry.documento),
+    vinculos: entries.map((entry) => ({
+      documento: entry.documento.nome,
+      tipo: entry.documento.tipo,
+      procedimentos: Array.from(entry.procedimentos),
+    })),
     alertas: Array.from(new Set(plan.alerts.map(publicAlert))),
     resumo: {
       totalProcedimentos: plan.techniques.length,
-      totalDocumentos: documentos.length,
+      totalDocumentos: entries.length,
       revisaoTecnicaObrigatoria: true,
     },
     aviso: "Pré-planejamento comercial provisório, sujeito à validação da equipe técnica.",

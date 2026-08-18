@@ -25,8 +25,11 @@ O manual PDF é fonte local deste card, permanece ignorado pelo Git e não é re
 | `brand.pale` | `#EAF3FC` | Fundo de leitura e orientação |
 | `surface.card` | `#FFFFFF` | Superfícies e respiro |
 | `brand.amber` | `#D99721` | Atenção, prazo e destaque semântico |
+| `brand.accent` | `#244A9B` claro / `#8FB0FF` escuro | Texto de acento sobre a superfície da página |
 
 As tonalidades de borda e texto secundário são rampas derivadas dos tokens acima e existem somente como variáveis semânticas em `app/globals.css`. Verde e vermelho são extensões funcionais necessárias para sucesso e erro, como definido pelo manual; cada estado também requer texto claro ou ícone, nunca apenas cor.
+
+Sucesso, erro e atenção têm dois valores: o tom forte do manual serve ao tema claro, e uma versão clareada entra no tema escuro. Sem isso o mesmo token cai para cerca de 2,3:1 sobre o fundo escuro. Pela mesma razão o azul de ação vira `brand.accent` quando é texto sobre a página, e a cor herdada de `html`/`body` é `ink`, não o navy fixo.
 
 ## Tipografia e hierarquia
 
@@ -50,8 +53,30 @@ O manual não define uma grade ou uma medida numérica de margem para produto. P
 ## Shells e rotas
 
 - `(internal)` mantém a URL de `/`, `/pasta/*`, `/templates` e `/legislacoes`; aplica navegação responsiva da Pasta Sanitária.
-- `(public)` mantém `/login`; não mostra menu administrativo.
+- `(public)` mantém `/login` e `/planner`; não mostra menu administrativo. Em `/planner` a marca não é link: o endereço é público e mandar quem abre para o login interno seria um convite errado.
 - APIs permanecem fora dos shells de interface.
+
+## Planner comercial público
+
+O link público é um fluxo de quatro etapas — cliente e local, operação declarada, revisão, formato e preço — com a
+trilha de etapas anunciada por `aria-current="step"`. Os blocos:
+
+- **Etapas:** numeradas, com estado concluído redundante em texto para leitor de tela.
+- **Campos:** rótulo acima, dica abaixo, alvo mínimo de 44 px; escolhas de sim/não em `fieldset` com `legend`.
+- **Revisão:** duas colunas em telas largas — procedimentos com caixa de seleção e documentos recalculados —
+  com contagens em região `aria-live` e alertas em bloco de atenção.
+- **Formato e preço:** três cartões de rádio comparáveis e um resumo com base, adicional e total.
+
+## Composição do PDF
+
+O PDF A4 usa a mesma paleta e as mesmas famílias da interface: **Sora** no título, nos títulos de seção e no total;
+**Source Sans 3** em texto, listas e tabelas. As fontes ficam em `public/brand/fonts/` sob a licença OFL, junto do
+recorte da logo oficial para superfície escura (`treinavisa-logo-print.png`, corte da margem transparente, sem
+recoloração). Sem esses arquivos o PDF ainda sai, com a fallback de escritório.
+
+A página tem faixa navy com a marca, filete âmbar, bloco de cliente em azul pálido, seções tituladas com filete,
+selo de tipo por documento, bloco de investimento em navy e marca-d'água diagonal `PRÉ-PLANEJAMENTO PROVISÓRIO`
+em todas as páginas. Título de seção nunca fica órfão: cada um reserva a altura do primeiro bloco.
 
 ## Usos proibidos
 

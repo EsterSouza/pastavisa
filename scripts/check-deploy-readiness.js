@@ -91,9 +91,18 @@ function checkEnvExample() {
 function checkPublicPlanner() {
   for (const file of [
     "app/api/planejamento-comercial/analisar/route.ts",
+    "app/api/planejamento-comercial/pdf/route.ts",
+    "app/(public)/planner/page.tsx",
     "lib/commercial-planner/pricing.ts",
     "lib/commercial-planner/signed-plan.ts",
     "lib/commercial-planner/safe-logging.ts",
+    "lib/commercial-planner/withdrawal.ts",
+    "lib/commercial-planner/render-pdf.ts",
+    "public/brand/treinavisa-logo-print.png",
+    "public/brand/fonts/Sora-Medium.ttf",
+    "public/brand/fonts/Sora-SemiBold.ttf",
+    "public/brand/fonts/SourceSans3-Regular.ttf",
+    "public/brand/fonts/SourceSans3-SemiBold.ttf",
     "scripts/planner-firewall-rules.json",
   ]) {
     if (fs.existsSync(path.join(root, file))) ok(`${file} existe`);
@@ -101,23 +110,55 @@ function checkPublicPlanner() {
   }
 
   const route = read("app/api/planejamento-comercial/analisar/route.ts");
+  const pdfRoute = read("app/api/planejamento-comercial/pdf/route.ts");
   const validation = read("lib/commercial-planner/validation.ts");
-  if (
-    validation.includes("12 * 1024") &&
-    validation.includes("8 * 1024") &&
-    route.includes('"Cache-Control": "no-store"') &&
-    route.includes("export async function POST") &&
-    !/export async function (GET|PUT|PATCH|DELETE)/.test(route)
-  ) {
-    ok("rota publica limita payload, desabilita cache e aceita somente POST");
-  } else {
-    fail("rota publica deve limitar payload, usar no-store e aceitar somente POST");
+  for (const [nome, fonte] of [
+    ["analise", route],
+    ["PDF", pdfRoute],
+  ]) {
+    if (
+      fonte.includes('"Cache-Control": "no-store"') &&
+      fonte.includes("export async function POST") &&
+      !/export async function (GET|PUT|PATCH|DELETE)/.test(fonte)
+    ) {
+      ok(`rota publica de ${nome} desabilita cache e aceita somente POST`);
+    } else {
+      fail(`rota publica de ${nome} deve usar no-store e aceitar somente POST`);
+    }
+
+    if (!/@\/lib\/(prisma|file-storage|supabase)/.test(fonte) && !/service.?role/i.test(fonte)) {
+      ok(`fronteira publica de ${nome} nao importa persistencia nem service role`);
+    } else {
+      fail(`fronteira publica de ${nome} nao pode importar Prisma, Storage, Supabase ou service role`);
+    }
   }
 
-  if (!/@\/lib\/(prisma|file-storage|supabase)/.test(route) && !/service.?role/i.test(route)) {
-    ok("fronteira publica nao importa persistencia nem service role");
+  if (validation.includes("12 * 1024") && validation.includes("8 * 1024")) {
+    ok("limites de 12 KB e 8 KB continuam definidos");
   } else {
-    fail("fronteira publica nao pode importar Prisma, Storage, Supabase ou service role");
+    fail("os limites de payload do planner sumiram");
+  }
+
+  if (
+    pdfRoute.includes("calculatePlannerPrice") &&
+    pdfRoute.includes("verifyPlan") &&
+    pdfRoute.includes("applyWithdrawal") &&
+    !/preco\s*[:=]\s*record\.preco/.test(pdfRoute)
+  ) {
+    ok("PDF recalcula preco no servidor a partir do token e da retirada");
+  } else {
+    fail("PDF deve validar o token e recalcular preco no servidor");
+  }
+
+  const nextConfig = read("next.config.mjs");
+  if (
+    nextConfig.includes("outputFileTracingIncludes") &&
+    nextConfig.includes("/api/planejamento-comercial/pdf") &&
+    nextConfig.includes("public/brand/fonts/*.ttf")
+  ) {
+    ok("logo e fontes da marca entram no pacote da rota de PDF");
+  } else {
+    fail("next.config deve incluir logo e fontes da marca no tracing da rota de PDF");
   }
 
   const authorization = read("lib/auth/authorization.ts");

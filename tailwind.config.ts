@@ -101,6 +101,7 @@ const config: Config = {
         deep: token("--color-navy-deep"),
         navy: token("--color-navy"),
         action: token("--color-blue"),
+        accent: token("--color-accent-text"),
         focus: token("--color-blue-light"),
         pale: token("--color-blue-pale"),
         amber: token("--color-amber"),
