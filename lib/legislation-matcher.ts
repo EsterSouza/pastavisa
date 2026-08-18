@@ -1,3 +1,4 @@
+import { matchesScope } from "@visa/legislacao";
 import {
   extrairReferenciasDoDocumento,
   type ReferenceScopeOptions,
@@ -18,31 +19,30 @@ export interface LegislacaoAssociavel {
   link?: string | null;
 }
 
-function normalize(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[º°]/g, "o")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toUpperCase();
-}
-
-function isInRequestedScope(legislacao: LegislacaoAssociavel, options: ReferenceScopeOptions): boolean {
-  const estadoCliente = options.estadoUf?.toUpperCase().trim();
-  const municipioCliente = normalize(options.municipio || "");
-  const estadoLegislacao = legislacao.estadoUf?.toUpperCase().trim();
-
-  if (!estadoLegislacao || estadoLegislacao === "BR") return true;
-  if (estadoCliente && estadoLegislacao !== estadoCliente) return false;
-  if (!estadoCliente) return false;
-
-  if (legislacao.municipio) {
-    if (!municipioCliente) return false;
-    return normalize(legislacao.municipio) === municipioCliente;
-  }
-
-  return true;
+/**
+ * A norma alcança o território do cliente?
+ *
+ * A regra mora em @visa/legislacao para que o PastaVISA e o InspecVISA não
+ * divirjam sobre o que vale onde: federal vale sempre, estadual exige a UF,
+ * municipal exige UF e município. Aqui só se traduz "BR" — que é como esta
+ * tabela grava abrangência nacional — para a uf nula que o pacote espera.
+ */
+function isInRequestedScope(
+  legislacao: LegislacaoAssociavel,
+  options: ReferenceScopeOptions
+): boolean {
+  return matchesScope(
+    {
+      name: legislacao.titulo,
+      summary: "",
+      url: "",
+      authority: "",
+      uf: legislacao.estadoUf === "BR" ? null : legislacao.estadoUf,
+      municipio: legislacao.municipio,
+      status: "nao_verificado",
+    },
+    { uf: options.estadoUf, municipio: options.municipio }
+  );
 }
 
 export function associarLegislacoesDoDocumento(

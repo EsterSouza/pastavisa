@@ -49,38 +49,58 @@ export function extrairUrlsReferencia(reference: ReferenciaComparavel): string[]
     });
 }
 
-export function criarChaveReferencia(reference: ReferenciaComparavel): string {
-  const text = normalize(`${reference.titulo || ""} ${reference.referenciaAbnt || ""}`);
-  const instrumentText = `${reference.titulo || ""} ${reference.referenciaAbnt || ""}`
+function paraBusca(value: string): string {
+  return value
     .replace(/[º°]/g, "o")
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/\s+/g, " ")
     .toLowerCase();
-  const patterns: Array<[string, RegExp]> = [
-    ["rdc", /\brdc\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-    ["instrucao-normativa", /\binstrucao normativa\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-    ["lei-complementar", /\blei complementar\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-    ["lei", /\blei(?! complementar)\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-    ["decreto-lei", /\bdecreto\s*lei\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-    ["decreto", /\bdecreto(?: municipal| rio)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-    ["resolucao-cofen", /\bresolucao cofen\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-    ["resolucao-sms", /\bresolucao sms\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-    ["resolucao", /\bresolucao\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-    ["portaria", /\bportaria(?: gm\/ms)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-    ["nr", /\bnr\s*[- ]?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-    ["nota-tecnica", /\bnota tecnica\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-    ["parecer", /\bparecer(?: normativo)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-  ];
-  for (const [kind, pattern] of patterns) {
-    const match = instrumentText.match(pattern);
-    if (match) {
-      const number = match[1].replace(/\D/g, "");
-      return `${scope(reference)}|${kind}|${number}|${findYear(text)}`;
-    }
+}
+
+const INSTRUMENTOS: Array<[string, RegExp]> = [
+  ["rdc", /rdc\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["instrucao-normativa", /instrucao normativa\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["lei-complementar", /lei complementar\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["lei", /lei(?! complementar)\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["decreto-lei", /decreto\s*lei\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["decreto", /decreto(?: municipal| rio)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["resolucao-cofen", /resolucao cofen\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["resolucao-sms", /resolucao sms\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["resolucao", /resolucao\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["portaria", /portaria(?: gm\/ms)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["nr", /nr\s*[- ]?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["nota-tecnica", /nota tecnica\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["parecer", /parecer(?: normativo)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+];
+
+/** Primeiro instrumento normativo nomeado no texto, na ordem de precedência. */
+function resolverInstrumento(texto: string): { kind: string; number: string } | null {
+  for (const [kind, pattern] of INSTRUMENTOS) {
+    const match = texto.match(pattern);
+    if (match) return { kind, number: match[1].replace(/\D/g, "") };
+  }
+  return null;
+}
+
+export function criarChaveReferencia(reference: ReferenciaComparavel): string {
+  const titulo = reference.titulo || "";
+  const completo = `${titulo} ${reference.referenciaAbnt || ""}`;
+
+  // O título é a identidade do ato; a ementa costuma citar outros. Ler o texto
+  // inteiro de uma vez fazia o "Decreto Rio nº 45.585/2018", cuja ementa começa
+  // com "Regulamenta a Lei Complementar nº 197/2018", receber a chave da lei que
+  // ele regulamenta — e os dois viravam a mesma linha na tabela.
+  const doTitulo = resolverInstrumento(paraBusca(titulo));
+  const instrumento = doTitulo || resolverInstrumento(paraBusca(completo));
+
+  if (instrumento) {
+    // O ano segue a mesma regra: o do título quando houver, senão o do texto.
+    const ano = findYear(normalize(titulo)) || findYear(normalize(completo));
+    return `${scope(reference)}|${instrumento.kind}|${instrumento.number}|${ano}`;
   }
 
-  const title = normalize(reference.titulo || reference.referenciaAbnt || "");
+  const title = normalize(titulo || reference.referenciaAbnt || "");
   return `${scope(reference)}|texto|${title}`;
 }
 

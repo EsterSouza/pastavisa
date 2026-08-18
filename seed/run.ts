@@ -46,36 +46,53 @@ const insert = db.prepare(`
   VALUES (@id, @estadoUf, @municipio, @tipo, @titulo, @referenciaAbnt, @chaveReferencia, 1)
 `);
 
-const checkExists = db.prepare(
-  `SELECT id FROM "Legislacao" WHERE titulo = @titulo`
+// Casa pela chave de referência, não pelo título: a unificação renomeou atos
+// ("RDC nº 222/2018 — PGRSS" virou "RDC Anvisa nº 222/2018") e casar por título
+// faria o seed tentar inserir de novo uma norma que já está lá, batendo no
+// índice único de chaveReferencia. O título antigo continua sendo reconhecido
+// enquanto a linha não tiver chave gravada.
+const findByKey = db.prepare(
+  `SELECT id FROM "Legislacao" WHERE "chaveReferencia" = @chaveReferencia`
 );
-const updateKey = db.prepare(
-  `UPDATE "Legislacao" SET "chaveReferencia" = @chaveReferencia WHERE id = @id AND "chaveReferencia" IS NULL`
+const findByTitulo = db.prepare(
+  `SELECT id FROM "Legislacao" WHERE titulo = @titulo AND "chaveReferencia" IS NULL`
+);
+const refresh = db.prepare(
+  `UPDATE "Legislacao"
+      SET "chaveReferencia" = @chaveReferencia,
+          "titulo"          = @titulo,
+          "referenciaAbnt"  = @referenciaAbnt,
+          "estadoUf"        = @estadoUf,
+          "municipio"       = @municipio,
+          "tipo"            = @tipo
+    WHERE id = @id`
 );
 
 let inseridos = 0;
-let jaExistiam = 0;
+let atualizados = 0;
 
 const runAll = db.transaction(() => {
   for (const leg of legislacoes) {
-    const existing = checkExists.get({ titulo: leg.titulo });
-    if (existing) {
-      updateKey.run({
-        id: (existing as { id: string }).id,
-        chaveReferencia: criarChaveReferencia(leg),
-      });
-      jaExistiam++;
-      continue;
-    }
-    insert.run({
-      id: cuid(),
+    const chaveReferencia = criarChaveReferencia(leg);
+    const linha = {
       estadoUf: leg.estadoUf,
       municipio: leg.municipio ?? null,
       tipo: leg.tipo,
       titulo: leg.titulo,
       referenciaAbnt: leg.referenciaAbnt,
-      chaveReferencia: criarChaveReferencia(leg),
-    });
+      chaveReferencia,
+    };
+
+    const existing =
+      findByKey.get({ chaveReferencia }) || findByTitulo.get({ titulo: leg.titulo });
+
+    if (existing) {
+      refresh.run({ ...linha, id: (existing as { id: string }).id });
+      atualizados++;
+      continue;
+    }
+
+    insert.run({ ...linha, id: cuid() });
     inseridos++;
   }
 });
@@ -83,5 +100,5 @@ const runAll = db.transaction(() => {
 runAll();
 db.close();
 
-console.log(`\n✓ Seed concluído: ${inseridos} inseridas, ${jaExistiam} já existiam.`);
+console.log(`\n✓ Seed concluído: ${inseridos} inseridas, ${atualizados} atualizadas.`);
 console.log(`  Total no arquivo: ${legislacoes.length} legislações.\n`);
