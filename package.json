@@ -32,7 +32,7 @@
         "@types/archiver": "^7.0.0",
         "@types/better-sqlite3": "^7.6.13",
         "@types/sharp": "^0.31.1",
-        "@visa/legislacao": "https://github.com/EsterSouza/visa-legislacao-v1.0.0/archive/refs/tags/v1.0.2.tar.gz",
+        "@visa/legislacao": "https://github.com/EsterSouza/visa-legislacao/archive/refs/tags/v1.0.2.tar.gz",
         "archiver": "^7.0.1",
         "better-sqlite3": "^12.9.0",
         "docxtemplater": "^3.68.5",

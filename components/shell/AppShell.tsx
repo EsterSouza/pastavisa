@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { PlannerLink } from "@/components/shell/PlannerLink";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 const navigation = [
@@ -48,6 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="mt-1 block text-sm text-shell-muted">Documentação aplicada</span>
         </Link>
         <NavigationLinks />
+        <PlannerLink />
         <ThemeToggle className="mt-auto w-full justify-center" />
       </aside>
 
