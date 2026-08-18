@@ -397,8 +397,8 @@ esta seção que diz se o card fechou.
 | PV-008 | Manual de marca e design system | **Concluído** | Ressalva encerrada em 18/08 pelo PV-018: zoom de 200% e ordem de teclado medidos em produção. |
 | PV-009 | Planner público e PDF | **Concluído** | Entregue em `8a0aa23`, publicado em `5f9b3ac`, deployment READY e smoke ponta a ponta em produção. Registrada uma ressalva de processo, não de escopo: o MCP DesignMD recusou as duas tentativas com 429 (cap diário do plano grátis), então o design saiu de `docs/DESIGN.md` e do manual. |
 | PV-010 | Redesign interno principal | **Concluído** | Entregue em `b7789c1`. As seis páginas usam o kit `components/ui`. Sem ressalva de escopo; a inspeção visual autenticada continua sendo da Ester, porque o checkout local não tem Supabase configurado. |
-| PV-011 | Redesign de templates e legislações | Pendente | Dependências satisfeitas. **Reaproveitar o kit `components/ui` do PV-010** em vez de criar outro. |
-| PV-012 | E2E, segurança e homologação | **Bloqueado** | PV-009 e PV-010 caíram; só falta o PV-011. É sempre o último. |
+| PV-011 | Redesign de templates e legislações | **Concluído** | Entregue em `6b2c0dc`, deployment `dpl_GtXkWCseKsP6dTVdo9Mg6oYwo3Ew` READY em `pastavisa.vercel.app`. Reaproveitou o kit `components/ui` do PV-010. |
+| PV-012 | E2E, segurança e homologação | Pendente | PV-009, PV-010 e PV-011 caíram. Nada mais bloqueia este card. |
 | PV-013 | Rota de teste e dependência crítica | **Parcial, encerrado** | Módulo de imagem removido (`5e446e8`, crítica 1→0). O achado da rota de teste foi entregue pelo **PV-019**. Não volta à fila. |
 | PV-014 | Senha vazada e vulnerabilidades | Pendente | **Desbloqueado hoje**: a dependência era o PV-013, e a parte de dependências dele foi entregue. |
 | PV-015 | Superfície de `/api/health` | Pendente | Independente; cabe em qualquer janela. |
@@ -406,12 +406,12 @@ esta seção que diz se o card fechou.
 | PV-017 | Limpeza de artefatos locais | **Parcial** | `.next` e `tsconfig.tsbuildinfo` já removidos. Faltam `.pv008-dev.log`, `.pv008-dev.err.log` e a pergunta à Ester sobre `entregas/templates-subcisao`. |
 | PV-018 | Aceite de acessibilidade do PV-008 | **Concluído** | Entregue em `80b3bf4`. Fechou três defeitos anteriores ao PV-010: contraste do anel de foco no tema escuro, token sem espaço estourando a página e alvo de checkbox. |
 | PV-021 | Aceitar pendência de dado faltante | Pendente | Pedido da Ester em 18/08. Leva junto a correção do rótulo "Bloqueia", que anuncia impedimento inexistente. |
-| PV-022 | Identificação e concordância no template | **Bloqueado** | Pedido da Ester em 18/08. CPF no lugar de CNPJ, gênero e categoria profissional. Depende do PV-011. |
+| PV-022 | Identificação e concordância no template | Pendente | Pedido da Ester em 18/08. CPF no lugar de CNPJ, gênero e categoria profissional. Dependência (PV-011) satisfeita em 18/08. |
 | PV-019 | Remover fluxo de pasta de teste | **Concluído** | Rota e UI removidas em `a12064d`. Zero pastas de teste no banco. Falta só o smoke autenticado de 404, que depende de login da Ester. |
 | PV-020 | `[skip ci]` não impede deploy | **Concluído** | `ignoreCommand` por diff de caminho em `2826545`. `[skip ci]` sai das convenções. |
 
-Contagem, sobre 23 cards: **14 concluídos**, **2 parciais** (PV-013 encerrado, PV-017),
-**5 pendentes** (PV-011, PV-014, PV-015, PV-016, PV-021), **2 bloqueados** (PV-012, PV-022).
+Contagem, sobre 23 cards: **15 concluídos**, **2 parciais** (PV-013 encerrado, PV-017),
+**6 pendentes** (PV-012, PV-014, PV-015, PV-016, PV-021, PV-022), **0 bloqueados**.
 
 **Correção de uma contagem anterior.** A versão de 17/08 registrava "13 concluídos, 3 parciais, 4
 pendentes e 1 bloqueado". Contando as linhas daquela mesma tabela: 12 concluídos, 3 parciais, 5
@@ -455,26 +455,21 @@ Se preferir, mande um documento e um par e eu gero a saída para você só abrir
 Critério: risco vivo primeiro, depois valor de negócio, depois dívida. Dentro disso, o que é barato e
 destrava leitura futura vem antes do que é caro.
 
-PV-019, PV-020, PV-005, PV-009 e PV-010 saíram desta fila. **Não há mais nenhum P0 aberto** — nem de
-higiene, nem de produto.
+PV-019, PV-020, PV-005, PV-009, PV-010 e PV-011 saíram desta fila. **Não há mais nenhum P0 aberto nem
+card bloqueado.**
 
 | # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de |
 |---|---|---|---|---|---|---|
-| 1 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008, e o kit do PV-010 |
+| 1 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | — (PV-011 satisfeito) |
 | 2 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
 | 3 | PV-021 | Aceitar pendência de dado faltante | P2 produto | médio | gpt-5.6-terra | — |
 | 4 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
-| 5 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-011 |
-| 6 | PV-022 | Identificação e concordância no template | P2 produto | alto | gpt-5.6-sol | PV-011 |
-| 7 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
-| 8 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
+| 5 | PV-022 | Identificação e concordância no template | P2 produto | alto | gpt-5.6-sol | — (PV-011 satisfeito) |
+| 6 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
+| 7 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
 
-**Por que o PV-011 subiu ao topo.** Ele é o último bloqueio do PV-012, e é o momento mais barato para
-fazê-lo: o kit `components/ui` acabou de ser escrito e as duas páginas administrativas são as únicas
-que ainda não o usam. Adiar significa manter dois vocabulários visuais no mesmo app. O PV-018
-reforçou o argumento: `templates` e `legislacoes` renderizam os mesmos títulos de legislação que
-estouravam a página, herdaram a correção sem terem sido auditadas, e ninguém mediu overflow,
-contraste ou alvo mínimo nelas.
+**Por que o PV-012 sobe ao topo.** Era o último card bloqueado, e agora está livre: PV-009, PV-010 e
+PV-011, suas três dependências, estão entregues. É o card de homologação E2E que fecha o lançamento.
 
 **Os dois cards novos vieram da Ester, não de auditoria.** PV-021 e PV-022 nasceram durante a inspeção
 do PV-018 e descrevem trabalho que ela faz hoje na mão. O PV-021 leva junto uma correção de redação
@@ -1612,6 +1607,55 @@ Storage, variável de ambiente ou dado foi alterado; nenhuma função da interfa
 
 `refactor: modernize template and legislation management`
 
+### Resultado — 18/08/2026
+
+**Estado: Concluído.** Entregue em `6b2c0dc`, deployment `dpl_GtXkWCseKsP6dTVdo9Mg6oYwo3Ew` **READY**
+no alias `pastavisa.vercel.app`.
+
+**O que mudou.** `app/(internal)/templates/page.tsx` caiu de 1128 para 509 linhas;
+`app/(internal)/legislacoes/page.tsx`, de 614 para 269. A lógica que saiu de cada página foi para
+`components/templates/` (9 arquivos: `constants.ts`, `api.ts`, `BulkImportPanel`, `UploadForm`,
+`VariableLibrary`, `TemplateList` + `TemplateListItem`, `EditTemplateModal`, `VariablesReportModal`,
+`VersionsModal`) e `components/legislacoes/` (7 arquivos: `constants.ts`, `api.ts`, `AddForm`,
+`ImportPanel`, `LegislacaoList` + `LegislacaoListItem`, `EditModal`). Nenhuma API mudou de contrato —
+os mesmos endpoints, os mesmos payloads. Confirmações destrutivas (excluir template, excluir em lote,
+excluir legislação, restaurar versão) trocaram `window.confirm()` por `ConfirmDialog` do kit do
+PV-010, nomeando o item no próprio diálogo em vez de um alerta genérico do navegador.
+
+**Um defeito visual encontrado no caminho, não introduzido aqui.** Os badges de tipo de processamento
+(`templates`) e de esfera de legislação (`legislacoes`) usavam classes Tailwind — `purple`, `indigo`,
+`teal`, `orange` — que não existem em `tailwind.config.ts`: o arquivo redefine `theme.colors` por
+completo com só `gray/blue/green/red/amber/yellow` mais os tokens semânticos, então essas classes
+renderizavam **sem cor nenhuma**. Mesma causa que o PV-010 já tinha corrigido nas seis páginas
+principais; `templates` e `legislacoes` só não tinham sido tocadas ainda. Corrigido usando as cores
+que existem de fato: processamento por `Tone` de `components/ui/Status.tsx`, e badge de legislação por
+esfera (federal/estadual/municipal) em vez de uma cor por um dos seis subtipos.
+
+**Testes.** 17 testes novos em `tests/ui/templates-legislacoes-pages.test.ts`, cobrindo listagem,
+busca sem acento, upload manual com validação client-side, importação em lote (sucesso e erro por
+arquivo), duplicação, exclusão simples e em lote com o nome/contagem no diálogo, diagnóstico de
+variáveis com tag desconhecida, histórico de versões com restauração confirmada, formulário de
+legislação com validação de API, importação de DOCX de legislações com revisão antes de adicionar, e
+os erros de análise de arquivo. Suíte completa: 169 → **186 testes, todos aprovados**. `403` para
+`operador` nessas rotas já estava coberto em `tests/auth/middleware.test.ts` e
+`tests/auth/authorization.test.ts` — não duplicado.
+
+`npx tsc --noEmit`, `npm run lint`, `npm run check:deploy` e `npm run build` aprovados antes do commit.
+
+**Verificação em produção.** Após o deploy, `/templates` e `/legislacoes` responderam `200` com dados
+reais (templates cadastrados e as 82 legislações) e sem erro de console, conferido numa aba do
+navegador que já estava autenticada de uma sessão anterior — nenhuma credencial foi digitada ou vista
+nesta verificação, e nenhuma ação destrutiva foi testada por mim. A Ester confirmou que vai clicar nos
+fluxos ela mesma antes de considerar o card fechado na prática; este resultado registra o que foi
+entregue e verificado automaticamente, não substitui essa conferência.
+
+**Efeito em cards dependentes.** PV-012 (bloqueado só por este card) e PV-022 (idem) ficam livres —
+ver 4.4.
+
+**Fora de escopo, como já previsto no card.** Revisão do conteúdo dos 295 registros de template.
+Segue fora de escopo também a conferência visual autenticada ponta a ponta pela Ester (login, cliques
+em cada ação) — pendente dela, não é um defeito encontrado.
+
 ---
 
 ## PV-012 — E2E, segurança e homologação
@@ -2514,6 +2558,7 @@ problema. Uma substituição cega produz documento sanitário com erro de portug
 | 17/08/2026 | PV-005 | **Concluído com ressalva** | `6cb4eee` | `dpl_7fc5PoUq2QLYSrHPeHuBeXHoebSf` `READY` | Fluxo em 5 etapas com revisão obrigatória: a UI analisa por documento e envia `hashOrigem`, o que **faz a trava 409 do PV-004 disparar pela primeira vez**. Rota `restaurar` (original ou versão intermediária) só acrescenta versão, nunca remove; `alvo` ausente é 400 em vez de padrão silencioso. Confirmação explícita para zero ocorrências, casamento excessivo e falha de análise; documento não analisado é bloqueio, não confirmação. Retry seletivo dos documentos com erro. Modal de preview com `role="dialog"`, Esc, ciclo de Tab e devolução de foco. `vitest.config.ts` passou a definir `oxc.jsx.runtime`, sem o que nenhum teste de componente parseava. Suíte **22 arquivos / 119 testes**, tsc, lint, `check:deploy` e build aprovados; rotas 37→38. Rota presente no manifesto de produção, `POST` anônimo devolve **401**. **Ressalva:** nada aberto no Word e alvo da logo sem inspeção visual — roteiro em 4.3. |
 | 17/08/2026 | PV-004 e PV-005 — ressalva encerrada | **Concluídos** | (sem commit; verificação da Ester) | Nenhuma | A Ester abriu no Word os três documentos reais corrigidos pelo motor novo e aprovou: *"agora tá certo o cabeçalho"*. É a evidência que faltava desde o PV-004 — documento corrigido, aberto no Word, logo na caixa certa e cabeçalho do mesmo tamanho do original. **PV-004 e PV-005 passam de "concluído com ressalva" a concluídos**, e o projeto fica sem nenhuma ressalva pendente. Segue sem confirmação visual só o caso de cabeçalho com mais de uma imagem ou parte órfã, que o acervo inspecionado não tinha. |
 | 18/08/2026 | PV-018 | **Concluído** | `80b3bf4` | `dpl_JD5JPcXneJ3Rayw5ZfshGR5EzmCb` `READY` | Fecha os dois critérios que o PV-008 deixou sem evidência, medidos em produção autenticada com dados reais — a Ester digitou as credenciais ela mesma. Três defeitos encontrados e corrigidos, todos **anteriores ao PV-010** (verificado por `git show --stat`, não presumido): anel de foco a 1,89–2,30:1 no tema escuro contra os 3:1 da WCAG 2.2 SC 1.4.11, agora 5,45–6,64:1 via `--color-focus-ring`; URL de 265 caracteres num título de legislação empurrando a página em 630 px, agora `overflow-wrap: break-word` herdado do `body`; e checkbox de documento com alvo real de 16×16, agora 44×44. O que falhou no PV-010 foi a verificação, feita contra mock com títulos curtos. Suíte 166→169, com os dois testes novos vistos falhar antes de passar. Escopo descoberto virou PV-021 e PV-022. |
+| 18/08/2026 | PV-011 | **Concluído** | `6b2c0dc` | `dpl_GtXkWCseKsP6dTVdo9Mg6oYwo3Ew` `READY` | `templates` (1128→509 linhas) e `legislacoes` (614→269) refatoradas para `components/templates/` (9 arquivos) e `components/legislacoes/` (7 arquivos), reaproveitando o kit do PV-010. Toda API, filtro, importação, preview, duplicação, variáveis, versões e restauração preservados; exclusões passam a confirmar pelo nome via `ConfirmDialog` em vez de `confirm()` nativo. Corrigido um defeito herdado do PV-010: badges de processamento e de esfera usavam classes `purple/indigo/teal/orange` sem token em `tailwind.config.ts`, saindo sem cor. 17 testes novos, suíte 169→186. `/templates` e `/legislacoes` responderam 200 com dados reais numa aba já autenticada de sessão anterior — sem digitar credencial, sem ação destrutiva testada por mim. A Ester ainda vai clicar nos fluxos ela mesma. |
 
 **As linhas de 17/08 estão agrupadas por assunto, não em ordem cronológica estrita** — o dia teve várias
 idas e vindas no mesmo tema. A última linha da tabela é sempre o estado mais recente.
