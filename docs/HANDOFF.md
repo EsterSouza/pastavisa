@@ -78,16 +78,15 @@ foram medidos nesta data, contra o checkout, o Supabase de produção e a Vercel
 
 ### 2.1 Checkout, Git e produção
 
-Medido em 17/08/2026, **após** a entrega do PV-005.
+Medido em 17/08/2026, **após** a entrega do PV-010.
 
 - Checkout fora do OneDrive em `C:\Saas\PASTAVISA`; worktree **limpo**.
-- `HEAD = main = origin/main = 6cb4eeef3eea06e5b8da40434049960795fcb4d3`.
+- `HEAD = main = origin/main = b7789c1972c9e86b0dafaa8d618a7f0468efe98d`.
 - Remoto: `https://github.com/EsterSouza/pastavisa.git` (repositório **público**).
 - Vercel: projeto `pasta-visa` (`prj_3hksb7xOH6gQbc2lnOsKpFOsHYUa`, team `estersouzas-projects`).
-  Deployment de produção mais recente: `dpl_7fc5PoUq2QLYSrHPeHuBeXHoebSf`, commit `6cb4eee`,
-  estado **`READY`**, alias `pastavisa.vercel.app`. **Repositório, `origin` e produção estão no mesmo
-  SHA.** O commit anterior, `c4a785f`, não teve deployment próprio porque os dois foram empurrados
-  juntos — só o `HEAD` do push deploya.
+  Deployment de produção do PV-010: `dpl_DcpGgMcFo2u9ZE2RVtmvGisyRTZE`, commit `b7789c1`,
+  alias `pastavisa.vercel.app`. **Repositório, `origin` e produção estão no mesmo SHA.** Um commit
+  empurrado junto com outro não ganha deployment próprio — só o `HEAD` do push deploya.
 - `TreinaVISA - Manual de Marca 2.0.pdf` continua na raiz, local e ignorado por `/*.pdf`.
 - O projeto declara Node `22.x` em `engines`; a máquina usa Node `v25.8.0`, o que faz o `npm` emitir
   `EBADENGINE` em qualquer instalação. É divergência **só do ambiente local**. Continue usando o build
@@ -119,7 +118,7 @@ neste projeto. Consequência prática: todo registro no handoff redeploya a prod
 | Migrations Prisma | 13 |
 | Migrations Supabase versionadas | 7 |
 | Stack | Next.js 14.2.35, React 18, Tailwind 3.4.1, Prisma 7.8 |
-| Testes | Vitest, **22 arquivos / 119 testes, todos aprovados** |
+| Testes | Vitest, **27 arquivos / 166 testes, todos aprovados** |
 | `npx tsc --noEmit` | aprovado, sem erros |
 | `npm run lint` | aprovado, 0 erros e 0 avisos |
 | `npm run check:deploy` | concluído sem falhas |
@@ -214,6 +213,7 @@ Verificado por inspeção de arquivos, para não refazer pesquisa:
 | Preflight DOCX | `lib/docx-replacement-plan.ts`, rota `preflight` | Existe (PV-004, 17/08) |
 | Fluxo visual de correção | rota `restaurar`, 5 etapas em `corrigir-lote/page.tsx` | Existe (PV-005, 17/08) |
 | Planner público e PDF | `app/(public)/planner/page.tsx`, rota `pdf`, `render-pdf.ts`, `withdrawal.ts`, `pdf-lib` | **Existe** (PV-009, `8a0aa23`) |
+| Kit de UI interno | `components/ui/{Button,Surface,Status,Field,ConfirmDialog,useDialogKeyboard,text}` | **Existe** (PV-010, `b7789c1`) |
 | E2E | `tests/e2e/`, `playwright.config.ts`, `scripts/check-public-boundary.mjs` | **Ausente** (PV-012) |
 
 ### 2.6 Correção de documentos prontos — risco técnico atual
@@ -396,9 +396,9 @@ esta seção que diz se o card fechou.
 | PV-007 | API pública, preço e proteção | Concluído | — |
 | PV-008 | Manual de marca e design system | **Parcial** | Zoom 200% e ordem completa de teclado nunca foram comprovados. Esse resto virou o PV-018. |
 | PV-009 | Planner público e PDF | **Concluído** | Entregue em `8a0aa23`, publicado em `5f9b3ac`, deployment READY e smoke ponta a ponta em produção. Registrada uma ressalva de processo, não de escopo: o MCP DesignMD recusou as duas tentativas com 429 (cap diário do plano grátis), então o design saiu de `docs/DESIGN.md` e do manual. |
-| PV-010 | Redesign interno principal | Pendente | **Desbloqueado em 17/08**: o PV-005 entregou o fluxo de correção. |
-| PV-011 | Redesign de templates e legislações | Pendente | Dependências (PV-003, PV-008) satisfeitas o suficiente. |
-| PV-012 | E2E, segurança e homologação | **Bloqueado** | O PV-009 caiu; ainda depende de PV-010 e PV-011. É sempre o último. |
+| PV-010 | Redesign interno principal | **Concluído** | Entregue em `b7789c1`. As seis páginas usam o kit `components/ui`. Sem ressalva de escopo; a inspeção visual autenticada continua sendo da Ester, porque o checkout local não tem Supabase configurado. |
+| PV-011 | Redesign de templates e legislações | Pendente | Dependências satisfeitas. **Reaproveitar o kit `components/ui` do PV-010** em vez de criar outro. |
+| PV-012 | E2E, segurança e homologação | **Bloqueado** | PV-009 e PV-010 caíram; só falta o PV-011. É sempre o último. |
 | PV-013 | Rota de teste e dependência crítica | **Parcial, encerrado** | Módulo de imagem removido (`5e446e8`, crítica 1→0). O achado da rota de teste foi entregue pelo **PV-019**. Não volta à fila. |
 | PV-014 | Senha vazada e vulnerabilidades | Pendente | **Desbloqueado hoje**: a dependência era o PV-013, e a parte de dependências dele foi entregue. |
 | PV-015 | Superfície de `/api/health` | Pendente | Independente; cabe em qualquer janela. |
@@ -408,8 +408,8 @@ esta seção que diz se o card fechou.
 | PV-019 | Remover fluxo de pasta de teste | **Concluído** | Rota e UI removidas em `a12064d`. Zero pastas de teste no banco. Falta só o smoke autenticado de 404, que depende de login da Ester. |
 | PV-020 | `[skip ci]` não impede deploy | **Concluído** | `ignoreCommand` por diff de caminho em `2826545`. `[skip ci]` sai das convenções. |
 
-Contagem: **12 concluídos**, **3 parciais** (PV-008,
-PV-013, PV-017), 5 pendentes, **1 bloqueado** (PV-012).
+Contagem: **13 concluídos**, **3 parciais** (PV-008,
+PV-013, PV-017), 4 pendentes, **1 bloqueado** (PV-012).
 
 O PV-013 está listado como parcial **encerrado**: não volta à fila, porque o resto dele foi entregue
 pelo PV-019.
@@ -448,24 +448,27 @@ Se preferir, mande um documento e um par e eu gero a saída para você só abrir
 Critério: risco vivo primeiro, depois valor de negócio, depois dívida. Dentro disso, o que é barato e
 destrava leitura futura vem antes do que é caro.
 
-PV-019, PV-020 e PV-005 saíram desta fila: os três executados em 17/08. **Não há mais nenhum P0
-aberto** — nem de higiene, nem de produto. O topo da fila agora é valor comercial.
+PV-019, PV-020, PV-005, PV-009 e PV-010 saíram desta fila. **Não há mais nenhum P0 aberto** — nem de
+higiene, nem de produto.
 
 | # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de |
 |---|---|---|---|---|---|---|
-| 1 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 |
-| 2 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
-| 3 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
-| 4 | PV-010 | Redesign interno principal | P2 visual | alto | gpt-5.6-terra | PV-005 (satisfeito) |
-| 5 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008 |
-| 6 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-009 (entregue), PV-010, PV-011 |
-| 7 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
-| 8 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
+| 1 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008, e o kit do PV-010 |
+| 2 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 |
+| 3 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
+| 4 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
+| 5 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-011 |
+| 6 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
+| 7 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
+
+**Por que o PV-011 subiu ao topo.** Ele é o último bloqueio do PV-012, e é o momento mais barato para
+fazê-lo: o kit `components/ui` acabou de ser escrito e as duas páginas administrativas são as únicas
+que ainda não o usam. Adiar significa manter dois vocabulários visuais no mesmo app.
 
 **Alternativa defensável — janela de higiene primeiro.** PV-018, PV-015 e o resto do PV-017 somam três
-cards de esforço baixo. Fechar os três de uma vez limpa a fila de ruído e deixa só o trabalho grande
-(PV-009 → PV-010/PV-011) visível. Agora que nenhum P0 está aberto, essa opção ficou mais defensável do
-que era: não há risco vivo competindo com ela.
+cards de esforço baixo, e o PV-018 ficou mais barato: o PV-010 já mediu contraste, foco de teclado,
+alvo mínimo e 375/768/1280 no dashboard renderizado — falta o zoom de 200% e as páginas atrás do
+login.
 
 **A verificação de 4.3 foi feita em 17/08 e aprovada**, então não há mais nada a fazer antes de pegar o
 próximo card. PV-004 e PV-005 estão concluídos, sem ressalva pendente.
@@ -1474,6 +1477,95 @@ Depois disso, a varredura de contraste do planner não acusou nenhuma falha AA e
 ### Commit
 
 `style: redesign core PastaVISA workflows`
+
+### Resultado — 17/08/2026
+
+**Entregue.** As seis páginas do fluxo interno passaram a falar a mesma língua visual, com um kit
+compartilhado em vez de estilo solto repetido por página.
+
+#### O que mudou
+
+- **Kit `components/ui`**, criado porque as seis páginas repetiam o mesmo cartão, o mesmo bloco de
+  aviso e o mesmo par rótulo/campo com pequenas divergências: `Button` (ação, secundária, destrutiva e
+  discreta, com `buttonClass` para links), `Surface` (`Card`, `CardHeader`, `FormSection`,
+  `PageHeader`, `EmptyState`), `Status` (`StatusBadge`, `Feedback`, `ProgressBar` e os mapas de status
+  de pasta, documento e upload), `Field` (rótulo ligado ao campo), `ConfirmDialog` e `text`.
+- **`useDialogKeyboard`** foi extraído do `DocumentPreviewModal` — Esc, foco inicial, Tab circulando
+  dentro do diálogo e devolução do foco a quem abriu — e agora serve também às confirmações
+  destrutivas. As sete asserções do teste do preview continuam passando sem alteração.
+- **Dashboard:** recentes primeiro, filtro por status com contagem em cada botão (`aria-pressed`),
+  busca que ignora acento e caixa, estado vazio com caminho de saída, estado de erro nomeado e
+  exclusão por diálogo acessível no lugar do modal sem foco.
+- **Detalhe:** resumo em quatro cartões, **pendências acionáveis** — cada linha diz o que falta e leva
+  ao lugar onde se resolve — e ações agrupadas com uma principal clara.
+- **Formulários** (nova pasta e edição) em seções tituladas. As cinco listas do cadastro (RTs por
+  setor, funcionários, equipamentos, produtos e terceirizados) passaram a um único editor de lista.
+- **Processamento:** painel de estado no topo, que antes ficava depois de uma lista longa — badge,
+  barra com `role="progressbar"`, documento atual, decorrido e restante.
+- **Correção em lote:** as cinco etapas preservadas, com `window.confirm` trocado por diálogo de
+  confirmação em remover, excluir selecionados e restaurar.
+
+#### Erros que nomeiam a origem
+
+`describeErrorOrigin` classifica toda mensagem exibida em **template, logo, upload, banco ou geração**
+e mostra esse rótulo acima da mensagem crua, que continua visível. O operador precisa saber se troca o
+template, reenvia a logo, sobe o arquivo de novo, avisa sobre o banco ou só tenta gerar outra vez —
+"erro desconhecido" não decide nada disso.
+
+#### Dois defeitos encontrados no caminho
+
+1. **Classes de paleta que não pintavam nada.** As páginas usavam `slate`, `emerald` e `purple`, que
+   nunca existiram em `tailwind.config.ts` — a configuração **substitui** a paleta, não a estende.
+   O botão "Corrigir documentos em lote" e os grupos de materiais do POP saíam sem cor. Um teste do
+   `internal-core-pages` agora falha se qualquer uma reaparecer.
+2. **Listas que quebravam caladas.** Em 401 ou 500 o servidor responde `{ error }`, e
+   `/pasta/[id]/processar` fazia `.filter`/`.map` direto na resposta: `TypeError` no console, página
+   pela metade e nenhuma mensagem. As três cargas agora verificam `Array.isArray` e viram aviso.
+
+Também foram corrigidos rótulos de formulário sem `htmlFor` no cadastro — clicar no rótulo não focava
+o campo e o leitor de tela não anunciava o nome — e nomes acessíveis foram dados a cada botão repetido
+de linha ("Excluir pasta X" em vez de dez "Excluir").
+
+#### Evidência
+
+- `npx.cmd tsc --noEmit`, `npm.cmd run lint` (0 erros, 0 avisos), `npm.cmd run check:deploy`,
+  `git diff --check` e `npm.cmd run build`: aprovados. As nove rotas continuam existindo.
+- `npm.cmd run test:run`: **27 arquivos / 166 testes aprovados**. `tests/ui/internal-core-pages.test.ts`
+  tem 19 deles e **monta as seis páginas**, cobrindo vazio, carregando e erro; busca e filtro do
+  dashboard; pendências e resumo do detalhe; seções e rótulo ligado ao campo na edição; status,
+  template e bloqueio na geração; as cinco etapas e o motivo do bloqueio na correção.
+- **Medição no navegador.** O checkout local não tem Supabase configurado, então toda rota interna
+  responde 503 e não há como abri-la aqui — nem com login, porque credencial não é minha de digitar.
+  Para medir o desenho de verdade, o dashboard foi montado temporariamente sobre a única rota que
+  renderiza sem auth, medido, e o arquivo restaurado com `git checkout` antes do commit:
+  - **Sem overflow horizontal em 375, 768 e 1280 px**; nenhum elemento ultrapassa a viewport.
+  - **21 controles visíveis, todos com 44 px ou mais** de altura.
+  - **Contraste:** 33 elementos de texto medidos por fórmula WCAG em cada tema, **nenhuma reprovação**.
+    Menor razão 6,38:1 no claro e 7,78:1 no escuro, contra o mínimo de 4,5:1.
+  - **Teclado:** ordem de foco natural, sem `tabindex` positivo, todo controle com nome acessível, e
+    o Tab real produz contorno sólido de 3 px em `#244A9B` com 3 px de offset.
+  - Rede sem falhas; o único 503 do console é a rota interna protegida, o que confirma que o
+    middleware não foi tocado.
+
+#### O que não foi verificado, e por quê
+
+**Inspeção visual autenticada das seis páginas com dados reais.** Ela depende de sessão Supabase, que
+só a Ester tem. O que ficou provado aqui é estrutura, comportamento, contraste, foco e ausência de
+overflow — não "como ficou na tela dela". **Zoom de 200% continua sem medição** e segue no PV-018.
+
+#### Fora de escopo, preservado
+
+Templates, legislações e o motor de geração não foram tocados. Nenhuma API, regra de Auth, migration,
+Storage, variável de ambiente ou dado foi alterado; nenhuma função da interface desapareceu.
+
+#### Ação remota
+
+- `b7789c1` empurrado para `origin/main`; deployment de produção
+  `dpl_DcpGgMcFo2u9ZE2RVtmvGisyRTZE`, target `production`, estado **`READY`**, alias
+  `pastavisa.vercel.app`.
+- Smoke em produção: `/login` 200, `/planner` 200, `/api/health` 200, `/` 307 para o login e
+  `/api/templates` 401. A fronteira de auth continua exatamente onde estava.
+- Commit de implementação: `b7789c1`.
 
 ---
 
