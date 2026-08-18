@@ -78,13 +78,13 @@ foram medidos nesta data, contra o checkout, o Supabase de produção e a Vercel
 
 ### 2.1 Checkout, Git e produção
 
-Medido em 17/08/2026, **após** a entrega do PV-010.
+Medido em 18/08/2026, **após** a entrega do PV-018.
 
 - Checkout fora do OneDrive em `C:\Saas\PASTAVISA`; worktree **limpo**.
-- `HEAD = main = origin/main = b7789c1972c9e86b0dafaa8d618a7f0468efe98d`.
+- `HEAD = main = origin/main = 80b3bf4dd3f0c8d7f6e034c76f3d38c374c7a20d`.
 - Remoto: `https://github.com/EsterSouza/pastavisa.git` (repositório **público**).
 - Vercel: projeto `pasta-visa` (`prj_3hksb7xOH6gQbc2lnOsKpFOsHYUa`, team `estersouzas-projects`).
-  Deployment de produção do PV-010: `dpl_DcpGgMcFo2u9ZE2RVtmvGisyRTZE`, commit `b7789c1`,
+  Deployment de produção do PV-018: `dpl_JD5JPcXneJ3Rayw5ZfshGR5EzmCb`, commit `80b3bf4`,
   alias `pastavisa.vercel.app`. **Repositório, `origin` e produção estão no mesmo SHA.** Um commit
   empurrado junto com outro não ganha deployment próprio — só o `HEAD` do push deploya.
 - `TreinaVISA - Manual de Marca 2.0.pdf` continua na raiz, local e ignorado por `/*.pdf`.
@@ -110,7 +110,7 @@ neste projeto. Consequência prática: todo registro no handoff redeploya a prod
 
 ### 2.2 Código e qualidade
 
-| Item | Estado em 17/08/2026 |
+| Item | Estado em 18/08/2026 |
 |---|---:|
 | Páginas `page.tsx` | 9 (`(internal)` 8, `(public)` 1) |
 | Rotas API `route.ts` | **38** (ver nota abaixo) |
@@ -118,7 +118,7 @@ neste projeto. Consequência prática: todo registro no handoff redeploya a prod
 | Migrations Prisma | 13 |
 | Migrations Supabase versionadas | 7 |
 | Stack | Next.js 14.2.35, React 18, Tailwind 3.4.1, Prisma 7.8 |
-| Testes | Vitest, **27 arquivos / 166 testes, todos aprovados** |
+| Testes | Vitest, **27 arquivos / 169 testes, todos aprovados** |
 | `npx tsc --noEmit` | aprovado, sem erros |
 | `npm run lint` | aprovado, 0 erros e 0 avisos |
 | `npm run check:deploy` | concluído sem falhas |
@@ -394,7 +394,7 @@ esta seção que diz se o card fechou.
 | PV-005 | Fluxo visual de correção | **Concluído** | Entregue em `2a31f1e`, `c4a785f`, `6cb4eee`, `1b89a59`, `bd6de08`. Ressalva encerrada: inspeção no Word aprovada pela Ester em 17/08 — ver 4.3. |
 | PV-006 | Motor sanitário do planner | Concluído | — |
 | PV-007 | API pública, preço e proteção | Concluído | — |
-| PV-008 | Manual de marca e design system | **Parcial** | Zoom 200% e ordem completa de teclado nunca foram comprovados. Esse resto virou o PV-018. |
+| PV-008 | Manual de marca e design system | **Concluído** | Ressalva encerrada em 18/08 pelo PV-018: zoom de 200% e ordem de teclado medidos em produção. |
 | PV-009 | Planner público e PDF | **Concluído** | Entregue em `8a0aa23`, publicado em `5f9b3ac`, deployment READY e smoke ponta a ponta em produção. Registrada uma ressalva de processo, não de escopo: o MCP DesignMD recusou as duas tentativas com 429 (cap diário do plano grátis), então o design saiu de `docs/DESIGN.md` e do manual. |
 | PV-010 | Redesign interno principal | **Concluído** | Entregue em `b7789c1`. As seis páginas usam o kit `components/ui`. Sem ressalva de escopo; a inspeção visual autenticada continua sendo da Ester, porque o checkout local não tem Supabase configurado. |
 | PV-011 | Redesign de templates e legislações | Pendente | Dependências satisfeitas. **Reaproveitar o kit `components/ui` do PV-010** em vez de criar outro. |
@@ -404,12 +404,19 @@ esta seção que diz se o card fechou.
 | PV-015 | Superfície de `/api/health` | Pendente | Independente; cabe em qualquer janela. |
 | PV-016 | Modelo do motor sanitário | Pendente | P3 especulativo. `claude-sonnet-4-5` segue ativo. |
 | PV-017 | Limpeza de artefatos locais | **Parcial** | `.next` e `tsconfig.tsbuildinfo` já removidos. Faltam `.pv008-dev.log`, `.pv008-dev.err.log` e a pergunta à Ester sobre `entregas/templates-subcisao`. |
-| PV-018 | Aceite de acessibilidade do PV-008 | Pendente | — |
+| PV-018 | Aceite de acessibilidade do PV-008 | **Concluído** | Entregue em `80b3bf4`. Fechou três defeitos anteriores ao PV-010: contraste do anel de foco no tema escuro, token sem espaço estourando a página e alvo de checkbox. |
+| PV-021 | Aceitar pendência de dado faltante | Pendente | Pedido da Ester em 18/08. Leva junto a correção do rótulo "Bloqueia", que anuncia impedimento inexistente. |
+| PV-022 | Identificação e concordância no template | **Bloqueado** | Pedido da Ester em 18/08. CPF no lugar de CNPJ, gênero e categoria profissional. Depende do PV-011. |
 | PV-019 | Remover fluxo de pasta de teste | **Concluído** | Rota e UI removidas em `a12064d`. Zero pastas de teste no banco. Falta só o smoke autenticado de 404, que depende de login da Ester. |
 | PV-020 | `[skip ci]` não impede deploy | **Concluído** | `ignoreCommand` por diff de caminho em `2826545`. `[skip ci]` sai das convenções. |
 
-Contagem: **13 concluídos**, **3 parciais** (PV-008,
-PV-013, PV-017), 4 pendentes, **1 bloqueado** (PV-012).
+Contagem, sobre 23 cards: **14 concluídos**, **2 parciais** (PV-013 encerrado, PV-017),
+**5 pendentes** (PV-011, PV-014, PV-015, PV-016, PV-021), **2 bloqueados** (PV-012, PV-022).
+
+**Correção de uma contagem anterior.** A versão de 17/08 registrava "13 concluídos, 3 parciais, 4
+pendentes e 1 bloqueado". Contando as linhas daquela mesma tabela: 12 concluídos, 3 parciais, 5
+pendentes e 1 bloqueado — 21 cards, que era o total correto na época. Os números acima foram contados
+da tabela, não estimados.
 
 O PV-013 está listado como parcial **encerrado**: não volta à fila, porque o resto dele foi entregue
 pelo PV-019.
@@ -454,27 +461,38 @@ higiene, nem de produto.
 | # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de |
 |---|---|---|---|---|---|---|
 | 1 | PV-011 | Redesign de templates e legislações | P2 manutenção | alto | gpt-5.6-terra | PV-003, PV-008, e o kit do PV-010 |
-| 2 | PV-018 | Fechar aceite de acessibilidade do PV-008 | P1 visual | baixo | gpt-5.6-terra | PV-008 |
-| 3 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
+| 2 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
+| 3 | PV-021 | Aceitar pendência de dado faltante | P2 produto | médio | gpt-5.6-terra | — |
 | 4 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
 | 5 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | PV-011 |
-| 6 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
-| 7 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
+| 6 | PV-022 | Identificação e concordância no template | P2 produto | alto | gpt-5.6-sol | PV-011 |
+| 7 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
+| 8 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
 
 **Por que o PV-011 subiu ao topo.** Ele é o último bloqueio do PV-012, e é o momento mais barato para
 fazê-lo: o kit `components/ui` acabou de ser escrito e as duas páginas administrativas são as únicas
-que ainda não o usam. Adiar significa manter dois vocabulários visuais no mesmo app.
+que ainda não o usam. Adiar significa manter dois vocabulários visuais no mesmo app. O PV-018
+reforçou o argumento: `templates` e `legislacoes` renderizam os mesmos títulos de legislação que
+estouravam a página, herdaram a correção sem terem sido auditadas, e ninguém mediu overflow,
+contraste ou alvo mínimo nelas.
 
-**Alternativa defensável — janela de higiene primeiro.** PV-018, PV-015 e o resto do PV-017 somam três
-cards de esforço baixo, e o PV-018 ficou mais barato: o PV-010 já mediu contraste, foco de teclado,
-alvo mínimo e 375/768/1280 no dashboard renderizado — falta o zoom de 200% e as páginas atrás do
-login.
+**Os dois cards novos vieram da Ester, não de auditoria.** PV-021 e PV-022 nasceram durante a inspeção
+do PV-018 e descrevem trabalho que ela faz hoje na mão. O PV-021 leva junto uma correção de redação
+do PV-010 — o rótulo "Bloqueia", que anuncia um impedimento que não existe.
+
+**A janela de higiene barata encolheu para dois cards.** PV-015 e o resto do PV-017 continuam de
+esforço baixo. O PV-018 saiu desta fila em 18/08.
 
 **A verificação de 4.3 foi feita em 17/08 e aprovada**, então não há mais nada a fazer antes de pegar o
 próximo card. PV-004 e PV-005 estão concluídos, sem ressalva pendente.
 
-### 4.5 Decisões resolvidas em 17/08
+### 4.5 Decisões resolvidas
 
+- **PastaVISA interno é 100% desktop (18/08/2026).** Palavras da Ester: *"não precisa fazer nada pra
+  celular, esse app nunca será usado no mobile"*, *"100% pensado em desktop"*. Achado de layout em
+  largura de celular **não é defeito e não vale card**. Continua valendo medir no equivalente a 200%
+  de zoom (~640 px), que é critério de acessibilidade de desktop, não de celular. O planner público
+  em `/planner` não está coberto por esta decisão.
 - **O PV-014 não encolheu, e não precisa mais encolher.** A versão anterior propunha mover a chave de
   senha vazada para o PV-013. O PV-013 fechou a parte de dependências sem tocar nisso, então a chave
   **fica no PV-014**, que segue P1 com os dois assuntos. Decisão encerrada.
@@ -1954,6 +1972,124 @@ inspeção manual na próxima vez.
 
 `fix: complete PastaVISA accessibility acceptance`
 
+### Resultado — 18/08/2026
+
+**Estado: Concluído.** Entregue em `80b3bf4`, deployment `dpl_JD5JPcXneJ3Rayw5ZfshGR5EzmCb` **READY**
+no alias `pastavisa.vercel.app`. Os dois critérios que o PV-008 deixou sem evidência estão medidos, e
+o card encontrou três defeitos reais no caminho — todos corrigidos e provados em produção.
+
+**Por que este card só fechou agora, e o que o destravou.** A Ester ofereceu digitar as credenciais e
+fez o login ela mesma no painel do navegador, o que deu acesso às páginas internas com dados reais
+pela primeira vez. Nenhuma senha passou por mim, e nenhuma foi registrada. Todas as medições abaixo
+são de produção autenticada, não de mock.
+
+#### Os três defeitos
+
+| # | Defeito | Antes | Depois | Origem |
+|---|---|---|---|---|
+| 1 | Anel de foco reprova no tema escuro | 1,89:1 sobre o botão, 2,30:1 sobre a página | 5,45:1 e 6,64:1 | anterior ao PV-010 |
+| 2 | Token sem espaço estoura a página | 630 px de excesso em 939 px de largura | 0 px, com os 8 tokens longos ainda presentes | anterior ao PV-010 |
+| 3 | Checkbox de documento com alvo de 16 px | 16×16, sem rótulo clicável | 44×44 | anterior ao PV-010 |
+
+**1. Anel de foco.** `:focus-visible` lia `--color-blue` cru. Os dois blocos de tema escuro já
+clareiam `--color-accent-text` e os tons de status — com comentário explicando que nasceram para
+fundo claro —, mas o anel ficou de fora, e a única regra que o clareava (`.brand-dark :focus-visible`)
+é de seção, não de tema. Abaixo dos 3:1 que a WCAG 2.2 SC 1.4.11 exige, quem navega por teclado no
+escuro mal via onde estava. Agora existe `--color-focus-ring`, que acompanha o tema como os demais.
+
+**2. Quebra de palavra.** Um título de legislação trazia uma URL de **265 caracteres** sem espaço;
+com `overflow-wrap: normal` o token virava uma linha de 1496 px e arrastava a página inteira. Não era
+questão de responsivo: nenhuma largura de desktop comporta esse token. O mesmo padrão aparecia em
+`legislacoes` e `templates`, que renderizam os mesmos campos do banco, então a correção foi uma regra
+herdada no `body` em vez de `break-words` em doze pontos de renderização.
+
+**3. Alvo de clique.** Os 58 checkboxes de seleção de documento tinham `aria-label` mas nenhum rótulo
+clicável, então o alvo real era a caixa nativa de 16×16 — abaixo até dos 24×24 da WCAG 2.2 SC 2.5.8.
+Agora ficam dentro de um `<label>` com padding de 44 px e margem negativa: o alvo cresce, nada se move
+na tela.
+
+**Os três são anteriores ao PV-010, e isso foi verificado, não presumido.** O `git show --stat b7789c1`
+não lista `app/globals.css`; o `break-words` que existia antes do card continua no mesmo lugar; e os
+checkboxes eram `h-3.5` (14 px) antes do redesign, contra 16 px depois. O PV-010 não causou nenhum
+deles. **O que falhou foi a verificação daquele card**: ela rodou contra dados falsos — três documentos
+de teste, títulos curtos, nenhuma URL — e declarou "sem overflow" e "contraste sem reprovação" com
+base neles. É a lição reutilizável deste card: dado de mock não exercita layout que depende do
+tamanho do conteúdo real.
+
+#### O que foi medido
+
+Seis páginas internas mais `/login`, nos dois temas, em 1280 px e no equivalente a 200% de zoom
+(640 px), com dados reais de produção:
+
+| Página | Controles | Overflow | Contraste reprovado | Controle sem nome |
+|---|---:|---:|---:|---:|
+| Dashboard | 29 | 0 | 0 | 0 |
+| Detalhe da pasta | 228 | 0 | 0 | 0 |
+| Editar | 189 (143 campos) | 0 | 0 | 0 |
+| Gerar documentos | 666 | 0 (após correção) | 0 | 0 |
+| Corrigir em lote | 18 | 0 | 0 | 0 |
+| Nova pasta | 8 | 0 | 0 | 0 |
+| `/login` | 5 | 0 | 0 | 0 |
+
+- **Zoom de 200%** (640 px de largura útil): `/login` e o detalhe da pasta sem overflow, sem alvo
+  pequeno e sem reprovação de contraste. Este era um dos dois itens que o PV-008 deixou em aberto.
+- **Ordem de teclado**, o outro item: percurso completo por `Tab` na página de detalhe — pular
+  navegação, ação principal, ações secundárias, pendências, documentos. Nenhum focável fora da tela
+  em nenhuma das páginas. Seletor de tema alcançável por `Tab` em `/login`, na segunda parada.
+- **Foco visível** com `:focus-visible` real (teclado, não `.focus()` por script, que não ativa o
+  seletor): 3 px sólidos com 3 px de offset, 8,31:1 no tema claro e 5,45–6,64:1 no escuro.
+- **143 campos** da tela de edição, todos com rótulo associado — sem exceção, com dados reais.
+- Comportamento conferido no ar: ordenação por recentes bate com as datas reais, busca sem acento
+  casa nomes acentuados, filtro por status devolve a contagem certa com `aria-pressed`, e as
+  pendências do detalhe batem com o total de documentos gerados mostrado no dashboard.
+
+**Armadilha de medição, registrada porque me enganou duas vezes.** Trocar o tema com o seletor e medir
+sem recarregar produz reprovações falsas de contraste — subárvores fechadas não recalculam estilo, e
+um item de menu chegou a acusar 1,35:1 onde, após recarga limpa, mede 8:1. **Toda medição de contraste
+tem de ser feita após carregar a página já no tema desejado.**
+
+#### Testes
+
+Suíte de **166 para 169**. Os dois testes novos foram vistos falhar com o defeito reintroduzido, e
+depois passar — um teste que nunca falhou não prova nada:
+
+- `tests/ui/brand-system.test.ts` calcula o contraste do anel de foco a partir dos tokens reais do
+  `globals.css`, resolvendo `var()`, contra as quatro superfícies de cada tema. Com o defeito de
+  volta, ele acusa **2,297:1** — o mesmo valor medido no navegador. É a evidência de que o teste
+  reproduz a realidade, e não uma aproximação dela.
+- O mesmo arquivo verifica a regra de quebra de palavra no `body`.
+- `tests/ui/internal-core-pages.test.ts` monta a página de geração com um título de legislação
+  carregando URL de 200+ caracteres e confirma que o checkbox do documento está dentro de um `<label>`.
+
+`tsc`, `lint`, `check:deploy` e `build` aprovados. Nenhum screenshot foi salvo: as telas tinham dados
+reais de cliente, e a regra da seção 1 proíbe registrá-los.
+
+#### Escopo descoberto — não entra neste card
+
+A Ester levantou duas necessidades reais durante a inspeção. Nenhuma cabe aqui, e ambas viraram card:
+
+- **Gerar sem todo dado do cliente.** Verificado no código: o rótulo "Bloqueia" **mente**. A geração é
+  liberada por `prontoParaGerar === 0`, que só olha se há documento com template escolhido; nenhum
+  campo de cliente entra nessa condição. Faltar CNPJ nunca impediu gerar. Mas a palavra é do PV-010 e
+  induz ao erro, e não existe forma de aceitar uma pendência. Virou **PV-021**.
+- **Cliente sem CNPJ, só CPF.** Além de gênero e categoria profissional. Não é achar-e-substituir:
+  muda concordância no documento inteiro. Virou **PV-022**, vizinho do PV-011.
+
+#### Ação remota
+
+- Commit `80b3bf4` empurrado para `origin/main`; deployment `dpl_JD5JPcXneJ3Rayw5ZfshGR5EzmCb`
+  **READY**, alias `pastavisa.vercel.app`.
+- As três correções foram remedidas **em produção depois do deploy**, não só localmente: anel em
+  `rgb(111,149,246)` com 5,45:1 e 6,64:1, excesso horizontal 0 com os 8 tokens longos ainda na
+  página, e alvo do checkbox em 44×44.
+
+#### O que continua sem verificação
+
+- Leitor de tela real (NVDA ou similar). Tudo aqui é estrutura e medida, não escuta.
+- As duas páginas administrativas, `templates` e `legislacoes`, não foram auditadas — são escopo do
+  PV-011. Elas renderizam os mesmos títulos de legislação, então **herdam a correção 2**, mas ninguém
+  mediu overflow, contraste ou alvo nelas.
+
 ---
 
 ## PV-019 — Remover o fluxo de pasta de teste
@@ -2255,6 +2391,101 @@ Resumo dos dois testes que fecham o card:
   17/08. Não foram reescritas uma a uma: os deployments antigos existem e estão listados na Vercel, e
   reescrever da memória introduziria erro novo. O aviso nomeia o motivo.
 
+---
+
+## PV-021 — Aceitar pendência de dado faltante
+
+**Modelo:** gpt-5.6-terra · **Esforço:** médio · **Prioridade:** P2 produto · **Depende de:** —
+**Resultado:** a Ester consegue declarar que aceita entregar sem um dado, e a pasta para de acusar
+bloqueio falso.
+
+### Contexto
+
+Levantado pela Ester em 18/08/2026, durante a inspeção do PV-018: *"nem sempre eu tenho essas infos do
+cliente, e eu tenho que poder marcar que aceito fazer os documentos sem algum dado do cliente
+faltando, como o CNPJ"*.
+
+Dois problemas distintos, e **o primeiro é só de redação**:
+
+1. O rótulo "Bloqueia" no detalhe da pasta mente. Gerar documento nunca dependeu dos campos do
+   cliente: o botão é liberado por `prontoParaGerar === 0`, que olha apenas se há documento com
+   template escolhido. O `grave: true` alimenta o texto e o cálculo de `prontaParaEntrega`, e quer
+   dizer "não está pronta para entrega", não "não dá para gerar". A palavra foi introduzida pelo
+   PV-010.
+2. Não existe forma de aceitar uma pendência. Uma pasta de cliente que legitimamente não tem o dado
+   fica acusando pendência para sempre, e nunca chega a "pronta para entrega".
+
+### Implementação
+
+- Renomear o rótulo: "Bloqueia" → "Falta para entrega". Mesma cor e mesmo símbolo; muda a palavra.
+- Coluna nova em `Pasta` para as pendências aceitas, com migration. Guardar **qual** pendência foi
+  aceita, não um booleano geral — aceitar a falta de CNPJ não pode silenciar a falta de RT.
+- No detalhe, cada pendência de dado ganha ação para aceitar, e a aceita mostra que foi aceita, por
+  quem e quando, com forma de reverter.
+- Pendência aceita conta como resolvida em `prontaParaEntrega`.
+
+### Testes e aceite
+
+- Aceitar, reverter, e conferir que aceitar uma pendência não afeta as outras.
+- Pasta com todo dado aceito chega a "pronta para entrega".
+- Nenhuma tela passa a impedir geração que hoje é permitida — este card não restringe nada.
+
+### Fora de escopo
+
+- CPF no lugar de CNPJ e demais variações de identificação; isso é PV-022.
+
+### Commit
+
+`feat: let PastaVISA accept missing client data`
+
+---
+
+## PV-022 — Identificação e concordância no template
+
+**Modelo:** gpt-5.6-sol · **Esforço:** alto · **Prioridade:** P2 produto · **Depende de:** PV-011
+**Resultado:** um documento sai correto para cliente pessoa física, e para responsável de qualquer
+gênero e categoria profissional.
+
+### Contexto
+
+Levantado pela Ester em 18/08/2026: *"tem cliente que não tem CNPJ mesmo, só CPF, e deveria ter uma
+opção para modificar isso nos templates, tirando as menções de CNPJ e trocando por CPF, além de
+outras modificações importantes de gênero, categoria profissional, etc"*.
+
+Hoje `cliente_cnpj` é variável fixa em `lib/template-variables.ts` e o rótulo "CNPJ:" está chumbado no
+texto dos templates.
+
+**O que torna este card caro, e por que ele não é achar-e-substituir.** Trocar CNPJ por CPF muda a
+concordância do documento inteiro: "inscrita no CNPJ" vira "inscrito no CPF", "a empresa" vira "o
+profissional". Gênero do responsável técnico e categoria profissional têm exatamente o mesmo
+problema. Uma substituição cega produz documento sanitário com erro de português — que é entregue a
+órgão fiscalizador.
+
+### Implementação
+
+- Modelar identificação como variante (pessoa jurídica com CNPJ, pessoa física com CPF), não como
+  campo solto, e fazer o gerador escolher a redação correspondente.
+- Fazer o mesmo para gênero do RT e categoria profissional.
+- Definir onde a variante mora: no template, na pasta, ou em ambos com precedência declarada. **Essa
+  é a decisão de projeto do card** e deve ser registrada aqui antes de escrever código.
+- Cobrir o acervo existente: templates atuais precisam continuar funcionando sem alteração.
+
+### Testes e aceite
+
+- Documento gerado para pessoa física não contém a string "CNPJ" em lugar nenhum.
+- Concordância verificada em pelo menos um documento real de cada variante, aberto no Word.
+- Templates existentes geram exatamente o que geravam antes.
+
+### Fora de escopo
+
+- Redesenhar as telas de template e legislação; isso é PV-011.
+
+### Commit
+
+`feat: support CPF and agreement variants in templates`
+
+---
+
 | Data | Card | Estado | Commit | Produção | Observação |
 |---|---|---|---|---|---|
 | 08/08/2026 | PV-000 | Concluído | `146b73c` | Vercel `success`; sem ação funcional | Handoff único publicado; temporários removidos. |
@@ -2282,6 +2513,7 @@ Resumo dos dois testes que fecham o card:
 | 17/08/2026 | PV-005 — smoke em acervo real | Concluído com ressalva | (sem commit; execução local) | Nenhuma — nada gravado no OneDrive nem em produção | Três `.docx` de uma pasta de cliente fornecidos pela Ester. **3/3 saíram válidos** e em todos a contagem do preflight bateu exatamente com a aplicada; substituições atravessaram corpo, cabeçalho e rodapé, e o par ausente na planilha foi relatado como "não encontrado" sem alterar o arquivo. Geometria real medida: célula da logo de **2,74 a 3,24 cm**, não os 8 cm que eu havia estimado — o que reabriu a decisão de 4.7. **Limite deste acervo:** uma única imagem por documento e zero partes órfãs, então a correção de alvo de `c4a785f` não seria exercitada aqui. **Ressalva:** os arquivos foram entregues, mas a inspeção no Word é da Ester. |
 | 17/08/2026 | PV-005 | **Concluído com ressalva** | `6cb4eee` | `dpl_7fc5PoUq2QLYSrHPeHuBeXHoebSf` `READY` | Fluxo em 5 etapas com revisão obrigatória: a UI analisa por documento e envia `hashOrigem`, o que **faz a trava 409 do PV-004 disparar pela primeira vez**. Rota `restaurar` (original ou versão intermediária) só acrescenta versão, nunca remove; `alvo` ausente é 400 em vez de padrão silencioso. Confirmação explícita para zero ocorrências, casamento excessivo e falha de análise; documento não analisado é bloqueio, não confirmação. Retry seletivo dos documentos com erro. Modal de preview com `role="dialog"`, Esc, ciclo de Tab e devolução de foco. `vitest.config.ts` passou a definir `oxc.jsx.runtime`, sem o que nenhum teste de componente parseava. Suíte **22 arquivos / 119 testes**, tsc, lint, `check:deploy` e build aprovados; rotas 37→38. Rota presente no manifesto de produção, `POST` anônimo devolve **401**. **Ressalva:** nada aberto no Word e alvo da logo sem inspeção visual — roteiro em 4.3. |
 | 17/08/2026 | PV-004 e PV-005 — ressalva encerrada | **Concluídos** | (sem commit; verificação da Ester) | Nenhuma | A Ester abriu no Word os três documentos reais corrigidos pelo motor novo e aprovou: *"agora tá certo o cabeçalho"*. É a evidência que faltava desde o PV-004 — documento corrigido, aberto no Word, logo na caixa certa e cabeçalho do mesmo tamanho do original. **PV-004 e PV-005 passam de "concluído com ressalva" a concluídos**, e o projeto fica sem nenhuma ressalva pendente. Segue sem confirmação visual só o caso de cabeçalho com mais de uma imagem ou parte órfã, que o acervo inspecionado não tinha. |
+| 18/08/2026 | PV-018 | **Concluído** | `80b3bf4` | `dpl_JD5JPcXneJ3Rayw5ZfshGR5EzmCb` `READY` | Fecha os dois critérios que o PV-008 deixou sem evidência, medidos em produção autenticada com dados reais — a Ester digitou as credenciais ela mesma. Três defeitos encontrados e corrigidos, todos **anteriores ao PV-010** (verificado por `git show --stat`, não presumido): anel de foco a 1,89–2,30:1 no tema escuro contra os 3:1 da WCAG 2.2 SC 1.4.11, agora 5,45–6,64:1 via `--color-focus-ring`; URL de 265 caracteres num título de legislação empurrando a página em 630 px, agora `overflow-wrap: break-word` herdado do `body`; e checkbox de documento com alvo real de 16×16, agora 44×44. O que falhou no PV-010 foi a verificação, feita contra mock com títulos curtos. Suíte 166→169, com os dois testes novos vistos falhar antes de passar. Escopo descoberto virou PV-021 e PV-022. |
 
 **As linhas de 17/08 estão agrupadas por assunto, não em ordem cronológica estrita** — o dia teve várias
 idas e vindas no mesmo tema. A última linha da tabela é sempre o estado mais recente.
