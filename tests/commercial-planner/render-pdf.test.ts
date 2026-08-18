@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { PDFDict, PDFDocument, PDFName } from "pdf-lib";
 import { extractPdfTextFromBuffer } from "@/lib/extractor";
 import { loadBrandAssets } from "@/lib/commercial-planner/brand-assets";
 import { calculatePlannerPrice, PLANNER_FORMATS } from "@/lib/commercial-planner/pricing";
 import { OFFICIAL_CAVEAT, renderPlannerPdf, WATERMARK_TEXT } from "@/lib/commercial-planner/render-pdf";
 import type { PlannerPdfData } from "@/lib/commercial-planner/render-pdf";
+import { warmPdfPipeline, WARMUP_TIMEOUT_MS } from "./warm-pdf";
 
 function data(overrides: Partial<PlannerPdfData> = {}): PlannerPdfData {
   return {
@@ -33,6 +34,8 @@ async function text(overrides: Partial<PlannerPdfData> = {}) {
 }
 
 describe("PDF do planejamento comercial", () => {
+  beforeAll(warmPdfPipeline, WARMUP_TIMEOUT_MS);
+
   it("gera um PDF A4 válido e marcado como provisório", async () => {
     const { buffer, conteudo } = await text();
 

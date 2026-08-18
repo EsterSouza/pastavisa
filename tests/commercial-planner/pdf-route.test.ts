@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("server-only", () => ({}));
@@ -14,6 +14,7 @@ import { POST } from "@/app/api/planejamento-comercial/pdf/route";
 import { extractPdfTextFromBuffer } from "@/lib/extractor";
 import { PLAN_TOKEN_TTL_SECONDS, signPlan } from "@/lib/commercial-planner/signed-plan";
 import type { PublicCommercialPlan } from "@/lib/commercial-planner/types";
+import { warmPdfPipeline, WARMUP_TIMEOUT_MS } from "./warm-pdf";
 
 const plano: PublicCommercialPlan = {
   procedimentos: ["Limpeza de pele", "Microagulhamento"],
@@ -64,6 +65,8 @@ const muitos = Array.from({ length: 101 }, (_, index) => `Técnica ${index + 1}`
 afterEach(() => vi.clearAllMocks());
 
 describe("rota pública de PDF do planejamento", () => {
+  beforeAll(warmPdfPipeline, WARMUP_TIMEOUT_MS);
+
   it("devolve um PDF anexado, sem cache e sem registrar o cliente", async () => {
     const response = await POST(request({ token: token(), formato: "colorida", retirados: [] }));
 
