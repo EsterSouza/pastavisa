@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
+import { Button } from "@/components/ui/Button";
+import { Card, CardHeader, FormSection, PageHeader } from "@/components/ui/Surface";
+import { describeErrorOrigin, Feedback } from "@/components/ui/Status";
 
 interface DocExtraido {
   nome: string;
@@ -69,6 +72,9 @@ type UploadPlan =
 
 type Fase = "upload" | "revisao";
 
+const FILE_INPUT_CLASS =
+  "block w-full rounded-md border border-gray-300 bg-surface-card p-1 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface-subtle file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-accent";
+
 async function readApiResponse<T>(res: Response, fallback: string): Promise<T> {
   const text = await res.text();
   let data: { error?: string } | T;
@@ -77,7 +83,7 @@ async function readApiResponse<T>(res: Response, fallback: string): Promise<T> {
     data = JSON.parse(text) as { error?: string } | T;
   } catch {
     if (res.status === 413 || /request entity too large|function_payload_too_large/i.test(text)) {
-      throw new Error("Os arquivos excedem o limite de envio. Tente novamente apos atualizar a pagina.");
+      throw new Error("Os arquivos excedem o limite de envio. Tente novamente após atualizar a página.");
     }
     throw new Error(fallback);
   }
@@ -127,7 +133,7 @@ export default function NovaPasta() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pdfName: pdfFile.name, docxName: docxFile.name }),
       });
-      const plan = await readApiResponse<UploadPlan>(planRes, "Erro ao preparar envio dos arquivos");
+      const plan = await readApiResponse<UploadPlan>(planRes, "Erro ao preparar o upload dos arquivos");
 
       let res: Response;
       if (plan.mode === "direct") {
@@ -163,7 +169,7 @@ export default function NovaPasta() {
         res = await fetch("/api/extrair", { method: "POST", body: formData });
       }
 
-      const json = await readApiResponse<ExtrairResult>(res, "Erro na extração");
+      const json = await readApiResponse<ExtrairResult>(res, "Erro na extração dos dados");
 
       // Pre-select all suggested documents
       const docs: DocExtraido[] = json.data?.documentosAGerar || [];
@@ -175,7 +181,7 @@ export default function NovaPasta() {
       setResultado(json as ExtrairResult);
       setFase("revisao");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido");
+      setError(err instanceof Error ? err.message : "Erro desconhecido ao analisar os arquivos");
     } finally {
       setAnalisando(false);
       setProgresso("");
@@ -205,14 +211,14 @@ export default function NovaPasta() {
           }),
         });
       } catch {
-        throw new Error("Não foi possível conectar ao servidor para criar a pasta. Tente novamente em instantes.");
+        throw new Error("Não foi possível conectar ao servidor para gravar a pasta no banco. Tente novamente em instantes.");
       }
-      const json = await readApiResponse<{ pastaId: string }>(res, "Erro ao criar pasta");
-      if (!json.pastaId) throw new Error("A pasta foi criada sem retornar o ID.");
+      const json = await readApiResponse<{ pastaId: string }>(res, "Erro ao criar a pasta no banco");
+      if (!json.pastaId) throw new Error("O banco criou a pasta sem devolver o ID.");
 
       router.push(`/pasta/${json.pastaId}/editar`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido");
+      setError(err instanceof Error ? err.message : "Erro desconhecido ao criar a pasta");
       setConfirmando(false);
     }
   }
@@ -258,7 +264,7 @@ export default function NovaPasta() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(referencia),
         });
-        const data = await readApiResponse<LegislacaoAssociada>(response, "Erro ao adicionar referência à base");
+        const data = await readApiResponse<LegislacaoAssociada>(response, "Erro ao gravar a referência no banco");
         adicionadas.push(data);
       }
       setResultado({
@@ -271,7 +277,7 @@ export default function NovaPasta() {
       setReferenciasNaoCadastradas((current) => current.filter((_, index) => !referenciasSelecionadas.has(index)));
       setReferenciasSelecionadas(new Set());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao adicionar referências à base");
+      setError(err instanceof Error ? err.message : "Erro ao gravar as referências no banco");
     } finally {
       setSalvandoReferencias(false);
     }
@@ -282,62 +288,64 @@ export default function NovaPasta() {
   // ────────────────────────────────────────────────────────────────
   if (fase === "upload") {
     return (
-      <div className="max-w-xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Nova Pasta Sanitária</h1>
-        <p className="text-sm text-gray-500 mb-6">
-          Faça o upload dos dois arquivos. A IA vai ler o formulário e identificar quais documentos precisam ser gerados.
-        </p>
+      <div className="mx-auto max-w-2xl">
+        <PageHeader
+          title="Nova Pasta Sanitária"
+          description="Envie os dois arquivos do cliente. A leitura identifica os dados do estabelecimento e a lista de documentos a gerar."
+        />
 
-        <form onSubmit={handleAnalisar} className="bg-white border border-gray-200 rounded-xl p-6 space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              PDF do forms.app <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="file"
-              accept=".pdf"
-              onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
-              className="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-200 rounded-lg p-1"
-            />
-            <p className="text-xs text-gray-400 mt-1">Formulário preenchido pelo cliente no forms.app</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Documentos em Elaboração (.docx) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="file"
-              accept=".docx"
-              onChange={(e) => setDocxFile(e.target.files?.[0] || null)}
-              className="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-200 rounded-lg p-1"
-            />
-            <p className="text-xs text-gray-400 mt-1">Documento com a lista de documentos a gerar para este cliente</p>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
-              {error}
-            </div>
-          )}
-
-          {progresso && (
-            <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-lg px-4 py-3 text-sm flex items-center gap-2">
-              <svg className="animate-spin w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              {progresso}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={analisando || !pdfFile || !docxFile}
-            className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        <form onSubmit={handleAnalisar} className="space-y-6">
+          <FormSection
+            title="Arquivos do cliente"
+            description="Os dois são obrigatórios e vêm da etapa comercial."
           >
-            {analisando ? "Analisando com IA…" : "Analisar Necessidades"}
-          </button>
+            <div>
+              <label htmlFor="forms-pdf" className="mb-1 block text-sm font-semibold text-ink">
+                PDF do forms.app (obrigatório)
+              </label>
+              <input
+                id="forms-pdf"
+                type="file"
+                accept=".pdf"
+                aria-describedby="forms-pdf-hint"
+                onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                className={FILE_INPUT_CLASS}
+              />
+              <p id="forms-pdf-hint" className="mt-1 text-sm text-ink-muted">
+                Formulário preenchido pelo cliente no forms.app.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="doc-elaboracao" className="mb-1 block text-sm font-semibold text-ink">
+                Documentos em Elaboração, .docx (obrigatório)
+              </label>
+              <input
+                id="doc-elaboracao"
+                type="file"
+                accept=".docx"
+                aria-describedby="doc-elaboracao-hint"
+                onChange={(e) => setDocxFile(e.target.files?.[0] || null)}
+                className={FILE_INPUT_CLASS}
+              />
+              <p id="doc-elaboracao-hint" className="mt-1 text-sm text-ink-muted">
+                Documento com a lista de documentos a gerar para este cliente.
+              </p>
+            </div>
+          </FormSection>
+
+          <div aria-live="polite" className="space-y-4">
+            {error && (
+              <Feedback tone="erro" title={describeErrorOrigin(error).rotulo}>
+                {error}
+              </Feedback>
+            )}
+            {progresso && <Feedback tone="info" title="Em andamento">{progresso}</Feedback>}
+          </div>
+
+          <Button type="submit" disabled={analisando || !pdfFile || !docxFile} className="w-full">
+            {analisando ? "Analisando…" : "Analisar necessidades"}
+          </Button>
         </form>
       </div>
     );
@@ -349,226 +357,224 @@ export default function NovaPasta() {
   const dados = resultado!.data;
   const docs = docsRevisao;
   const nomeCliente = dados?.clienteNomeFantasia || dados?.clienteRazaoSocial || "Cliente";
+  const camposExtraidos = [
+    dados?.clienteRazaoSocial && { rotulo: "Razão social", valor: dados.clienteRazaoSocial },
+    dados?.clienteCnpj && { rotulo: "CNPJ", valor: dados.clienteCnpj },
+    dados?.clienteCidade && {
+      rotulo: "Cidade/UF",
+      valor: `${dados.clienteCidade}${dados.clienteEstado ? ` — ${dados.clienteEstado}` : ""}`,
+    },
+    dados?.clienteRtNome && {
+      rotulo: "Responsável técnico",
+      valor: `${dados.clienteRtNome}${dados.clienteRtProfissao ? ` (${dados.clienteRtProfissao})` : ""}`,
+    },
+  ].filter(Boolean) as Array<{ rotulo: string; valor: string }>;
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Revisar antes de criar</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            A IA usou {resultado!.tokensUsados} tokens · Confirme os documentos a gerar
-          </p>
-        </div>
-        <button
-          onClick={() => { setFase("upload"); setResultado(null); setError(""); }}
-          className="text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5"
-        >
-          ← Novo upload
-        </button>
-      </div>
+    <div className="mx-auto max-w-3xl">
+      <PageHeader
+        title="Revisar antes de criar"
+        description={`Leitura concluída com ${resultado!.tokensUsados} tokens. Confirme os documentos que entram na pasta.`}
+        actions={
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setFase("upload");
+              setResultado(null);
+              setError("");
+            }}
+          >
+            Voltar ao upload
+          </Button>
+        }
+      />
 
-      {/* Client preview */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
-        <h2 className="font-semibold text-gray-800 mb-3">Dados extraídos — {nomeCliente}</h2>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-          {dados?.clienteRazaoSocial && (
-            <div><span className="text-gray-500">Razão social:</span>{" "}
-              <span className="text-gray-800 font-medium">{dados.clienteRazaoSocial}</span>
-            </div>
-          )}
-          {dados?.clienteCnpj && (
-            <div><span className="text-gray-500">CNPJ:</span>{" "}
-              <span className="text-gray-800 font-medium">{dados.clienteCnpj}</span>
-            </div>
-          )}
-          {dados?.clienteCidade && (
-            <div><span className="text-gray-500">Cidade/UF:</span>{" "}
-              <span className="text-gray-800 font-medium">{dados.clienteCidade}{dados.clienteEstado ? ` — ${dados.clienteEstado}` : ""}</span>
-            </div>
-          )}
-          {dados?.clienteRtNome && (
-            <div><span className="text-gray-500">RT:</span>{" "}
-              <span className="text-gray-800 font-medium">{dados.clienteRtNome}{dados.clienteRtProfissao ? ` (${dados.clienteRtProfissao})` : ""}</span>
-            </div>
-          )}
-        </div>
-        <p className="text-xs text-gray-400 mt-3">
-          Todos os campos podem ser editados na próxima tela.
-        </p>
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl mb-5">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-800">Referências associadas do documento de elaboração</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Somente referências reconhecidas no arquivo enviado serão levadas para a geração. Você ainda poderá ajustar na próxima tela.
-          </p>
-        </div>
-        {resultado!.legislacoesAssociadas.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-amber-700">
-            Nenhuma referência cadastrada foi reconhecida no documento. Confira na tela de geração antes de emitir os arquivos.
-          </p>
-        ) : (
-          <ul className="divide-y divide-gray-100">
-            {resultado!.legislacoesAssociadas.map((legislacao) => (
-              <li key={legislacao.id} className="px-5 py-3">
-                <p className="text-sm text-gray-800">{legislacao.titulo}</p>
-                <p className="text-xs text-gray-500">
-                  {legislacao.tipo} · {legislacao.estadoUf}
-                  {legislacao.municipio ? ` · ${legislacao.municipio}` : ""}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {referenciasNaoCadastradas.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl mb-5">
-          <div className="px-5 py-4 border-b border-amber-100 flex items-start justify-between gap-4">
-            <div>
-              <h2 className="font-semibold text-amber-900">Referências encontradas fora da base</h2>
-              <p className="text-xs text-amber-800 mt-0.5">
-                O app encontrou estas referências no Documento em Elaboração e não achou duplicata cadastrada. Revise e adicione as corretas à base antes de criar a pasta.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => { void adicionarReferenciasSelecionadas(); }}
-              disabled={salvandoReferencias || referenciasSelecionadas.size === 0}
-              className="shrink-0 rounded-lg bg-amber-600 px-3 py-2 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
-            >
-              {salvandoReferencias ? "Adicionando..." : `Adicionar ${referenciasSelecionadas.size}`}
-            </button>
-          </div>
-          <ul className="divide-y divide-amber-100">
-            {referenciasNaoCadastradas.map((referencia, index) => (
-              <li key={`${referencia.referenciaAbnt}-${index}`} className="px-5 py-3 flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={referenciasSelecionadas.has(index)}
-                  onChange={() => toggleReferencia(index)}
-                  className="mt-1 w-4 h-4 rounded border-amber-300 text-amber-600 cursor-pointer"
-                />
-                <div>
-                  <p className="text-sm font-medium text-amber-950">{referencia.titulo}</p>
-                  <p className="text-xs text-amber-800 mt-0.5">
-                    {referencia.tipo} · {referencia.estadoUf === "BR" ? "Federal" : referencia.estadoUf}
-                    {referencia.municipio ? ` · ${referencia.municipio}` : ""}
-                  </p>
-                  <p className="text-xs text-amber-700 mt-1">{referencia.referenciaAbnt}</p>
+      <div className="space-y-6">
+        <FormSection title={`Dados extraídos — ${nomeCliente}`} description="Todos os campos podem ser editados na próxima tela.">
+          {camposExtraidos.length === 0 ? (
+            <Feedback tone="atencao" title="Nenhum dado do cliente foi reconhecido">
+              Você ainda pode criar a pasta e preencher o cadastro manualmente na próxima tela.
+            </Feedback>
+          ) : (
+            <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              {camposExtraidos.map((campo) => (
+                <div key={campo.rotulo}>
+                  <dt className="text-sm text-ink-muted">{campo.rotulo}</dt>
+                  <dd className="font-semibold text-ink">{campo.valor}</dd>
                 </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+              ))}
+            </dl>
+          )}
+        </FormSection>
 
-      {/* Document checklist */}
-      <div className="bg-white border border-gray-200 rounded-xl mb-5">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-gray-800">
-              Documentos sugeridos{" "}
-              <span className="text-gray-400 font-normal">({docsSelecionados.size} de {docs.length} selecionados)</span>
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5">Desmarque os que não quer gerar agora</p>
-          </div>
-          <div className="flex gap-2 text-xs">
-            <button onClick={() => setDocsSelecionados(new Set(docs.map((_, i) => i)))}
-              className="text-blue-600 hover:underline">Todos</button>
-            <span className="text-gray-300">|</span>
-            <button onClick={() => setDocsSelecionados(new Set())}
-              className="text-gray-500 hover:underline">Nenhum</button>
-          </div>
-        </div>
+        <Card>
+          <CardHeader
+            title="Referências reconhecidas no documento de elaboração"
+            description="Somente referências já cadastradas entram na geração. Você ainda pode ajustar na tela de geração."
+          />
+          {resultado!.legislacoesAssociadas.length === 0 ? (
+            <div className="px-4 py-4 sm:px-5">
+              <Feedback tone="atencao" title="Nenhuma referência cadastrada foi reconhecida">
+                Confira as legislações na tela de geração antes de emitir os arquivos.
+              </Feedback>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200">
+              {resultado!.legislacoesAssociadas.map((legislacao) => (
+                <li key={legislacao.id} className="px-4 py-3 sm:px-5">
+                  <p className="text-sm text-ink">{legislacao.titulo}</p>
+                  <p className="text-sm text-ink-muted">
+                    {legislacao.tipo} · {legislacao.estadoUf}
+                    {legislacao.municipio ? ` · ${legislacao.municipio}` : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
 
-        {docs.length === 0 ? (
-          <div className="px-5 py-6 space-y-3">
-            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-              A IA não identificou documentos no arquivo de elaboração. Verifique o diagnóstico abaixo e tente novamente, ou crie a pasta e adicione os documentos manualmente.
-            </p>
-
-            {/* Diagnostic block */}
-            {resultado!.elaboracaoTextPreview === null || resultado!.elaboracaoTextPreview === "" ? (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-                <p className="text-sm font-semibold text-red-700 mb-1">⚠ O arquivo .docx veio vazio</p>
-                <p className="text-xs text-red-600">
-                  O mammoth não conseguiu extrair nenhum texto do arquivo enviado. Possíveis causas:
-                </p>
-                <ul className="text-xs text-red-600 mt-1 list-disc list-inside space-y-0.5">
-                  <li>O arquivo está corrompido ou protegido por senha</li>
-                  <li>É um .docx mas o conteúdo está em imagem (escaneado)</li>
-                  <li>O formato real é diferente de .docx (ex: .doc antigo renomeado)</li>
-                </ul>
-              </div>
-            ) : (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-                <p className="text-xs font-semibold text-gray-700 mb-1">
-                  Texto extraído do .docx (primeiros 600 caracteres):
-                </p>
-                <pre className="text-xs text-gray-600 whitespace-pre-wrap break-words font-mono leading-relaxed">
-                  {resultado!.elaboracaoTextPreview}
-                </pre>
-                <p className="text-xs text-gray-500 mt-2">
-                  Se o texto acima contém os documentos mas a IA não os reconheceu, tente novamente — ou crie a pasta e adicione manualmente.
-                </p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <ul className="divide-y divide-gray-100">
-            {docs.map((doc, i) => (
-              <li key={`${doc.nome}-${i}`} className="px-5 py-3 flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id={`doc-${i}`}
-                  checked={docsSelecionados.has(i)}
-                  onChange={() => toggleDoc(i)}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 cursor-pointer"
-                />
-                <label htmlFor={`doc-${i}`} className="flex-1 cursor-pointer">
-                  <span className="text-sm text-gray-800">{doc.nome}</span>
-                  {doc.tipo && (
-                    <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
-                      {doc.tipo}
-                    </span>
-                  )}
-                </label>
-                <button
-                  type="button"
-                  onClick={() => removeDoc(i)}
-                  className="text-xs text-red-500 hover:underline"
+        {referenciasNaoCadastradas.length > 0 && (
+          <Card>
+            <CardHeader
+              title="Referências fora da base"
+              description="Encontradas no Documento em Elaboração e sem correspondência cadastrada. Revise e adicione as corretas antes de criar a pasta."
+              actions={
+                <Button
+                  disabled={salvandoReferencias || referenciasSelecionadas.size === 0}
+                  onClick={() => {
+                    void adicionarReferenciasSelecionadas();
+                  }}
                 >
-                  Remover
-                </button>
-              </li>
-            ))}
-          </ul>
+                  {salvandoReferencias
+                    ? "Adicionando..."
+                    : `Adicionar ${referenciasSelecionadas.size} à base`}
+                </Button>
+              }
+            />
+            <ul className="divide-y divide-gray-200">
+              {referenciasNaoCadastradas.map((referencia, index) => (
+                <li key={`${referencia.referenciaAbnt}-${index}`} className="px-4 py-3 sm:px-5">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={referenciasSelecionadas.has(index)}
+                      onChange={() => toggleReferencia(index)}
+                      className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-ink">{referencia.titulo}</span>
+                      <span className="mt-0.5 block text-sm text-ink-muted">
+                        {referencia.tipo} · {referencia.estadoUf === "BR" ? "Federal" : referencia.estadoUf}
+                        {referencia.municipio ? ` · ${referencia.municipio}` : ""}
+                      </span>
+                      <span className="mt-1 block text-sm text-ink-muted">{referencia.referenciaAbnt}</span>
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </Card>
         )}
-      </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm mb-4">
-          {error}
+        <Card>
+          <CardHeader
+            title="Documentos sugeridos"
+            description="Desmarque os que não quer gerar agora."
+            meta={`${docsSelecionados.size} de ${docs.length} selecionados`}
+            actions={
+              docs.length > 0 ? (
+                <>
+                  <Button variant="quiet" onClick={() => setDocsSelecionados(new Set(docs.map((_, i) => i)))}>
+                    Selecionar todos
+                  </Button>
+                  <Button variant="quiet" onClick={() => setDocsSelecionados(new Set())}>
+                    Nenhum
+                  </Button>
+                </>
+              ) : undefined
+            }
+          />
+
+          {docs.length === 0 ? (
+            <div className="space-y-4 px-4 py-5 sm:px-5">
+              <Feedback tone="atencao" title="Nenhum documento foi identificado no arquivo de elaboração">
+                Veja o diagnóstico abaixo e tente novamente, ou crie a pasta e adicione os documentos
+                manualmente na tela de geração.
+              </Feedback>
+
+              {resultado!.elaboracaoTextPreview === null || resultado!.elaboracaoTextPreview === "" ? (
+                <Feedback tone="erro" title="O arquivo .docx veio vazio">
+                  <p>Nenhum texto foi extraído do arquivo enviado. Causas possíveis:</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                    <li>O arquivo está corrompido ou protegido por senha.</li>
+                    <li>É um .docx cujo conteúdo está em imagem (escaneado).</li>
+                    <li>O formato real é diferente de .docx (por exemplo, .doc antigo renomeado).</li>
+                  </ul>
+                </Feedback>
+              ) : (
+                <div className="rounded-md border border-gray-200 bg-surface-subtle px-4 py-3">
+                  <p className="text-sm font-semibold text-ink">
+                    Texto extraído do .docx (primeiros 600 caracteres)
+                  </p>
+                  <pre className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-muted">
+                    {resultado!.elaboracaoTextPreview}
+                  </pre>
+                  <p className="mt-2 text-sm text-ink-muted">
+                    Se o texto acima contém os documentos mas eles não foram reconhecidos, tente
+                    novamente — ou crie a pasta e adicione manualmente.
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200">
+              {docs.map((doc, i) => (
+                <li key={`${doc.nome}-${i}`} className="flex items-center gap-3 px-4 py-3 sm:px-5">
+                  <input
+                    type="checkbox"
+                    id={`doc-${i}`}
+                    checked={docsSelecionados.has(i)}
+                    onChange={() => toggleDoc(i)}
+                    className="h-4 w-4 shrink-0 rounded border-gray-300"
+                  />
+                  <label htmlFor={`doc-${i}`} className="min-w-0 flex-1 cursor-pointer">
+                    <span className="text-sm text-ink">{doc.nome}</span>
+                    {doc.tipo && (
+                      <span className="ml-2 rounded-md bg-surface-subtle px-1.5 py-0.5 text-xs font-semibold text-ink-muted">
+                        {doc.tipo}
+                      </span>
+                    )}
+                  </label>
+                  <Button variant="quiet" aria-label={`Remover ${doc.nome}`} onClick={() => removeDoc(i)}>
+                    Remover
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <div aria-live="polite">
+          {error && (
+            <Feedback tone="erro" title={describeErrorOrigin(error).rotulo}>
+              {error}
+            </Feedback>
+          )}
         </div>
-      )}
 
-      <button
-        onClick={handleConfirmar}
-        disabled={confirmando}
-        className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-base"
-      >
-        {confirmando
-          ? "Criando pasta…"
-          : docsSelecionados.size === 0
-          ? "Criar pasta sem documentos →"
-          : `Criar pasta com ${docsSelecionados.size} documento${docsSelecionados.size > 1 ? "s" : ""} →`}
-      </button>
-      <p className="text-xs text-center text-gray-400 mt-2">
-        Você vai revisar e completar os dados na próxima tela antes de gerar os arquivos.
-      </p>
+        <div>
+          <Button onClick={handleConfirmar} disabled={confirmando} className="w-full">
+            {confirmando
+              ? "Criando pasta…"
+              : docsSelecionados.size === 0
+              ? "Criar pasta sem documentos"
+              : `Criar pasta com ${docsSelecionados.size} documento${docsSelecionados.size > 1 ? "s" : ""}`}
+          </Button>
+          <p className="mt-2 text-center text-sm text-ink-muted">
+            Você vai revisar e completar os dados na próxima tela antes de gerar os arquivos.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Button, buttonClass } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Card, EmptyState, PageHeader } from "@/components/ui/Surface";
+import { fieldClass } from "@/components/ui/Field";
+import { describeErrorOrigin, Feedback, PASTA_STATUS, StatusBadge } from "@/components/ui/Status";
+import { normalizeForMatch } from "@/components/ui/text";
 
 interface Pasta {
   id: string;
@@ -12,27 +18,42 @@ interface Pasta {
   documentos: Array<{ id: string; status: string }>;
 }
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  rascunho: { label: "Rascunho", color: "bg-gray-100 text-gray-600" },
-  processando: { label: "Processando", color: "bg-yellow-100 text-yellow-700" },
-  concluida: { label: "Concluída", color: "bg-green-100 text-green-700" },
-};
+const FILTROS = [
+  { id: "todas", label: "Todas" },
+  { id: "rascunho", label: "Rascunho" },
+  { id: "processando", label: "Processando" },
+  { id: "concluida", label: "Concluída" },
+] as const;
+
+type FiltroId = (typeof FILTROS)[number]["id"];
 
 export default function Dashboard() {
   const [pastas, setPastas] = useState<Pasta[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [busca, setBusca] = useState("");
+  const [filtro, setFiltro] = useState<FiltroId>("todas");
   const [confirmDelete, setConfirmDelete] = useState<Pasta | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [statusError, setStatusError] = useState("");
 
   useEffect(() => {
     fetch("/api/pastas")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`O banco não respondeu a lista de pastas (HTTP ${r.status}).`);
+        return r.json();
+      })
       .then((data) => {
         setPastas(Array.isArray(data) ? data : []);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((error: unknown) => {
+        setLoadError(
+          error instanceof Error ? error.message : "Não foi possível carregar as pastas do banco."
+        );
+        setLoading(false);
+      });
   }, []);
 
   async function handleDelete() {
@@ -54,144 +75,231 @@ export default function Dashboard() {
 
   async function atualizarStatusPasta(pastaId: string, status: "rascunho" | "concluida") {
     const previous = pastas;
-    setPastas((prev) => prev.map((p) => p.id === pastaId ? { ...p, status } : p));
+    setStatusError("");
+    setPastas((prev) => prev.map((p) => (p.id === pastaId ? { ...p, status } : p)));
     try {
       const res = await fetch(`/api/pastas/${pastaId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      if (!res.ok) throw new Error("Falha ao atualizar status");
-    } catch {
+      if (!res.ok) throw new Error(`O banco recusou a mudança de status (HTTP ${res.status}).`);
+    } catch (error) {
       setPastas(previous);
+      setStatusError(
+        error instanceof Error ? error.message : "Não foi possível gravar o status no banco."
+      );
     }
   }
 
+  const contagens = useMemo(() => {
+    const base: Record<string, number> = { todas: pastas.length };
+    for (const item of FILTROS) {
+      if (item.id === "todas") continue;
+      base[item.id] = pastas.filter((p) => p.status === item.id).length;
+    }
+    return base;
+  }, [pastas]);
+
+  // Recentes primeiro: a pasta mexida por último é quase sempre a próxima a abrir.
+  const visiveis = useMemo(() => {
+    const termo = normalizeForMatch(busca.trim());
+    return pastas
+      .filter((pasta) => (filtro === "todas" ? true : pasta.status === filtro))
+      .filter((pasta) => {
+        if (!termo) return true;
+        return normalizeForMatch(
+          `${pasta.clienteNomeFantasia || ""} ${pasta.clienteEstado || ""}`
+        ).includes(termo);
+      })
+      .sort((a, b) => new Date(b.criadaEm).getTime() - new Date(a.criadaEm).getTime());
+  }, [pastas, busca, filtro]);
+
+  const filtrando = filtro !== "todas" || busca.trim().length > 0;
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Pastas Sanitárias</h1>
-        <div className="flex gap-2">
-          <Link
-            href="/pasta/nova"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
-          >
-            + Nova Pasta
+      <PageHeader
+        title="Pastas Sanitárias"
+        description="Cada pasta reúne os documentos de um cliente, do formulário à entrega."
+        actions={
+          <Link href="/pasta/nova" className={buttonClass("primary")}>
+            Nova pasta
           </Link>
+        }
+      />
+
+      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por status">
+          {FILTROS.map((item) => {
+            const ativo = filtro === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={ativo}
+                aria-label={`${item.label}: ${contagens[item.id] ?? 0} pasta(s)`}
+                onClick={() => setFiltro(item.id)}
+                className={`inline-flex min-h-11 items-center gap-2 rounded-md border px-3 text-sm font-semibold ${
+                  ativo
+                    ? "border-brand-action bg-brand-action text-brand-on-dark"
+                    : "border-gray-300 bg-surface-card text-ink-muted hover:bg-surface-subtle"
+                }`}
+              >
+                {item.label}
+                <span className="tabular-nums">{contagens[item.id] ?? 0}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="lg:w-80">
+          <label htmlFor="busca-pastas" className="sr-only">
+            Buscar pasta por cliente ou UF
+          </label>
+          <input
+            id="busca-pastas"
+            type="search"
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+            placeholder="Buscar por cliente ou UF..."
+            className={fieldClass}
+          />
         </div>
       </div>
 
-      {loading && <p className="text-gray-500">Carregando...</p>}
+      <div aria-live="polite">
+        {statusError && (
+          <Feedback tone="erro" title={describeErrorOrigin(statusError).rotulo} className="mb-4">
+            {statusError}
+          </Feedback>
+        )}
+      </div>
 
-      {!loading && pastas.length === 0 && (
-        <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-xl">
-          <p className="text-gray-500 mb-4">Nenhuma pasta criada ainda.</p>
-          <Link href="/pasta/nova" className="text-blue-600 hover:underline text-sm">
-            Criar primeira pasta →
-          </Link>
-        </div>
+      {loading && <p className="text-sm text-ink-muted">Carregando pastas...</p>}
+
+      {!loading && loadError && (
+        <Feedback tone="erro" title={describeErrorOrigin(loadError).rotulo} live>
+          {loadError} Atualize a página para tentar novamente.
+        </Feedback>
       )}
 
-      <div className="space-y-3">
-        {pastas.map((pasta) => {
-          const st = STATUS_LABELS[pasta.status] || STATUS_LABELS.rascunho;
-          const docsGerados = pasta.documentos.filter((d) => d.status === "gerado").length;
-          const docsTotal = pasta.documentos.length;
-          return (
-            <div
-              key={pasta.id}
-              className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-sm transition-all"
-            >
-              <Link
-                href={`/pasta/${pasta.id}`}
-                className="flex-1 px-5 py-4 min-w-0"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">
-                      {pasta.clienteNomeFantasia || <span className="text-gray-400 italic">Sem nome</span>}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {pasta.clienteEstado && <span className="mr-2">{pasta.clienteEstado}</span>}
-                      {new Date(pasta.criadaEm).toLocaleDateString("pt-BR")}
-                      {docsTotal > 0 && (
-                        <span className="ml-2">
-                          · {docsGerados}/{docsTotal} documentos
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <span className={`ml-4 shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${st.color}`}>
-                    {st.label}
-                  </span>
-                </div>
-              </Link>
+      {!loading && !loadError && pastas.length === 0 && (
+        <EmptyState
+          title="Nenhuma pasta criada ainda"
+          description="Comece enviando o PDF do formulário e o documento de elaboração do cliente."
+          action={
+            <Link href="/pasta/nova" className={buttonClass("primary")}>
+              Criar primeira pasta
+            </Link>
+          }
+        />
+      )}
 
-              <button
-                onClick={() => {
-                  void atualizarStatusPasta(
-                    pasta.id,
-                    pasta.status === "concluida" ? "rascunho" : "concluida"
-                  );
-                }}
-                className={`shrink-0 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                  pasta.status === "concluida"
-                    ? "border-gray-300 text-gray-600 hover:bg-gray-50"
-                    : "border-green-200 text-green-700 hover:bg-green-50"
-                }`}
-                title={pasta.status === "concluida" ? "Reabrir pasta" : "Marcar como concluida"}
-              >
-                {pasta.status === "concluida" ? "Reabrir" : "Concluir"}
-              </button>
-
-              <button
-                onClick={() => { setDeleteError(""); setConfirmDelete(pasta); }}
-                className="mr-3 shrink-0 text-gray-300 hover:text-red-500 transition-colors p-1.5 rounded"
-                title="Excluir pasta"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Delete confirmation modal */}
-      {confirmDelete && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Excluir pasta?</h3>
-            <p className="text-sm text-gray-600 mb-1">
-              <span className="font-medium">{confirmDelete.clienteNomeFantasia || "Sem nome"}</span>
+      {!loading && !loadError && pastas.length > 0 && (
+        <>
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <h2 className="font-display text-base text-ink">
+              {filtrando ? "Resultados" : "Recentes"}
+            </h2>
+            <p className="text-sm text-ink-muted" aria-live="polite">
+              {visiveis.length} de {pastas.length} pastas
             </p>
-            <p className="text-sm text-gray-500 mb-6">
-              Todos os documentos gerados desta pasta serão excluídos permanentemente. Esta ação não pode ser desfeita.
-            </p>
-            {deleteError && (
-              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
-                {deleteError}
-              </p>
-            )}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDelete(null)}
-                disabled={deleting}
-                className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => { void handleDelete(); }}
-                disabled={deleting}
-                className="flex-1 bg-red-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
-              >
-                {deleting ? "Excluindo…" : "Excluir"}
-              </button>
-            </div>
           </div>
-        </div>
+
+          {visiveis.length === 0 ? (
+            <EmptyState
+              title="Nenhuma pasta encontrada"
+              description="Ajuste a busca ou volte para todas as pastas."
+              action={
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setBusca("");
+                    setFiltro("todas");
+                  }}
+                >
+                  Limpar filtros
+                </Button>
+              }
+            />
+          ) : (
+            <ul className="space-y-3">
+              {visiveis.map((pasta) => {
+                const status = PASTA_STATUS[pasta.status] || PASTA_STATUS.rascunho;
+                const docsGerados = pasta.documentos.filter((d) => d.status === "gerado").length;
+                const docsTotal = pasta.documentos.length;
+                const nome = pasta.clienteNomeFantasia || "Pasta sem nome";
+                const concluida = pasta.status === "concluida";
+                return (
+                  <li key={pasta.id}>
+                    <Card className="flex flex-wrap items-center gap-3 p-3 sm:p-4">
+                      <Link
+                        href={`/pasta/${pasta.id}`}
+                        className="min-w-[14rem] flex-1 rounded-md py-1"
+                      >
+                        <span className="block font-semibold text-ink">{nome}</span>
+                        <span className="mt-0.5 block text-sm text-ink-muted">
+                          {pasta.clienteEstado ? `${pasta.clienteEstado} · ` : ""}
+                          Criada em {new Date(pasta.criadaEm).toLocaleDateString("pt-BR")}
+                          {docsTotal > 0 ? ` · ${docsGerados}/${docsTotal} documentos gerados` : ""}
+                        </span>
+                      </Link>
+
+                      <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="secondary"
+                          aria-label={`${concluida ? "Reabrir" : "Concluir"} pasta ${nome}`}
+                          onClick={() => {
+                            void atualizarStatusPasta(pasta.id, concluida ? "rascunho" : "concluida");
+                          }}
+                        >
+                          {concluida ? "Reabrir" : "Concluir"}
+                        </Button>
+                        <Button
+                          variant="danger"
+                          aria-label={`Excluir pasta ${nome}`}
+                          onClick={() => {
+                            setDeleteError("");
+                            setConfirmDelete(pasta);
+                          }}
+                        >
+                          Excluir
+                        </Button>
+                      </div>
+                    </Card>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </>
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title="Excluir pasta?"
+          destrutiva
+          busy={deleting}
+          error={deleteError}
+          confirmLabel={deleting ? "Excluindo..." : "Excluir pasta"}
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => {
+            void handleDelete();
+          }}
+          description={
+            <>
+              <span className="font-semibold text-ink">
+                {confirmDelete.clienteNomeFantasia || "Pasta sem nome"}
+              </span>
+              <br />
+              Todos os documentos gerados desta pasta serão excluídos permanentemente. Esta ação não
+              pode ser desfeita.
+            </>
+          }
+        />
       )}
     </div>
   );

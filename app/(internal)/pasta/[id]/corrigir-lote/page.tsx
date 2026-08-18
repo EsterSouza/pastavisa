@@ -6,6 +6,18 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
+import { Button, buttonClass } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { fieldClass } from "@/components/ui/Field";
+import { Card, CardHeader, PageHeader } from "@/components/ui/Surface";
+import {
+  describeErrorOrigin,
+  Feedback,
+  ProgressBar,
+  StatusBadge,
+  UPLOAD_STATUS,
+} from "@/components/ui/Status";
+import { normalizeForMatch } from "@/components/ui/text";
 
 interface DocumentoUploadVersao {
   id: string;
@@ -79,6 +91,14 @@ type UploadSignPlan =
       uploads: Array<{ nomeArquivo: string; path: string; token: string; ref: string }>;
     };
 
+interface Confirmacao {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  destrutiva: boolean;
+  onConfirm: () => void;
+}
+
 /**
  * Acima disto a contagem deixa de parecer um dado comercial e passa a parecer um
  * trecho genérico casando em todo o documento (um "Ltda" solto, por exemplo). Não
@@ -92,19 +112,6 @@ const ESCOPO_LABEL: Record<EscopoParte, string> = {
   cabecalho: "cabeçalho",
   rodape: "rodapé",
 };
-
-const STATUS_DOC_LABEL: Record<string, { texto: string; classe: string }> = {
-  processado: { texto: "Processado", classe: "text-green-600" },
-  restaurado: { texto: "Restaurado", classe: "text-amber-600" },
-  erro: { texto: "Erro", classe: "text-red-500" },
-};
-
-function normalizeForMatch(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
 
 /**
  * Identidade da rodada analisada. Mudar qualquer par vence a análise: os números
@@ -136,6 +143,7 @@ export default function CorrigirLotePasta() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
+  const [uploadErro, setUploadErro] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const [pares, setPares] = useState<Par[]>([{ de: "", para: "" }]);
@@ -163,6 +171,8 @@ export default function CorrigirLotePasta() {
   const [removingBatch, setRemovingBatch] = useState(false);
   const [restaurandoId, setRestaurandoId] = useState<string | null>(null);
   const [restauracaoMensagem, setRestauracaoMensagem] = useState("");
+  const [restauracaoErro, setRestauracaoErro] = useState(false);
+  const [confirmacao, setConfirmacao] = useState<Confirmacao | null>(null);
 
   function carregarDocs() {
     return fetch(`/api/pastas/${id}/uploads-corrigidos`)
@@ -257,7 +267,7 @@ export default function CorrigirLotePasta() {
   );
 
   const bloqueioAplicar = (() => {
-    if (selectedDocs.size === 0) return "Selecione ao menos um documento.";
+    if (selectedDocs.size === 0) return "Selecione ao menos um documento na etapa 2.";
     if (!rodadaTemTexto && !logoFile) return "Informe uma logo nova e/ou ao menos um par de substituição.";
     if (rodadaTemTexto && !analiseValida) {
       return analiseVencida
@@ -276,7 +286,7 @@ export default function CorrigirLotePasta() {
   const zipDownloadHref = `/api/pastas/${id}/uploads-corrigidos/download${
     selectedDocs.size > 0 ? `?ids=${Array.from(selectedDocs).join(",")}` : ""
   }`;
-  const zipDownloadLabel = `Baixar ${selectedDocs.size > 0 ? "selecionados" : "tudo"} (ZIP)`;
+  const zipDownloadLabel = `Baixar ${selectedDocs.size > 0 ? "selecionados" : "tudo"} em ZIP`;
 
   const docsComErro = useMemo(
     () => docs.filter((doc) => resultados[doc.id]?.status === "erro"),
@@ -329,6 +339,7 @@ export default function CorrigirLotePasta() {
     if (!files || files.length === 0) return;
     const fileArray = Array.from(files);
     setUploading(true);
+    setUploadErro(false);
     setUploadMessage(`Enviando ${fileArray.length} arquivo(s)...`);
     try {
       const planRes = await fetch(`/api/pastas/${id}/uploads-corrigidos/sign`, {
@@ -336,7 +347,7 @@ export default function CorrigirLotePasta() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fileNames: fileArray.map((f) => f.name) }),
       });
-      const plan = await readApiResponse<UploadSignPlan>(planRes, "Erro ao preparar envio dos arquivos");
+      const plan = await readApiResponse<UploadSignPlan>(planRes, "Erro ao preparar o upload dos arquivos");
 
       if (plan.mode === "direct") {
         const supabase = createClient(plan.supabaseUrl, plan.supabaseAnonKey, {
@@ -357,7 +368,7 @@ export default function CorrigirLotePasta() {
             arquivos: plan.uploads.map((u) => ({ nomeArquivo: u.nomeArquivo, uploadPath: u.ref })),
           }),
         });
-        await readApiResponse(registerRes, "Erro ao registrar arquivos enviados");
+        await readApiResponse(registerRes, "O banco recusou o registro dos arquivos enviados");
       } else {
         const formData = new FormData();
         fileArray.forEach((file) => formData.append("arquivos", file));
@@ -365,13 +376,14 @@ export default function CorrigirLotePasta() {
           method: "POST",
           body: formData,
         });
-        await readApiResponse(uploadRes, "Erro ao enviar arquivos");
+        await readApiResponse(uploadRes, "Erro no upload dos arquivos");
       }
 
       await carregarDocs();
       setUploadMessage(`${fileArray.length} arquivo(s) enviado(s).`);
     } catch (error) {
-      setUploadMessage(error instanceof Error ? error.message : "Erro ao enviar arquivos");
+      setUploadErro(true);
+      setUploadMessage(error instanceof Error ? error.message : "Erro no upload dos arquivos");
     } finally {
       setUploading(false);
     }
@@ -442,13 +454,12 @@ export default function CorrigirLotePasta() {
     setAnalisando(false);
   }
 
-  // Processes one document per request (not the whole batch in a single call).
-  // This gives real per-document progress and, on folders with many documents,
-  // avoids a single request running long enough to hit the serverless function
-  // time limit with no feedback at all — the same resilience pattern used by
-  // the main "Gerar documentos" flow: one automatic retry on transient gateway
-  // errors, defensive JSON parsing, and a failure on one document never stops
-  // the rest of the batch.
+  // Um documento por requisição (não o lote inteiro numa chamada só). Isso dá
+  // progresso real por documento e, em pastas grandes, evita uma requisição longa
+  // o bastante para bater no limite de tempo da função sem nenhum retorno — o
+  // mesmo padrão de resiliência do fluxo "Gerar documentos": uma nova tentativa
+  // automática em erro transitório de gateway, leitura defensiva do JSON, e falha
+  // de um documento nunca interrompe o resto do lote.
   async function aplicar() {
     if (bloqueioAplicar) {
       setApplyError(bloqueioAplicar);
@@ -477,7 +488,7 @@ export default function CorrigirLotePasta() {
           method: "POST",
           body: logoFormData,
         });
-        await readApiResponse(logoResponse, "Nao foi possivel salvar a nova logo como logo principal da pasta.");
+        await readApiResponse(logoResponse, "Não foi possível salvar a nova logo como logo principal da pasta.");
       }
 
       for (const docId of docIds) {
@@ -524,13 +535,13 @@ export default function CorrigirLotePasta() {
               "O documento mudou desde a análise. Analise novamente antes de aplicar.";
           } else if (!res.ok || !parsed) {
             erroLocal = TRANSIENT_STATUS.includes(res.status)
-              ? `Tempo excedido${attempt > 0 ? " mesmo após nova tentativa" : ""}. Tente este documento sozinho.`
-              : parsed?.error || `Falha ao aplicar (HTTP ${res.status}).`;
+              ? `Tempo excedido${attempt > 0 ? ", mesmo após nova tentativa" : ""}. Tente este documento sozinho.`
+              : parsed?.error || `Falha ao aplicar a correção (HTTP ${res.status}).`;
           } else {
             resultado = { ...parsed, docId };
           }
         } catch (err) {
-          erroLocal = err instanceof Error ? err.message : "Erro de rede ao aplicar.";
+          erroLocal = err instanceof Error ? err.message : "Erro de rede ao aplicar a correção.";
         }
 
         if (resultado) {
@@ -568,7 +579,7 @@ export default function CorrigirLotePasta() {
       if (desatualizados > 0) partes.push(`${desatualizados} recusado(s) por base desatualizada`);
       setApplySummary(`${partes.join(", ")}.`);
     } catch (error) {
-      setApplyError(error instanceof Error ? error.message : "Erro ao aplicar as correcoes.");
+      setApplyError(error instanceof Error ? error.message : "Erro ao aplicar as correções.");
     } finally {
       setCurrentDocName("");
       setApplying(false);
@@ -580,7 +591,7 @@ export default function CorrigirLotePasta() {
   }
 
   async function visualizarDocumento(doc: DocumentoUploadItem, versaoId?: string) {
-    const title = versaoId ? `${doc.nomeArquivo} - versão anterior` : doc.nomeArquivo;
+    const title = versaoId ? `${doc.nomeArquivo} — versão anterior` : doc.nomeArquivo;
     setPreview({ title, html: "", loading: true });
     try {
       const query = versaoId ? `?versaoId=${encodeURIComponent(versaoId)}` : "";
@@ -605,22 +616,16 @@ export default function CorrigirLotePasta() {
    */
   async function restaurar(doc: DocumentoUploadItem, alvo: "original" | "versao", versaoId?: string) {
     const rotulo = alvo === "original" ? "o arquivo original enviado" : "esta versão anterior";
-    const confirmado = window.confirm(
-      `Restaurar "${doc.nomeArquivo}" para ${rotulo}?\n\n` +
-        "Nada é apagado: a saída atual continua disponível como versão anterior, e restaurar " +
-        "cria uma versão nova. Depois de restaurar é preciso analisar novamente antes de aplicar."
-    );
-    if (!confirmado) return;
-
     setRestaurandoId(doc.id);
     setRestauracaoMensagem("");
+    setRestauracaoErro(false);
     try {
       const res = await fetch(`/api/pastas/${id}/uploads-corrigidos/${doc.id}/restaurar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ alvo, versaoId }),
       });
-      await readApiResponse(res, "Erro ao restaurar documento");
+      await readApiResponse(res, "Erro ao restaurar o documento");
       setResultados((prev) => {
         const next = { ...prev };
         delete next[doc.id];
@@ -632,32 +637,52 @@ export default function CorrigirLotePasta() {
         `"${doc.nomeArquivo}" restaurado para ${rotulo}. Analise novamente antes da próxima rodada.`
       );
     } catch (error) {
+      setRestauracaoErro(true);
       setRestauracaoMensagem(
-        error instanceof Error ? error.message : "Erro ao restaurar documento"
+        error instanceof Error ? error.message : "Erro ao restaurar o documento"
       );
     } finally {
       setRestaurandoId(null);
     }
   }
 
+  function pedirRestauracao(doc: DocumentoUploadItem, alvo: "original" | "versao", versaoId?: string) {
+    const rotulo = alvo === "original" ? "o arquivo original enviado" : "esta versão anterior";
+    setConfirmacao({
+      title: "Restaurar documento?",
+      description:
+        `"${doc.nomeArquivo}" volta para ${rotulo}. Nada é apagado: a saída atual continua ` +
+        "disponível como versão anterior, e restaurar cria uma versão nova. Depois de restaurar é " +
+        "preciso analisar novamente antes de aplicar.",
+      confirmLabel: "Restaurar",
+      destrutiva: false,
+      onConfirm: () => {
+        setConfirmacao(null);
+        void restaurar(doc, alvo, versaoId);
+      },
+    });
+  }
+
   async function removerDocumento(doc: DocumentoUploadItem) {
-    if (!window.confirm(`Remover "${doc.nomeArquivo}" deste lote?`)) return;
     setRemovingId(doc.id);
+    setUploadErro(false);
     try {
       const res = await fetch(`/api/pastas/${id}/uploads-corrigidos`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: doc.id }),
       });
-      await readApiResponse(res, "Erro ao remover documento");
+      await readApiResponse(res, "O banco recusou a remoção do documento");
       setDocs((prev) => prev.filter((d) => d.id !== doc.id));
       setSelectedDocs((prev) => {
         const next = new Set(prev);
         next.delete(doc.id);
         return next;
       });
+      setUploadMessage(`"${doc.nomeArquivo}" removido do lote.`);
     } catch (error) {
-      setUploadMessage(error instanceof Error ? error.message : "Erro ao remover documento");
+      setUploadErro(true);
+      setUploadMessage(error instanceof Error ? error.message : "Erro ao remover o documento");
     } finally {
       setRemovingId(null);
     }
@@ -667,21 +692,22 @@ export default function CorrigirLotePasta() {
     const ids = Array.from(selectedDocs);
     const selectedIds = new Set(ids);
     if (ids.length === 0) return;
-    if (!window.confirm(`Excluir ${ids.length} documento(s) selecionado(s) deste lote?`)) return;
 
     setRemovingBatch(true);
     setUploadMessage("");
+    setUploadErro(false);
     try {
       const res = await fetch(`/api/pastas/${id}/uploads-corrigidos`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids }),
       });
-      const result = await readApiResponse<{ removidos: number }>(res, "Erro ao excluir os documentos selecionados");
+      const result = await readApiResponse<{ removidos: number }>(res, "O banco recusou a exclusão dos documentos selecionados");
       setDocs((prev) => prev.filter((doc) => !selectedIds.has(doc.id)));
       setSelectedDocs(new Set());
-      setUploadMessage(`${result.removidos} documento(s) excluido(s) do lote.`);
+      setUploadMessage(`${result.removidos} documento(s) excluído(s) do lote.`);
     } catch (error) {
+      setUploadErro(true);
       setUploadMessage(
         error instanceof Error
           ? `${error.message} Atualize a lista e tente novamente.`
@@ -692,117 +718,139 @@ export default function CorrigirLotePasta() {
     }
   }
 
+  const analisePercent = analiseTotal > 0 ? Math.round((analiseDone / analiseTotal) * 100) : 0;
+  const aplicaPercent = batchTotal > 0 ? Math.round((batchDone / batchTotal) * 100) : 0;
+
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="mx-auto max-w-5xl">
       <ScrollToTopButton />
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Corrigir documentos em lote</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Suba os .docx já finalizados (com suas edições manuais preservadas) e troque logo e dados
-            comerciais em vários de uma vez, sem abrir um por um no Word.
-          </p>
-        </div>
-        <Link href={`/pasta/${id}`} className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
-          Voltar para a pasta
-        </Link>
-      </div>
+
+      <PageHeader
+        title="Corrigir documentos em lote"
+        description="Envie os .docx já finalizados, com suas edições manuais preservadas, e troque logo e dados comerciais em vários de uma vez, sem abrir um por um no Word."
+        actions={
+          <Link href={`/pasta/${id}`} className={buttonClass("secondary")}>
+            Voltar para a pasta
+          </Link>
+        }
+      />
 
       {/* 1. Upload */}
-      <div className="bg-white border border-gray-200 rounded-xl mb-6 p-5">
-        <h2 className="font-semibold text-gray-800 mb-2">1. Enviar documentos finalizados</h2>
-        <p className="text-xs text-gray-500 mb-3">
-          Pode subir quantos .docx quiser de uma vez — são os arquivos reais, com logo e texto já preenchidos.
-        </p>
-        <input
-          type="file"
-          accept=".docx"
-          multiple
-          disabled={uploading}
-          onChange={(e) => { void handleUpload(e.target.files); e.target.value = ""; }}
-          className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-blue-700 disabled:opacity-50"
+      <Card className="mb-6">
+        <CardHeader
+          title="1. Enviar documentos finalizados"
+          description="Suba quantos .docx quiser de uma vez — são os arquivos reais, com logo e texto já preenchidos."
         />
-        <p aria-live="polite" className="text-xs text-gray-600 mt-2 empty:mt-0">
-          {uploadMessage}
-        </p>
-      </div>
+        <div className="px-4 py-4 sm:px-5">
+          <label htmlFor="upload-docx" className="sr-only">
+            Arquivos .docx finalizados
+          </label>
+          <input
+            id="upload-docx"
+            type="file"
+            accept=".docx"
+            multiple
+            disabled={uploading}
+            onChange={(e) => { void handleUpload(e.target.files); e.target.value = ""; }}
+            className="block w-full rounded-md border border-gray-300 bg-surface-card p-1 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface-subtle file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-accent"
+          />
+          <div aria-live="polite">
+            {uploadMessage && (
+              <Feedback
+                tone={uploadErro ? "erro" : "info"}
+                title={uploadErro ? describeErrorOrigin(uploadMessage).rotulo : undefined}
+                className="mt-3"
+              >
+                {uploadMessage}
+              </Feedback>
+            )}
+          </div>
+        </div>
+      </Card>
 
-      {/* 2. Selection + filter */}
-      <div className="bg-white border border-gray-200 rounded-xl mb-6">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
-          <h2 className="font-semibold text-gray-800">2. Selecionar documentos</h2>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-500">{selectedDocs.size} selecionado(s) de {docs.length}</span>
-            {docs.length > 0 && (
-              <a href={zipDownloadHref} className="text-xs font-medium text-green-700 hover:underline shrink-0">
+      {/* 2. Seleção */}
+      <Card className="mb-6">
+        <CardHeader
+          title="2. Selecionar documentos"
+          meta={`${selectedDocs.size} de ${docs.length} selecionado(s)`}
+          actions={
+            docs.length > 0 ? (
+              <a href={zipDownloadHref} className={buttonClass("secondary")}>
                 {zipDownloadLabel}
               </a>
-            )}
+            ) : undefined
+          }
+        />
+
+        <div className="flex flex-col gap-2 border-b border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="w-full sm:max-w-md">
+            <label htmlFor="filtro-documentos" className="sr-only">
+              Filtrar documentos por nome
+            </label>
+            <input
+              id="filtro-documentos"
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Filtrar por nome (POP, TCLE, MANUAL...)"
+              className={fieldClass}
+            />
           </div>
-        </div>
-        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filtrar por nome (ex: POP, TCLE, MANUAL...)"
-            className="w-full sm:max-w-md rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-          />
-          <div className="flex gap-2 items-center shrink-0">
-            <button
-              onClick={selecionarFiltrados}
-              disabled={removingBatch}
-              className="text-xs text-blue-600 hover:underline disabled:text-gray-400 disabled:no-underline"
-            >
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="quiet" disabled={removingBatch} onClick={selecionarFiltrados}>
               Selecionar {normalizedSearch ? "filtrados" : "todos"}
-            </button>
-            <span className="text-gray-300">|</span>
-            <button
-              onClick={desselecionarTodos}
-              disabled={removingBatch}
-              className="text-xs text-gray-500 hover:underline disabled:text-gray-400 disabled:no-underline"
-            >
+            </Button>
+            <Button variant="quiet" disabled={removingBatch} onClick={desselecionarTodos}>
               Nenhum
-            </button>
+            </Button>
             {docsComErro.length > 0 && (
-              <>
-                <span className="text-gray-300">|</span>
-                <button
-                  onClick={selecionarComErro}
-                  disabled={removingBatch || applying || analisando}
-                  className="text-xs font-medium text-red-600 hover:underline disabled:text-gray-400 disabled:no-underline"
-                >
-                  Só os {docsComErro.length} com erro
-                </button>
-              </>
+              <Button
+                variant="quiet"
+                disabled={removingBatch || applying || analisando}
+                onClick={selecionarComErro}
+              >
+                Só os {docsComErro.length} com erro
+              </Button>
             )}
-            <button
-              type="button"
-              onClick={() => { void removerSelecionados(); }}
+            <Button
+              variant="danger"
               disabled={selectedDocs.size === 0 || removingBatch || applying}
-              className="ml-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 disabled:hover:bg-white"
+              onClick={() =>
+                setConfirmacao({
+                  title: "Excluir do lote?",
+                  description: `${selectedDocs.size} documento(s) selecionado(s) saem deste lote de correção. Os arquivos gerados pela pasta não são afetados.`,
+                  confirmLabel: "Excluir do lote",
+                  destrutiva: true,
+                  onConfirm: () => {
+                    setConfirmacao(null);
+                    void removerSelecionados();
+                  },
+                })
+              }
             >
               {removingBatch ? "Excluindo..." : `Excluir selecionados (${selectedDocs.size})`}
-            </button>
+            </Button>
           </div>
         </div>
 
-        {loading && <p className="px-5 py-6 text-sm text-gray-500">Carregando...</p>}
+        {loading && <p className="px-4 py-6 text-sm text-ink-muted sm:px-5">Carregando documentos...</p>}
         {!loading && docs.length === 0 && (
-          <p className="px-5 py-6 text-sm text-gray-600">Nenhum documento enviado ainda.</p>
+          <p className="px-4 py-6 text-sm text-ink-muted sm:px-5">Nenhum documento enviado ainda.</p>
         )}
         {!loading && docs.length > 0 && docsFiltrados.length === 0 && (
-          <p className="px-5 py-6 text-sm text-gray-600">Nenhum documento encontrado para esse filtro.</p>
+          <p className="px-4 py-6 text-sm text-ink-muted sm:px-5">
+            Nenhum documento encontrado para esse filtro.
+          </p>
         )}
 
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-gray-200">
           {docsFiltrados.map((doc) => {
             const resultado = resultados[doc.id];
             const versoesAnteriores = doc.versoes.filter((v) => v.outputPath !== doc.outputPath);
-            const rotuloStatus = STATUS_DOC_LABEL[doc.status];
+            const docStatus = UPLOAD_STATUS[doc.status];
             const restaurando = restaurandoId === doc.id;
             return (
-              <li key={doc.id} className="px-5 py-3">
+              <li key={doc.id} className="px-4 py-3 sm:px-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <input
                     type="checkbox"
@@ -810,466 +858,460 @@ export default function CorrigirLotePasta() {
                     onChange={() => toggleDoc(doc.id)}
                     aria-label={`Selecionar ${doc.nomeArquivo}`}
                     disabled={removingBatch}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 shrink-0"
+                    className="h-4 w-4 shrink-0 rounded border-gray-300"
                   />
-                  <span className="min-w-[16rem] flex-[1_1_24rem] text-sm text-gray-900 break-words">
+                  <span className="min-w-[16rem] flex-[1_1_24rem] break-words text-sm text-ink">
                     {doc.nomeArquivo}
                   </span>
-                  {rotuloStatus && (
-                    <span
-                      className={`text-xs font-medium shrink-0 ${rotuloStatus.classe}`}
-                      title={doc.status === "erro" ? doc.mensagemErro || "" : undefined}
-                    >
-                      {rotuloStatus.texto}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => { void visualizarDocumento(doc); }}
-                    className="text-xs text-blue-600 hover:underline shrink-0"
+                  {docStatus && <StatusBadge tone={docStatus.tone}>{docStatus.label}</StatusBadge>}
+                  <Button
+                    variant="quiet"
+                    aria-label={`Visualizar ${doc.nomeArquivo}`}
+                    onClick={() => {
+                      void visualizarDocumento(doc);
+                    }}
                   >
                     Visualizar
-                  </button>
+                  </Button>
                   <a
                     href={`/api/pastas/${id}/uploads-corrigidos/${doc.id}/download`}
-                    className="text-xs text-blue-600 hover:underline shrink-0"
+                    aria-label={`Baixar ${doc.nomeArquivo}`}
+                    className={buttonClass("quiet")}
                   >
                     Baixar
                   </a>
                   {doc.outputPath && (
-                    <button
-                      type="button"
-                      onClick={() => { void restaurar(doc, "original"); }}
+                    <Button
+                      variant="quiet"
                       disabled={restaurando || applying || analisando || removingBatch}
-                      className="text-xs text-amber-700 hover:underline disabled:text-gray-400 shrink-0"
-                      title="Volta este documento para o arquivo original enviado, sem apagar as correções feitas"
+                      onClick={() => pedirRestauracao(doc, "original")}
                     >
                       {restaurando ? "Restaurando..." : "Restaurar original"}
-                    </button>
+                    </Button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => { void removerDocumento(doc); }}
+                  <Button
+                    variant="quiet"
                     disabled={removingId === doc.id || removingBatch || applying}
-                    className="text-xs text-red-500 hover:underline disabled:text-gray-400 shrink-0"
+                    aria-label={`Remover ${doc.nomeArquivo} do lote`}
+                    onClick={() =>
+                      setConfirmacao({
+                        title: "Remover do lote?",
+                        description: `"${doc.nomeArquivo}" sai deste lote de correção. O arquivo gerado pela pasta não é afetado.`,
+                        confirmLabel: "Remover",
+                        destrutiva: true,
+                        onConfirm: () => {
+                          setConfirmacao(null);
+                          void removerDocumento(doc);
+                        },
+                      })
+                    }
                   >
                     Remover
-                  </button>
+                  </Button>
                 </div>
 
+                {doc.status === "erro" && doc.mensagemErro && (
+                  <Feedback tone="erro" title={describeErrorOrigin(doc.mensagemErro).rotulo} className="mt-2">
+                    {doc.mensagemErro}
+                  </Feedback>
+                )}
+
                 {resultado && (
-                  <div className="ml-7 mt-2 flex flex-wrap gap-2">
-                    {resultado.status === "erro" && (
-                      <span className="text-xs font-medium bg-red-50 text-red-700 border border-red-200 rounded-full px-2.5 py-0.5">
-                        Erro: {resultado.erro}
-                      </span>
-                    )}
-                    {resultado.logoSubstituida && (
-                      <span className="text-xs font-medium bg-green-50 text-green-700 border border-green-200 rounded-full px-2.5 py-0.5">
-                        ✓ Logo trocada
-                      </span>
-                    )}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {resultado.logoSubstituida && <StatusBadge tone="sucesso">Logo trocada</StatusBadge>}
                     {resultado.aplicadas?.map((valor) => {
                       const contagem = resultado.contagens?.find((c) => c.de === valor);
                       return (
-                        <span key={`ok-${valor}`} className="text-xs font-medium bg-green-50 text-green-700 border border-green-200 rounded-full px-2.5 py-0.5">
-                          ✓ &quot;{valor}&quot; aplicado
-                          {contagem ? ` (${contagem.total}x)` : ""}
-                        </span>
+                        <StatusBadge key={`ok-${valor}`} tone="sucesso">
+                          {`"${valor}" aplicado${contagem ? ` (${contagem.total}x)` : ""}`}
+                        </StatusBadge>
                       );
                     })}
                     {resultado.naoEncontradas?.map((valor) => (
-                      <span key={`miss-${valor}`} className="text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2.5 py-0.5">
-                        ! &quot;{valor}&quot; não encontrado
-                      </span>
+                      <StatusBadge key={`miss-${valor}`} tone="atencao">
+                        {`"${valor}" não encontrado`}
+                      </StatusBadge>
                     ))}
                   </div>
                 )}
 
                 {versoesAnteriores.length > 0 && (
-                  <details className="ml-7 mt-2 text-xs text-gray-600">
-                    <summary className="cursor-pointer text-blue-700">Versões anteriores ({versoesAnteriores.length})</summary>
-                    <div className="mt-2 flex flex-col gap-1.5">
+                  <details className="mt-2 text-sm text-ink-muted">
+                    <summary className="cursor-pointer text-brand-accent">
+                      Versões anteriores ({versoesAnteriores.length})
+                    </summary>
+                    <ul className="mt-2 flex flex-col gap-2">
                       {versoesAnteriores.map((versao) => (
-                        <span key={versao.id} className="inline-flex flex-wrap items-center gap-2 border border-gray-200 bg-gray-50 px-2.5 py-1 rounded">
-                          <span className="text-gray-500">{new Date(versao.criadaEm).toLocaleString("pt-BR")}</span>
-                          <button
-                            type="button"
-                            onClick={() => { void visualizarDocumento(doc, versao.id); }}
-                            className="text-blue-700 hover:underline"
+                        <li
+                          key={versao.id}
+                          className="flex flex-wrap items-center gap-2 rounded-md border border-gray-200 bg-surface-subtle px-3 py-1"
+                        >
+                          <span>{new Date(versao.criadaEm).toLocaleString("pt-BR")}</span>
+                          <Button
+                            variant="quiet"
+                            onClick={() => {
+                              void visualizarDocumento(doc, versao.id);
+                            }}
                           >
                             Visualizar
-                          </button>
+                          </Button>
                           <a
                             href={`/api/pastas/${id}/uploads-corrigidos/${doc.id}/download?versaoId=${versao.id}`}
-                            className="text-blue-700 hover:underline"
+                            className={buttonClass("quiet")}
                           >
                             Baixar
                           </a>
-                          <button
-                            type="button"
-                            onClick={() => { void restaurar(doc, "versao", versao.id); }}
+                          <Button
+                            variant="quiet"
                             disabled={restaurando || applying || analisando || removingBatch}
-                            className="text-amber-700 hover:underline disabled:text-gray-400"
+                            onClick={() => pedirRestauracao(doc, "versao", versao.id)}
                           >
                             Restaurar esta
-                          </button>
-                        </span>
+                          </Button>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </details>
                 )}
               </li>
             );
           })}
         </ul>
+      </Card>
 
-        {docs.length > 0 && (
-          <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60 flex justify-end">
-            <a
-              href={zipDownloadHref}
-              className="text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg px-4 py-2"
-            >
-              {zipDownloadLabel}
-            </a>
-          </div>
-        )}
-      </div>
-
-      <p aria-live="polite" className="sr-only">
-        {restauracaoMensagem}
-      </p>
-      {restauracaoMensagem && (
-        <p className="mb-6 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-          {restauracaoMensagem}
-        </p>
-      )}
-
-      {/* 3. Define round */}
-      <div className="bg-white border border-gray-200 rounded-xl mb-6 p-5">
-        <h2 className="font-semibold text-gray-800 mb-1">3. Definir a rodada</h2>
-        <p className="text-xs text-gray-500 mb-4">
-          Informe o valor antigo e o novo de cada dado que muda (razão social, CNPJ, nome do RT, endereço,
-          telefone, e-mail...). Só troca o que você indicar — o resto do documento fica intacto. Se um
-          valor não for encontrado em algum documento, ele aparece marcado como &quot;não encontrado&quot;,
-          sem alterar o arquivo.
-        </p>
-
-        <div className="flex flex-col gap-2 mb-3">
-          {pares.map((par, index) => (
-            <div key={index} className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="text"
-                value={par.de}
-                onChange={(e) => updatePar(index, "de", e.target.value)}
-                aria-label={`Valor antigo do par ${index + 1}`}
-                placeholder="Valor antigo (ex: Razão Social Ltda)"
-                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              />
-              <input
-                type="text"
-                value={par.para}
-                onChange={(e) => updatePar(index, "para", e.target.value)}
-                aria-label={`Valor novo do par ${index + 1}`}
-                placeholder="Valor novo"
-                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              />
-              {pares.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removePar(index)}
-                  className="text-xs text-red-500 hover:underline shrink-0 px-2"
-                >
-                  Remover
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-        <button type="button" onClick={addPar} className="text-xs text-blue-600 hover:underline mb-4">
-          + Adicionar par
-        </button>
-
-        <div className="border-t border-gray-100 pt-4">
-          <label className="block text-sm font-medium text-gray-800 mb-1" htmlFor="logo-nova">
-            Trocar logo (opcional)
-          </label>
-          <input
-            id="logo-nova"
-            type="file"
-            accept="image/png,image/jpeg"
-            onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-            className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
-          />
-          {logoFile && <p className="text-xs text-gray-500 mt-1">{logoFile.name}</p>}
-        </div>
-      </div>
-
-      {/* 4. Review */}
-      <div className="bg-white border border-gray-200 rounded-xl mb-6 p-5">
-        <h2 className="font-semibold text-gray-800 mb-1">4. Revisar o que vai mudar</h2>
-        <p className="text-xs text-gray-500 mb-4">
-          A análise abre cada documento selecionado e conta as ocorrências sem alterar nada. Depois de
-          revisar, aplicar usa exatamente estes números — se algum arquivo mudar nesse meio-tempo, a
-          aplicação é recusada em vez de agir sobre uma contagem vencida.
-        </p>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => { void analisar(); }}
-            disabled={analisando || applying}
-            className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800 disabled:opacity-50"
+      <div aria-live="polite">
+        {restauracaoMensagem && (
+          <Feedback
+            tone={restauracaoErro ? "erro" : "atencao"}
+            title={restauracaoErro ? describeErrorOrigin(restauracaoMensagem).rotulo : undefined}
+            className="mb-6"
           >
-            {analisando
-              ? `Analisando... ${analiseDone}/${analiseTotal}`
-              : `Analisar ${selectedDocs.size} selecionado(s)`}
-          </button>
-          {analiseValida && !analisando && (
-            <span className="text-xs text-gray-500">
-              {revisao.totalOcorrencias} ocorrência(s) em {docsSelecionados.length - revisao.naoAnalisados.length} documento(s)
-            </span>
-          )}
-        </div>
-
-        <div aria-live="polite">
-          {analiseError && (
-            <p className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-              {analiseError}
-            </p>
-          )}
-          {analiseVencida && !analisando && (
-            <p className="mt-3 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-              Os pares mudaram depois da última análise. Analise novamente — os números anteriores
-              descrevem outra rodada.
-            </p>
-          )}
-        </div>
-
-        {analisando && (
-          <div className="mt-3">
-            <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className="h-full bg-gray-900 transition-all"
-                style={{ width: `${analiseTotal > 0 ? Math.round((analiseDone / analiseTotal) * 100) : 0}%` }}
-              />
-            </div>
-          </div>
+            {restauracaoMensagem}
+          </Feedback>
         )}
+      </div>
 
-        {analiseValida && !analisando && (
-          <div className="mt-4 flex flex-col gap-4">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <caption className="sr-only">Contagem de ocorrências por par de substituição</caption>
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
-                    <th scope="col" className="py-2 pr-3 font-medium">Valor antigo</th>
-                    <th scope="col" className="py-2 pr-3 font-medium">Valor novo</th>
-                    <th scope="col" className="py-2 pr-3 font-medium text-right">Ocorrências</th>
-                    <th scope="col" className="py-2 font-medium text-right">Documentos</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {resumoPorPar.map((par, indice) => (
-                    <tr key={`${par.de}-${indice}`} className={par.total === 0 ? "text-amber-700" : "text-gray-800"}>
-                      <th scope="row" className="py-2 pr-3 font-normal break-words">{par.de}</th>
-                      <td className="py-2 pr-3 break-words">
-                        {par.para || <span className="text-gray-400 italic">(vazio — remove o texto)</span>}
-                      </td>
-                      <td className="py-2 pr-3 text-right tabular-nums">{par.total}</td>
-                      <td className="py-2 text-right tabular-nums">{par.documentosAfetados}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <ul className="divide-y divide-gray-100 border-t border-gray-100">
-              {docsSelecionados.map((doc) => {
-                const entrada = analises[doc.id];
-                const aberto = detalhesAbertos.has(doc.id);
-                return (
-                  <li key={doc.id} className="py-2">
-                    <div className="flex flex-wrap items-center gap-2 text-sm">
-                      <button
-                        type="button"
-                        onClick={() => toggleDetalhes(doc.id)}
-                        aria-expanded={aberto}
-                        className="text-left font-medium text-blue-700 hover:underline break-words"
-                      >
-                        {aberto ? "▾" : "▸"} {doc.nomeArquivo}
-                      </button>
-                      {!entrada && <span className="text-xs text-gray-500">não analisado</span>}
-                      {entrada && !entrada.ok && (
-                        <span className="text-xs text-red-700">falha na análise: {entrada.erro}</span>
-                      )}
-                      {entrada?.ok && (
-                        <>
-                          <span
-                            className={`text-xs ${entrada.plano.totalOcorrencias === 0 ? "text-amber-700" : "text-gray-600"}`}
-                          >
-                            {entrada.plano.totalOcorrencias} ocorrência(s)
-                          </span>
-                          {entrada.plano.baseCorrigida && (
-                            <span className="text-xs text-gray-500" title="A rodada parte da última correção, não do arquivo original">
-                              sobre correção anterior
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    {aberto && entrada?.ok && (
-                      <div className="mt-2 ml-4 flex flex-col gap-2">
-                        {entrada.plano.substituicoes.map((sub, indice) => (
-                          <div key={`${doc.id}-${indice}`} className="text-xs">
-                            <p className={sub.total === 0 ? "text-amber-700" : "text-gray-700"}>
-                              <span className="font-medium">{sub.de}</span> → {sub.para || "(vazio)"} ·{" "}
-                              {sub.total} ocorrência(s)
-                              {sub.total > 0 && (
-                                <> ({sub.corpo} no corpo, {sub.cabecalho} no cabeçalho, {sub.rodape} no rodapé)</>
-                              )}
-                            </p>
-                            {sub.ocorrencias.slice(0, 3).map((ocorrencia, i) => (
-                              <p key={i} className="mt-0.5 text-gray-500 break-words">
-                                {ESCOPO_LABEL[ocorrencia.escopo]}: {ocorrencia.contexto}
-                              </p>
-                            ))}
-                            {sub.ocorrencias.length > 3 && (
-                              <p className="mt-0.5 text-gray-400">
-                                e outras {sub.ocorrencias.length - 3} ocorrência(s)
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-
-            {temRessalva && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                <p className="font-medium">Revise antes de aplicar</p>
-                <ul className="mt-1 list-disc pl-5 text-xs flex flex-col gap-1">
-                  {revisao.semOcorrencia.length > 0 && (
-                    <li>
-                      {revisao.semOcorrencia.length} documento(s) sem nenhuma ocorrência — aplicar não
-                      muda nada neles: {revisao.semOcorrencia.slice(0, 5).join(", ")}
-                      {revisao.semOcorrencia.length > 5 && ` e outros ${revisao.semOcorrencia.length - 5}`}.
-                    </li>
-                  )}
-                  {revisao.excessivas.map((item, i) => (
-                    <li key={`exc-${i}`}>
-                      &quot;{item.de}&quot; casa {item.total} vezes em {item.nome} — mais que o esperado
-                      para um dado comercial. Confira se o trecho não é genérico.
-                    </li>
-                  ))}
-                  {revisao.falharam.map((item, i) => (
-                    <li key={`fail-${i}`}>
-                      {item.nome} não pôde ser analisado ({item.erro}) e será pulado.
-                    </li>
-                  ))}
-                </ul>
-                <label className="mt-3 flex items-start gap-2 text-xs font-medium">
-                  <input
-                    type="checkbox"
-                    checked={confirmouRessalvas}
-                    onChange={(e) => setConfirmouRessalvas(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-amber-300 text-amber-700"
-                  />
-                  Revisei as ressalvas acima e quero aplicar assim mesmo.
-                </label>
+      {/* 3. Rodada */}
+      <Card className="mb-6">
+        <CardHeader
+          title="3. Definir a rodada"
+          description="Informe o valor antigo e o novo de cada dado que muda (razão social, CNPJ, nome do RT, endereço, telefone, e-mail). Só troca o que você indicar; o resto do documento fica intacto."
+        />
+        <div className="px-4 py-4 sm:px-5">
+          <div className="mb-3 flex flex-col gap-2">
+            {pares.map((par, index) => (
+              <div key={index} className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="text"
+                  value={par.de}
+                  onChange={(e) => updatePar(index, "de", e.target.value)}
+                  aria-label={`Valor antigo do par ${index + 1}`}
+                  placeholder="Valor antigo (ex: Razão Social Ltda)"
+                  className={fieldClass}
+                />
+                <input
+                  type="text"
+                  value={par.para}
+                  onChange={(e) => updatePar(index, "para", e.target.value)}
+                  aria-label={`Valor novo do par ${index + 1}`}
+                  placeholder="Valor novo"
+                  className={fieldClass}
+                />
+                {pares.length > 1 && (
+                  <Button variant="danger" onClick={() => removePar(index)}>
+                    Remover
+                    <span className="sr-only">{` par ${index + 1}`}</span>
+                  </Button>
+                )}
               </div>
-            )}
+            ))}
+          </div>
+          <Button variant="secondary" onClick={addPar}>
+            Adicionar par
+          </Button>
 
-            {revisao.sobreCorrecao.length > 0 && (
-              <p className="text-xs text-gray-500">
-                {revisao.sobreCorrecao.length} documento(s) já tinham correção anterior, então esta
-                rodada é cumulativa sobre ela. Para partir do arquivo original, use
-                &quot;Restaurar original&quot; na etapa 2 antes de aplicar.
+          <div className="mt-4 border-t border-gray-200 pt-4">
+            <label className="mb-1 block text-sm font-semibold text-ink" htmlFor="logo-nova">
+              Trocar logo (opcional)
+            </label>
+            <input
+              id="logo-nova"
+              type="file"
+              accept="image/png,image/jpeg"
+              onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+              className="block w-full rounded-md border border-gray-300 bg-surface-card p-1 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface-subtle file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-accent"
+            />
+            {logoFile && (
+              <p className="mt-1 text-sm text-ink-muted">
+                Logo selecionada: <span className="font-semibold text-ink">{logoFile.name}</span>
               </p>
             )}
           </div>
-        )}
-      </div>
 
-      {/* 5. Apply */}
-      <div className="bg-white border border-gray-200 rounded-xl mb-6 p-5">
-        <h2 className="font-semibold text-gray-800 mb-1">5. Aplicar e baixar</h2>
-        <p className="text-xs text-gray-500 mb-4">
-          Cada documento é processado numa chamada própria, então uma falha isolada não interrompe o
-          lote. A saída anterior nunca é sobrescrita: cada rodada cria uma versão nova, e a etapa 2
-          permite voltar a qualquer uma delas.
-        </p>
-
-        <div aria-live="polite">
-          {applyError && (
-            <p className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-              {applyError}
-            </p>
-          )}
+          <p className="mt-3 text-sm text-ink-muted">
+            Se um valor não for encontrado em algum documento, ele aparece marcado como
+            &quot;não encontrado&quot;, sem alterar o arquivo.
+          </p>
         </div>
+      </Card>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => { void aplicar(); }}
-            disabled={applying || analisando || !!bloqueioAplicar}
-            title={bloqueioAplicar || undefined}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
-          >
-            {applying ? `Aplicando... ${batchDone}/${batchTotal}` : `Aplicar aos ${selectedDocs.size} selecionado(s)`}
-          </button>
-          {docsComErro.length > 0 && !applying && (
-            <button
-              type="button"
-              onClick={selecionarComErro}
-              disabled={analisando}
-              className="border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm hover:bg-red-50 disabled:opacity-50"
+      {/* 4. Revisão */}
+      <Card className="mb-6">
+        <CardHeader
+          title="4. Revisar o que vai mudar"
+          description="A análise abre cada documento selecionado e conta as ocorrências sem alterar nada. Aplicar usa exatamente estes números — se algum arquivo mudar nesse meio-tempo, a aplicação é recusada."
+        />
+        <div className="px-4 py-4 sm:px-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              disabled={analisando || applying}
+              onClick={() => {
+                void analisar();
+              }}
             >
-              Selecionar só os {docsComErro.length} com erro
-            </button>
-          )}
-        </div>
-
-        {bloqueioAplicar && !applying && (
-          <p className="mt-2 text-xs text-gray-500">{bloqueioAplicar}</p>
-        )}
-
-        {applying && (
-          <div className="mt-3">
-            <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className="h-full bg-blue-600 transition-all"
-                style={{ width: `${batchTotal > 0 ? Math.round((batchDone / batchTotal) * 100) : 0}%` }}
-              />
-            </div>
-            <p aria-live="polite" className="text-xs text-gray-500 mt-1 empty:mt-0">
-              {currentDocName && `Processando: ${currentDocName}`}
-            </p>
+              {analisando
+                ? `Analisando ${analiseDone}/${analiseTotal}...`
+                : `Analisar ${selectedDocs.size} selecionado(s)`}
+            </Button>
+            {analiseValida && !analisando && (
+              <StatusBadge tone="info">
+                {revisao.totalOcorrencias} ocorrência(s) em{" "}
+                {docsSelecionados.length - revisao.naoAnalisados.length} documento(s)
+              </StatusBadge>
+            )}
           </div>
-        )}
 
-        <div aria-live="polite">
-          {!applying && applySummary && (
-            <p className="mt-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
-              {applySummary}
-            </p>
+          <div aria-live="polite">
+            {analiseError && (
+              <Feedback tone="erro" title={describeErrorOrigin(analiseError).rotulo} className="mt-3">
+                {analiseError}
+              </Feedback>
+            )}
+            {analiseVencida && !analisando && (
+              <Feedback tone="atencao" title="Análise vencida" className="mt-3">
+                Os pares mudaram depois da última análise. Analise novamente — os números anteriores
+                descrevem outra rodada.
+              </Feedback>
+            )}
+          </div>
+
+          {analisando && (
+            <div className="mt-3">
+              <ProgressBar value={analisePercent} label="Progresso da análise" />
+            </div>
+          )}
+
+          {analiseValida && !analisando && (
+            <div className="mt-4 flex flex-col gap-4">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <caption className="sr-only">Contagem de ocorrências por par de substituição</caption>
+                  <thead>
+                    <tr className="text-left text-ink-muted">
+                      <th scope="col" className="py-2 pr-3 font-semibold">Valor antigo</th>
+                      <th scope="col" className="py-2 pr-3 font-semibold">Valor novo</th>
+                      <th scope="col" className="py-2 pr-3 text-right font-semibold">Ocorrências</th>
+                      <th scope="col" className="py-2 text-right font-semibold">Documentos</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {resumoPorPar.map((par, indice) => (
+                      <tr key={`${par.de}-${indice}`} className="text-ink">
+                        <th scope="row" className="break-words py-2 pr-3 text-left font-normal">
+                          {par.de}
+                        </th>
+                        <td className="break-words py-2 pr-3">
+                          {par.para || <span className="text-ink-subtle">(vazio — remove o texto)</span>}
+                        </td>
+                        <td className="py-2 pr-3 text-right tabular-nums">
+                          {par.total === 0 ? (
+                            <span className="font-semibold text-status-warning">0</span>
+                          ) : (
+                            par.total
+                          )}
+                        </td>
+                        <td className="py-2 text-right tabular-nums">{par.documentosAfetados}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <ul className="divide-y divide-gray-200 border-t border-gray-200">
+                {docsSelecionados.map((doc) => {
+                  const entrada = analises[doc.id];
+                  const aberto = detalhesAbertos.has(doc.id);
+                  return (
+                    <li key={doc.id} className="py-2">
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <Button variant="quiet" aria-expanded={aberto} onClick={() => toggleDetalhes(doc.id)}>
+                          <span aria-hidden="true">{aberto ? "▾" : "▸"}</span>
+                          {doc.nomeArquivo}
+                        </Button>
+                        {!entrada && <StatusBadge tone="neutro">Não analisado</StatusBadge>}
+                        {entrada && !entrada.ok && (
+                          <StatusBadge tone="erro">Falha na análise: {entrada.erro}</StatusBadge>
+                        )}
+                        {entrada?.ok && (
+                          <>
+                            <StatusBadge tone={entrada.plano.totalOcorrencias === 0 ? "atencao" : "info"}>
+                              {entrada.plano.totalOcorrencias} ocorrência(s)
+                            </StatusBadge>
+                            {entrada.plano.baseCorrigida && (
+                              <StatusBadge tone="neutro">Sobre correção anterior</StatusBadge>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      {aberto && entrada?.ok && (
+                        <div className="ml-4 mt-2 flex flex-col gap-2">
+                          {entrada.plano.substituicoes.map((sub, indice) => (
+                            <div key={`${doc.id}-${indice}`} className="text-sm">
+                              <p className={sub.total === 0 ? "text-status-warning" : "text-ink"}>
+                                <span className="font-semibold">{sub.de}</span> → {sub.para || "(vazio)"} ·{" "}
+                                {sub.total} ocorrência(s)
+                                {sub.total > 0 && (
+                                  <> ({sub.corpo} no corpo, {sub.cabecalho} no cabeçalho, {sub.rodape} no rodapé)</>
+                                )}
+                              </p>
+                              {sub.ocorrencias.slice(0, 3).map((ocorrencia, i) => (
+                                <p key={i} className="mt-0.5 break-words text-ink-muted">
+                                  {ESCOPO_LABEL[ocorrencia.escopo]}: {ocorrencia.contexto}
+                                </p>
+                              ))}
+                              {sub.ocorrencias.length > 3 && (
+                                <p className="mt-0.5 text-ink-subtle">
+                                  e outras {sub.ocorrencias.length - 3} ocorrência(s)
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {temRessalva && (
+                <Feedback tone="atencao" title="Revise antes de aplicar">
+                  <ul className="mt-1 flex list-disc flex-col gap-1 pl-5">
+                    {revisao.semOcorrencia.length > 0 && (
+                      <li>
+                        {revisao.semOcorrencia.length} documento(s) sem nenhuma ocorrência — aplicar não
+                        muda nada neles: {revisao.semOcorrencia.slice(0, 5).join(", ")}
+                        {revisao.semOcorrencia.length > 5 && ` e outros ${revisao.semOcorrencia.length - 5}`}.
+                      </li>
+                    )}
+                    {revisao.excessivas.map((item, i) => (
+                      <li key={`exc-${i}`}>
+                        &quot;{item.de}&quot; casa {item.total} vezes em {item.nome} — mais que o esperado
+                        para um dado comercial. Confira se o trecho não é genérico.
+                      </li>
+                    ))}
+                    {revisao.falharam.map((item, i) => (
+                      <li key={`fail-${i}`}>
+                        {item.nome} não pôde ser analisado ({item.erro}) e será pulado.
+                      </li>
+                    ))}
+                  </ul>
+                  <label className="mt-3 flex items-start gap-2 font-semibold">
+                    <input
+                      type="checkbox"
+                      checked={confirmouRessalvas}
+                      onChange={(e) => setConfirmouRessalvas(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                    />
+                    Revisei as ressalvas acima e quero aplicar assim mesmo.
+                  </label>
+                </Feedback>
+              )}
+
+              {revisao.sobreCorrecao.length > 0 && (
+                <p className="text-sm text-ink-muted">
+                  {revisao.sobreCorrecao.length} documento(s) já tinham correção anterior, então esta
+                  rodada é cumulativa sobre ela. Para partir do arquivo original, use
+                  &quot;Restaurar original&quot; na etapa 2 antes de aplicar.
+                </p>
+              )}
+            </div>
           )}
         </div>
+      </Card>
 
-        {docs.length > 0 && (
-          <a
-            href={zipDownloadHref}
-            className="mt-4 inline-block text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg px-4 py-2"
-          >
-            {zipDownloadLabel}
-          </a>
-        )}
-      </div>
+      {/* 5. Aplicar */}
+      <Card className="mb-6">
+        <CardHeader
+          title="5. Aplicar e baixar"
+          description="Cada documento é processado numa chamada própria, então uma falha isolada não interrompe o lote. A saída anterior nunca é sobrescrita: cada rodada cria uma versão nova, e a etapa 2 permite voltar a qualquer uma delas."
+        />
+        <div className="px-4 py-4 sm:px-5">
+          <div aria-live="polite">
+            {applyError && (
+              <Feedback tone="erro" title={describeErrorOrigin(applyError).rotulo} className="mb-4">
+                {applyError}
+              </Feedback>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              disabled={applying || analisando || !!bloqueioAplicar}
+              title={bloqueioAplicar || undefined}
+              onClick={() => {
+                void aplicar();
+              }}
+            >
+              {applying
+                ? `Aplicando ${batchDone}/${batchTotal}...`
+                : `Aplicar aos ${selectedDocs.size} selecionado(s)`}
+            </Button>
+            {docsComErro.length > 0 && !applying && (
+              <Button variant="secondary" disabled={analisando} onClick={selecionarComErro}>
+                Selecionar só os {docsComErro.length} com erro
+              </Button>
+            )}
+            {docs.length > 0 && (
+              <a href={zipDownloadHref} className={buttonClass("secondary")}>
+                {zipDownloadLabel}
+              </a>
+            )}
+          </div>
+
+          {bloqueioAplicar && !applying && (
+            <p className="mt-2 text-sm text-ink-muted">{bloqueioAplicar}</p>
+          )}
+
+          {applying && (
+            <div className="mt-3">
+              <ProgressBar value={aplicaPercent} label="Progresso da aplicação" />
+              <p aria-live="polite" className="mt-1 text-sm text-ink-muted empty:mt-0">
+                {currentDocName && `Processando: ${currentDocName}`}
+              </p>
+            </div>
+          )}
+
+          <div aria-live="polite">
+            {!applying && applySummary && (
+              <Feedback tone="sucesso" title="Rodada concluída" className="mt-3">
+                {applySummary}
+              </Feedback>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {confirmacao && (
+        <ConfirmDialog
+          title={confirmacao.title}
+          description={confirmacao.description}
+          confirmLabel={confirmacao.confirmLabel}
+          destrutiva={confirmacao.destrutiva}
+          onCancel={() => setConfirmacao(null)}
+          onConfirm={confirmacao.onConfirm}
+        />
+      )}
 
       <DocumentPreviewModal preview={preview} onClose={() => setPreview(null)} />
     </div>
