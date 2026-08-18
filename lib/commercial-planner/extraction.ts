@@ -64,16 +64,18 @@ export async function extractExplicitTechniques(
   // A fronteira do escopo é barrada aqui, não confiada ao prompt: técnica de outro
   // regime sanitário — cirurgia, odontologia, imagem, laboratório — não pode virar
   // POP nem TCLE, ainda que a análise a devolva como procedimento.
-  const alerts = [...analysis.alerts, ...outOfScopeAlerts(input.procedimentos)];
+  const alerts = [...analysis.alerts, ...outOfScopeAlerts(input.procedimentos, analysis.alerts)];
   for (const key of Array.from(techniques.keys())) {
     const technique = techniques.get(key);
     if (technique && outOfScopeReason(technique.name)) techniques.delete(key);
   }
 
   for (const mention of analysis.mentions) {
-    if (mention.kind === "uncertain") {
-      alerts.push(`Confirme se “${mention.name}” é uma técnica realizada no estabelecimento.`);
-    }
+    if (mention.kind !== "uncertain") continue;
+    // Item fora do escopo já tem aviso próprio: pedir confirmação dele confundiria,
+    // porque a resposta não é “sim, faço”, e sim “isso não entra nesta pasta”.
+    if (outOfScopeReason(mention.name)) continue;
+    alerts.push(`Confirme se “${mention.name}” é uma técnica realizada no estabelecimento.`);
   }
 
   // A restrição só vira ressalva quando recai sobre uma técnica que ficou no plano:

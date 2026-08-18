@@ -96,3 +96,29 @@ describe("fronteira do escopo da pasta", () => {
     expect(outOfScopeAlerts("blefaroplastia sem corte com jato de plasma")).toEqual([]);
   });
 });
+
+describe("aviso de escopo como rede de segurança", () => {
+  it("fica calado quando a análise já explicou o termo pelo nome", () => {
+    const jaExplicado = [
+      "Lipoaspiração é procedimento cirúrgico e não entra nesta pasta sanitária.",
+    ];
+
+    expect(outOfScopeAlerts("limpeza de pele e lipoaspiracao", jaExplicado)).toEqual([]);
+  });
+
+  it("fala quando a análise deixou o termo passar em silêncio", () => {
+    const outroAssunto = ["Cliente não reutiliza materiais e não possui autoclave."];
+    const avisos = outOfScopeAlerts("limpeza de pele e lipoaspiracao", outroAssunto);
+
+    expect(avisos).toHaveLength(1);
+    expect(avisos[0]).toMatch(/cirúrgico/);
+  });
+
+  it("fala só do que sobrou, quando a análise cobriu parte", () => {
+    const parcial = ["Clareamento dental é atividade odontológica e não entra nesta pasta."];
+    const avisos = outOfScopeAlerts("clareamento dental, lipoaspiracao e botox", parcial);
+
+    expect(avisos).toHaveLength(1);
+    expect(avisos[0]).toMatch(/cirúrgico/);
+  });
+});

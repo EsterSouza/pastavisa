@@ -88,16 +88,22 @@ function negado(texto: string, indice: number, tamanho: number): boolean {
   return CONTEXTO_ESTETICO.test(antes) || CONTEXTO_ESTETICO.test(depois);
 }
 
-function acertos(texto: string): ScopeGroup[] {
+interface Acerto {
+  grupo: ScopeGroup;
+  /** O termo que o cliente escreveu, para saber se já foi comentado. */
+  termo: string;
+}
+
+function acertos(texto: string): Acerto[] {
   const normalizado = normalizar(texto);
-  const encontrados: ScopeGroup[] = [];
+  const encontrados: Acerto[] = [];
 
   for (const grupo of FORA_DO_ESCOPO) {
     const global = new RegExp(grupo.pattern.source, "g");
     let acerto: RegExpExecArray | null;
     while ((acerto = global.exec(normalizado)) !== null) {
       if (negado(normalizado, acerto.index, acerto[0].length)) continue;
-      encontrados.push(grupo);
+      encontrados.push({ grupo, termo: acerto[0] });
       break;
     }
   }
@@ -107,14 +113,25 @@ function acertos(texto: string): ScopeGroup[] {
 
 /** Motivo pelo qual a técnica fica fora da pasta, ou null quando ela cabe. */
 export function outOfScopeReason(technique: string): string | null {
-  return acertos(technique)[0]?.label ?? null;
+  return acertos(technique)[0]?.grupo.label ?? null;
 }
 
-/** Avisos para o que o cliente declarou e não é atendido por esta pasta. */
-export function outOfScopeAlerts(declared: string): string[] {
-  return acertos(declared).map(
-    (grupo) => `Há atividade declarada que não é atendida por esta pasta: ${grupo.label}. Trate esse ponto separadamente com a equipe técnica.`
-  );
+/**
+ * Avisos para o que o cliente declarou e não é atendido por esta pasta.
+ *
+ * Rede de segurança, não porta-voz: quando a análise já explicou aquele termo — e
+ * ela costuma explicar melhor, citando o item pelo nome —, o aviso genérico fica
+ * calado. Sem isso, três atividades fora do escopo rendiam nove alertas.
+ */
+export function outOfScopeAlerts(declared: string, existentes: readonly string[] = []): string[] {
+  const comentados = existentes.map(normalizar);
+
+  return acertos(declared)
+    .filter((acerto) => !comentados.some((alerta) => alerta.includes(acerto.termo)))
+    .map(
+      (acerto) =>
+        `Há atividade declarada que não é atendida por esta pasta: ${acerto.grupo.label}. Trate esse ponto separadamente com a equipe técnica.`
+    );
 }
 
 /** As fronteiras, para o prompt dizer o mesmo que o código barra. */
