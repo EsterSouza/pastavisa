@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toPublicPlannerOutput } from "@/lib/commercial-planner/output";
-import { canonicalDocument, procedureDocumentName } from "@/lib/commercial-planner/naming";
+import { officialDocument, officialDocumentNames, procedureDocumentName } from "@/lib/commercial-planner/naming";
 import { buildBaselineDocuments } from "@/lib/commercial-planner/baseline";
 import type {
   CommercialPlannerInput,
@@ -64,32 +64,52 @@ describe("nome público dos documentos", () => {
   });
 
   it("dá nome e tipo oficiais aos documentos que não nascem de técnica", () => {
-    expect(canonicalDocument("MBP Servico Saude", "MBP")).toEqual({
+    expect(officialDocument("MBP Servico Saude")).toEqual({
       nome: "Manual de Boas Práticas em Serviço de Saúde",
       tipo: "MBP",
     });
-    expect(canonicalDocument("Plano Contingencia", "OUTROS")).toEqual({
+    expect(officialDocument("Plano Contingencia")).toEqual({
       nome: "Plano de Contingência e Emergências",
       tipo: "PLANO",
     });
-    expect(canonicalDocument("Planilha Limpeza Desinfeccao", "PLANILHA")).toEqual({
+    expect(officialDocument("Planilha Limpeza Desinfeccao")).toEqual({
       nome: "Planilha de Controle de Limpeza Concorrente e Terminal",
       tipo: "PLANILHA",
     });
-    expect(canonicalDocument("POP - GESTAO DE EQUIPAMENTOS", "POP")).toEqual({
+    expect(officialDocument("POP - GESTAO DE EQUIPAMENTOS")).toEqual({
       nome: "POP — Gestão e Manutenção de Equipamentos Eletromédicos",
       tipo: "POP",
     });
   });
 
   it("é idempotente: um nome já oficial não é reescrito", () => {
-    const oficial = canonicalDocument("Manual de Boas Práticas em Serviço de Saúde", "MBP");
-    expect(canonicalDocument(oficial.nome, oficial.tipo)).toEqual(oficial);
+    const oficial = officialDocument("Manual de Boas Práticas em Serviço de Saúde")!;
+    expect(officialDocument(oficial.nome)).toEqual(oficial);
   });
 
-  it("arruma a caixa do nome sem verbete, em vez de gritar o título", () => {
-    expect(canonicalDocument("POP - ALTA FREQUENCIA", "POP").nome).toBe("POP — Alta Frequencia");
-    expect(canonicalDocument("FICHA DE AVALIACAO PODOLOGICA", "FICHA").nome).toBe("Ficha de Avaliacao Podologica");
+  it("barra o documento sem verbete em vez de mandar o nome da origem", () => {
+    // A Ester encontrou “Administração de Anestésico Local” no PDF: não existe como
+    // documento em planejamento nenhum. Sem verbete, o documento não sai.
+    expect(officialDocument("ADMINISTRAÇÃO DE ANESTÉSICO LOCAL")).toBeNull();
+    expect(officialDocument("DOCUMENTO QUE NAO EXISTE")).toBeNull();
+  });
+
+  it("não deixa documento sem verbete chegar à saída pública", () => {
+    const saida = toPublicPlannerOutput(
+      plano([
+        documento(),
+        documento({
+          key: "anestesico",
+          documentName: "ADMINISTRAÇÃO DE ANESTÉSICO LOCAL",
+          documentType: "OUTROS",
+          role: "general",
+          techniques: [],
+        }),
+      ])
+    );
+
+    expect(saida.documentos.map((item) => item.nome)).toEqual(["POP — Limpeza de Pele"]);
+    expect(JSON.stringify(saida)).not.toMatch(/anest[eé]sico/i);
   });
 
   it("não deixa passar categoria que a pasta não traz", () => {
@@ -162,6 +182,13 @@ describe("base obrigatória da pasta", () => {
 
     expect(descartavel).toContain("POP — Uso de Materiais Descartáveis e Controle de Materiais de Uso Único");
     expect(reutiliza).not.toContain("POP — Uso de Materiais Descartáveis e Controle de Materiais de Uso Único");
+  });
+
+  it("tem verbete oficial para cada documento seu, senão a lista fechada o engoliria", () => {
+    const oficiais = new Set(officialDocumentNames());
+    for (const item of buildBaselineDocuments(pedido({ reutilizaMateriais: false }), ["Toxina Botulínica", "Body Piercing"])) {
+      expect(oficiais).toContain(item.documentName);
+    }
   });
 
   it("sai sem técnica vinculada, para permanecer quando o comercial retira procedimentos", () => {

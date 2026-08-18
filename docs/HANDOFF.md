@@ -1541,6 +1541,29 @@ carrega o plano inteiro, e com a base obrigatória ele passou de 13,3 KB, estour
 - Teste novo cobre o caso que faltava: um token de 60 procedimentos, acima de 12 KB, tem que devolver 200 e
   `application/pdf`.
 
+#### Documento que não existe chegou ao PDF — lista fechada no lugar do conserto de caixa
+
+A Ester abriu o PDF de produção e achou **“Administração de Anestésico Local”**, com selo `OUTROS`. Esse
+documento não existe em planejamento nenhum e não faz sentido como documento da pasta.
+
+A raiz era a minha regra de nomes, não o dado: documento que não nasce de técnica declarada e não tinha verbete
+oficial saia mesmo assim, só com a caixa arrumada. Isso transforma qualquer linha solta da base em documento na
+frente do cliente.
+
+- `canonicalDocument` virou `officialDocument` e devolve **null** sem verbete. A lista passou a ser fechada: o
+  documento que não nasce de técnica só chega ao cliente se for documento que a pasta entrega de verdade.
+- O conserto de caixa saiu inteiro — `arrumar`, `palavra`, `SIGLAS` e `ATONAS`. Era ele que deixava passar.
+- POP e TCLE de procedimento seguem nomeados pela técnica, e essa via continua segura porque a extração só
+  aceita técnica cuja evidência aparece literalmente no texto do cliente.
+- O dicionário ganhou as fichas de avaliação e anamnese que faltavam, os POPs assistenciais e o Protocolo de
+  Intercorrências em Serviço Não Invasivo, que antes estava sendo confundido com o Formulário de Eventos
+  Adversos.
+- Trava nova: um teste exige que **todo nome da base obrigatória tenha verbete oficial**. Sem ele, a lista
+  fechada engoliria caladamente um documento obrigatório.
+- O contrário da regra antiga também fica registrado: perder um documento legítimo por falta de verbete é
+  invisível para quem atende. Se aparecer documento faltando na lista, o conserto é acrescentar o verbete —
+  nunca reabrir a passagem livre.
+
 ---
 
 ## PV-010 — Redesign interno principal

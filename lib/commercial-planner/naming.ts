@@ -21,40 +21,6 @@ interface CanonicalEntry extends CanonicalDocument {
   origens: string[];
 }
 
-/** Siglas que continuam em caixa alta quando um nome em CAIXA ALTA é normalizado. */
-const SIGLAS = new Set([
-  "POP",
-  "TCLE",
-  "MBP",
-  "PGRSS",
-  "PSP",
-  "EPI",
-  "EPIS",
-  "LGPD",
-  "PRP",
-  "PRF",
-  "PDO",
-  "PDRN",
-  "PEIM",
-  "DIU",
-  "HPV",
-  "DNA",
-  "HIFU",
-  "LED",
-  "ILIB",
-  "DML",
-  "ATA",
-  "IM",
-  "EV",
-  "CO2",
-  "RDC",
-  "SUS",
-  "BB",
-]);
-
-/** Palavras que ficam em minúscula no meio do nome. */
-const ATONAS = new Set(["de", "da", "do", "das", "dos", "e", "em", "com", "para", "a", "o", "as", "os", "no", "na"]);
-
 function chave(valor: string): string {
   return valor
     .normalize("NFD")
@@ -202,6 +168,46 @@ const CANONICOS: CanonicalEntry[] = [
     tipo: "FICHA",
     origens: ["FICHA - ANAMNESE E AVALIACAO TERAPIAS INJETAVEIS E SOROTERAPIA"],
   },
+  { nome: "Ficha de Anamnese em Saúde da Mulher", tipo: "FICHA", origens: ["FICHA DE ANAMNESE SAUDE DA MULHER"] },
+  {
+    nome: "Ficha de Anamnese para Micropigmentação Labial",
+    tipo: "FICHA",
+    origens: ["Ficha Anamnese Micropigmentacao Labios"],
+  },
+  { nome: "Ficha de Avaliação Nutricional", tipo: "FICHA", origens: ["FICHA - AVALIACAO NUTRICIONAL"] },
+  { nome: "Ficha de Avaliação Podológica", tipo: "FICHA", origens: ["FICHA DE AVALIACAO PODOLOGICA"] },
+  {
+    nome: "Ficha de Avaliação Pediátrica para Furo de Orelha",
+    tipo: "FICHA",
+    origens: ["FICHA - AVALIACAO PEDIATRICA FURO ORELHA"],
+  },
+  {
+    nome: "Ficha de Avaliação para Remoção de Pigmentação Estética",
+    tipo: "FICHA",
+    origens: ["FICHA - AVALIACAO REMOCAO DE PIGMENTACAO ESTETICA"],
+  },
+  {
+    nome: "Ficha de Avaliação Corporal e Pós-Operatório",
+    tipo: "FICHA",
+    origens: ["FICHA DE AVALIACAO CORPORAL E POS OPERATORIO"],
+  },
+  {
+    nome: "POP — Aferição e Monitoramento de Sinais Vitais",
+    tipo: "POP",
+    origens: ["POP - AFERICAO E MONITORAMENTO DE SINAIS VITAIS"],
+  },
+  {
+    nome: "POP — Prevenção e Tratamento de Intercorrências Venosas",
+    tipo: "POP",
+    origens: ["POP - PREVENCAO E TRATAMENTO DE INTERCORRENCIAS VENOSAS"],
+  },
+  {
+    nome: "POP — Implementação do Processo de Enfermagem",
+    tipo: "POP",
+    origens: ["POP - PROCESSO DE ENFERMAGEM"],
+  },
+  { nome: "POP — Consulta de Enfermagem", tipo: "POP", origens: ["POP - CONSULTA DE ENFERMAGEM"] },
+  { nome: "POP — Prescrição de Enfermagem", tipo: "POP", origens: ["POP - PRESCRICAO DE ENFERMAGEM"] },
 
   // Termos gerais.
   {
@@ -239,7 +245,12 @@ const CANONICOS: CanonicalEntry[] = [
   {
     nome: "Formulário de Intercorrências e Eventos Adversos",
     tipo: "FORMULÁRIO",
-    origens: ["FORM EVENTO ADVERSO", "PROTOCOLO INTERCORRENCIAS SERVICO NAO INVASIVO"],
+    origens: ["FORM EVENTO ADVERSO"],
+  },
+  {
+    nome: "Protocolo de Intercorrências em Serviço Não Invasivo",
+    tipo: "PROTOCOLO",
+    origens: ["PROTOCOLO INTERCORRENCIAS SERVICO NAO INVASIVO"],
   },
   {
     nome: "Formulário de Encaminhamento Profissional",
@@ -258,34 +269,22 @@ for (const entrada of CANONICOS) {
   for (const origem of [entrada.nome, ...entrada.origens]) INDICE.set(chave(origem), documento);
 }
 
-function palavra(item: string, primeira: boolean): string {
-  const nu = item.normalize("NFD").replace(/[̀-ͯ]/g, "");
-  if (SIGLAS.has(nu.toUpperCase())) return item.toUpperCase();
-  const minuscula = item.toLocaleLowerCase("pt-BR");
-  if (!primeira && ATONAS.has(minuscula)) return minuscula;
-  return minuscula.charAt(0).toLocaleUpperCase("pt-BR") + minuscula.slice(1);
-}
-
 /**
- * Conserta o nome que não tem verbete canônico. Não inventa acento onde o texto de
- * origem não tem: só arruma a caixa e o separador, para não sair um título gritado
- * no meio de uma lista.
+ * Nome e tipo públicos de um documento que não nasce de uma técnica declarada.
+ *
+ * Devolve null quando o documento não tem verbete. A lista acima é fechada de
+ * propósito: documento que não nasce de uma técnica declarada só chega ao cliente
+ * se for um documento que a pasta realmente entrega. Consertar a caixa e deixar
+ * passar o que veio da origem já pôs na frente do cliente documento que não
+ * existe em planejamento nenhum.
  */
-function arrumar(valor: string): string {
-  const limpo = valor.replace(/_/g, " ").replace(/\s+/g, " ").trim();
-  const temMinuscula = /[a-zà-ÿ]/.test(limpo);
-  const corpo = temMinuscula
-    ? limpo
-    : limpo
-        .split(" ")
-        .map((item, indice) => palavra(item, indice === 0))
-        .join(" ");
-  return corpo.replace(/^(POP|TCLE)\s*[-–—:]?\s+/i, (_match, prefixo: string) => `${prefixo.toUpperCase()} — `);
+export function officialDocument(nome: string): CanonicalDocument | null {
+  return INDICE.get(chave(nome)) ?? null;
 }
 
-/** Nome e tipo públicos de um documento que não nasce de uma técnica declarada. */
-export function canonicalDocument(nome: string, tipo: string): CanonicalDocument {
-  return INDICE.get(chave(nome)) ?? { nome: arrumar(nome), tipo: tipo.trim().toUpperCase() };
+/** Todos os nomes oficiais, para a base obrigatória conferir que nenhum ficou de fora. */
+export function officialDocumentNames(): string[] {
+  return CANONICOS.map((entrada) => entrada.nome);
 }
 
 /**

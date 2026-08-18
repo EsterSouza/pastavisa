@@ -160,7 +160,7 @@ function checkPublicPlanner() {
 
   const plan = read("lib/commercial-planner/plan.ts");
   const output = read("lib/commercial-planner/output.ts");
-  if (plan.includes("buildBaselineDocuments") && output.includes("canonicalDocument") && output.includes("procedureDocumentName")) {
+  if (plan.includes("buildBaselineDocuments") && output.includes("officialDocument") && output.includes("procedureDocumentName")) {
     ok("plano traz a base obrigatoria e a saida usa o nome oficial do documento");
   } else {
     fail("plano deve incluir a base obrigatoria e a saida deve nomear pelo documento oficial");

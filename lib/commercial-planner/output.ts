@@ -1,4 +1,4 @@
-import { canonicalDocument, nameFromTechnique, procedureDocumentName } from "./naming";
+import { nameFromTechnique, officialDocument, procedureDocumentName } from "./naming";
 import type { InternalCommercialPlan, PublicCommercialPlan, PublicPlannerDocument } from "./types";
 
 /** Categorias entregues em outros trabalhos, que não são elaboradas dentro desta pasta. */
@@ -28,15 +28,17 @@ export function toPublicPlannerOutput(plan: InternalCommercialPlan): PublicComme
   const documentsByName = new Map<string, { documento: PublicPlannerDocument; procedimentos: Set<string> }>();
 
   for (const document of plan.documents) {
-    // POP e TCLE de procedimento são nomeados pela técnica declarada; os demais têm
-    // nome oficial próprio, que não depende de nenhuma técnica.
-    const documento: PublicPlannerDocument = nameFromTechnique(document.role)
+    // POP e TCLE de procedimento são nomeados pela técnica declarada, que veio do
+    // texto do próprio cliente. Os demais só saem se forem documento que a pasta
+    // entrega de verdade: sem verbete oficial, o documento é descartado em vez de
+    // chegar ao cliente com o nome que tinha na origem.
+    const documento: PublicPlannerDocument | null = nameFromTechnique(document.role)
       ? {
           nome: procedureDocumentName(document.documentType, document.techniques),
           tipo: document.documentType.toUpperCase(),
         }
-      : canonicalDocument(document.documentName, document.documentType);
-    if (foraDaPasta(documento)) continue;
+      : officialDocument(document.documentName);
+    if (!documento || foraDaPasta(documento)) continue;
 
     const key = `${documento.tipo}:${documento.nome}`.toLocaleLowerCase("pt-BR");
     const entry = documentsByName.get(key) ?? { documento, procedimentos: new Set<string>() };
