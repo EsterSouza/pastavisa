@@ -360,11 +360,14 @@ o token e recalculará no servidor.
 - Digital: R$ 597.
 - Preto e branco + digital: R$ 797.
 - Colorida + digital: R$ 957.
-- Adicional: `ceil(max(total - 100, 0) / 50) * R$ 100`.
-- 101–150 = +R$100; 151–200 = +R$200; 201–250 = +R$300.
-- Prazo base: 15 dias úteis; acima de 100, sujeito à confirmação técnica.
+- Adicional por volume de **documentos**: `ceil(max(totalDocumentos - 100, 0) / 50) * R$ 100`.
+- 101–150 documentos = +R$100; 151–200 = +R$200; 201–250 = +R$300.
+- Prazo base: 15 dias úteis; acima de 100 documentos, sujeito à confirmação técnica.
 
-O comercial pode retirar procedimentos para chegar a 100. O planner não cria pasta, lead, histórico,
+A contagem é de documentos porque é o documento que dá trabalho de elaborar. Contar procedimento faria o
+adicional nunca disparar: clínica com mais de 100 técnicas declaradas não existe, enquanto passar de 100
+documentos é comum — a base obrigatória sozinha já traz cerca de 35. O comercial pode retirar procedimentos
+para derrubar os documentos que dependem só deles e voltar a 100. O planner não cria pasta, lead, histórico,
 pagamento ou envio automático.
 
 ---

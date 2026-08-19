@@ -10,8 +10,8 @@ describe("commercial planner pricing", () => {
     [151, 200],
     [200, 200],
     [201, 300],
-  ])("calcula o adicional para %i procedimentos", (procedures, additional) => {
-    expect(calculatePlannerPrice(procedures, "digital")).toMatchObject({
+  ])("calcula o adicional para %i documentos", (documentos, additional) => {
+    expect(calculatePlannerPrice(documentos, "digital")).toMatchObject({
       valorBase: 597,
       valorAdicional: additional,
       valorTotal: 597 + additional,

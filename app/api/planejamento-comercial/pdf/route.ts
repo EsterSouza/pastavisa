@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
 
   // O preço enviado pelo navegador é ignorado: base, adicional e total saem daqui.
   const formato = record.formato as PlannerFormat;
-  const preco = calculatePlannerPrice(procedures, formato);
+  const preco = calculatePlannerPrice(documents, formato);
 
   try {
     const pdf = await renderPlannerPdf({
@@ -159,8 +159,8 @@ export async function POST(request: NextRequest) {
       retirados: withdrawal.retirados,
       documentos: withdrawal.documentos,
       preco,
-      comparativo: PLANNER_FORMATS.map((opcao) => calculatePlannerPrice(procedures, opcao)),
-      prazo: { diasUteis: 15, sujeitoConfirmacaoTecnica: procedures > 100 },
+      comparativo: PLANNER_FORMATS.map((opcao) => calculatePlannerPrice(documents, opcao)),
+      prazo: { diasUteis: 15, sujeitoConfirmacaoTecnica: documents > 100 },
       alertas: payload.plano.alertas,
     });
 

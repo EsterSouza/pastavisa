@@ -73,7 +73,7 @@ describe("PDF do planejamento comercial", () => {
     expect(plano).toContain("é uma técnica realizada no estabelecimento");
   });
 
-  it("mostra o adicional e a ressalva de prazo acima de 100 procedimentos", async () => {
+  it("mostra o adicional e a ressalva de prazo acima de 100 documentos", async () => {
     const { conteudo } = await text({
       incluidos: Array.from({ length: 101 }, (_, index) => `Técnica ${index + 1}`),
       retirados: [],

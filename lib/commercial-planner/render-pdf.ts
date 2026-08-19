@@ -351,7 +351,7 @@ export async function renderPlannerPdf(data: PlannerPdfData, assets?: BrandAsset
   });
   const composicao: Array<[string, string]> = [
     ["Valor base", money(data.preco.valorBase)],
-    ["Adicional por volume acima de 100 procedimentos", money(data.preco.valorAdicional)],
+    ["Adicional por volume acima de 100 documentos", money(data.preco.valorAdicional)],
   ];
   composicao.forEach(([rotulo, valor], index) => {
     const y = cursor - 28 - index * 15;
@@ -398,7 +398,7 @@ export async function renderPlannerPdf(data: PlannerPdfData, assets?: BrandAsset
   heading("Prazo de entrega", 30);
   paragraph(
     data.prazo.sujeitoConfirmacaoTecnica
-      ? `${data.prazo.diasUteis} dias úteis. Acima de 100 procedimentos, o prazo fica sujeito à confirmação técnica.`
+      ? `${data.prazo.diasUteis} dias úteis. Acima de 100 documentos, o prazo fica sujeito à confirmação técnica.`
       : `${data.prazo.diasUteis} dias úteis.`
   );
 

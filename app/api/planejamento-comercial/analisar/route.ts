@@ -83,10 +83,10 @@ export async function POST(request: NextRequest) {
     const plan = await createCommercialPlan(input);
     procedures = plan.resumo.totalProcedimentos;
     documents = plan.resumo.totalDocumentos;
-    const preco = calculatePlannerPrice(procedures, record.formato as PlannerFormat);
+    const preco = calculatePlannerPrice(documents, record.formato as PlannerFormat);
     const prazo = {
       diasUteis: 15,
-      sujeitoConfirmacaoTecnica: procedures > 100,
+      sujeitoConfirmacaoTecnica: documents > 100,
     };
     // O token carrega so o que o PDF nao consegue refazer sozinho. Documentos saem
     // porque vinculos ja tem nome e tipo; preco, prazo, resumo e aviso saem porque o

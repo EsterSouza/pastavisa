@@ -61,7 +61,21 @@ async function pdfText(response: Response) {
   return { buffer, conteudo: (await extractPdfTextFromBuffer(buffer)).replace(/\s+/g, " ") };
 }
 
-const muitos = Array.from({ length: 101 }, (_, index) => `Técnica ${index + 1}`);
+// Cem documentos que entram sozinhos, mais um POP que só existe por causa de uma
+// técnica declarada. Quem paga o adicional é o documento: retirar a técnica derruba
+// o POP dela e devolve o valor base, com a operação ainda de pé.
+const gerais = Array.from({ length: 100 }, (_, index) => ({
+  nome: `Documento geral ${index + 1}`,
+  tipo: "POP",
+}));
+const cento_e_um_documentos: Partial<PublicCommercialPlan> = {
+  procedimentos: ["Limpeza de pele", "Peeling químico"],
+  documentos: [...gerais, { nome: "POP - Peeling químico", tipo: "POP" }],
+  vinculos: [
+    ...gerais.map((documento) => ({ documento: documento.nome, tipo: "POP", procedimentos: [] })),
+    { documento: "POP - Peeling químico", tipo: "POP", procedimentos: ["Peeling químico"] },
+  ],
+};
 
 afterEach(() => vi.clearAllMocks());
 
@@ -99,16 +113,16 @@ describe("rota pública de PDF do planejamento", () => {
     expect(conteudo).not.toContain("R$ 1,00");
   });
 
-  it("a retirada de 101 para 100 procedimentos derruba o adicional", async () => {
+  it("a retirada de 101 para 100 documentos derruba o adicional", async () => {
     const cheio = await pdfText(
-      await POST(request({ token: token({ procedimentos: muitos, vinculos: [] }), formato: "digital", retirados: [] }))
+      await POST(request({ token: token(cento_e_um_documentos), formato: "digital", retirados: [] }))
     );
     const reduzido = await pdfText(
       await POST(
         request({
-          token: token({ procedimentos: muitos, vinculos: [] }),
+          token: token(cento_e_um_documentos),
           formato: "digital",
-          retirados: ["Técnica 101"],
+          retirados: ["Peeling químico"],
         })
       )
     );

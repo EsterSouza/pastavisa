@@ -26,8 +26,8 @@ interface FormatStepProps {
 }
 
 export function FormatStep({ retirada, formato, onSelect }: FormatStepProps) {
-  const preco = calculatePlannerPrice(retirada.totalProcedimentos, formato);
-  const prazoSujeito = retirada.totalProcedimentos > 100;
+  const preco = calculatePlannerPrice(retirada.totalDocumentos, formato);
+  const prazoSujeito = retirada.totalDocumentos > 100;
 
   return (
     <div className="space-y-8">
@@ -42,7 +42,7 @@ export function FormatStep({ retirada, formato, onSelect }: FormatStepProps) {
         <legend className="sr-only">Formato de entrega</legend>
         <div className="grid gap-4 md:grid-cols-3">
           {PLANNER_FORMATS.map((opcao) => {
-            const valores = calculatePlannerPrice(retirada.totalProcedimentos, opcao);
+            const valores = calculatePlannerPrice(retirada.totalDocumentos, opcao);
             const escolhido = opcao === formato;
             return (
               <label
@@ -88,7 +88,7 @@ export function FormatStep({ retirada, formato, onSelect }: FormatStepProps) {
             <dd className="font-semibold text-ink">{money(preco.valorBase)}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-ink-muted">Adicional por volume acima de 100 procedimentos</dt>
+            <dt className="text-ink-muted">Adicional por volume acima de 100 documentos</dt>
             <dd className="font-semibold text-ink">{money(preco.valorAdicional)}</dd>
           </div>
           <div className="flex justify-between gap-4 border-t border-gray-200 pt-3">
@@ -100,7 +100,7 @@ export function FormatStep({ retirada, formato, onSelect }: FormatStepProps) {
         </dl>
         <p className="mt-4 text-sm leading-6 text-ink-muted">
           Prazo de 15 dias úteis
-          {prazoSujeito ? ", sujeito à confirmação técnica por passar de 100 procedimentos." : "."}
+          {prazoSujeito ? ", sujeito à confirmação técnica por passar de 100 documentos." : "."}
         </p>
       </section>
     </div>

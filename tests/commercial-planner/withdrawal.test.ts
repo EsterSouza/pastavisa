@@ -65,24 +65,34 @@ describe("retirada de procedimentos", () => {
     expect(resultado.incluidos).toEqual(["Limpeza de pele", "Peeling químico"]);
   });
 
-  it("101 procedimentos custam adicional e 100 não; a retirada devolve o valor base", () => {
+  it("101 documentos custam adicional e 100 não; a retirada devolve o valor base", () => {
+    // Quem paga é o documento, não o procedimento: cem documentos institucionais que
+    // entram sozinhos, mais um POP que só existe por causa de uma técnica declarada.
+    // Retirar essa técnica derruba o POP e o preço volta à base.
+    const gerais = Array.from({ length: 100 }, (_, index) => ({
+      nome: `Documento geral ${index + 1}`,
+      tipo: "POP",
+    }));
     const cento_e_um = plan({
-      procedimentos: Array.from({ length: 101 }, (_, index) => `Técnica ${index + 1}`),
-      vinculos: [],
-      documentos: [],
+      procedimentos: ["Limpeza de pele"],
+      documentos: [...gerais, { nome: "POP - Limpeza de pele", tipo: "POP" }],
+      vinculos: [
+        ...gerais.map((documento) => ({ documento: documento.nome, tipo: "POP", procedimentos: [] })),
+        { documento: "POP - Limpeza de pele", tipo: "POP", procedimentos: ["Limpeza de pele"] },
+      ],
     });
 
     const cheio = applyWithdrawal(cento_e_um, []);
-    const reduzido = applyWithdrawal(cento_e_um, ["Técnica 101"]);
+    const reduzido = applyWithdrawal(cento_e_um, ["Limpeza de pele"]);
 
-    expect(cheio.totalProcedimentos).toBe(101);
-    expect(calculatePlannerPrice(cheio.totalProcedimentos, "digital")).toMatchObject({
+    expect(cheio.totalDocumentos).toBe(101);
+    expect(calculatePlannerPrice(cheio.totalDocumentos, "digital")).toMatchObject({
       valorBase: 597,
       valorAdicional: 100,
       valorTotal: 697,
     });
-    expect(reduzido.totalProcedimentos).toBe(100);
-    expect(calculatePlannerPrice(reduzido.totalProcedimentos, "digital")).toMatchObject({
+    expect(reduzido.totalDocumentos).toBe(100);
+    expect(calculatePlannerPrice(reduzido.totalDocumentos, "digital")).toMatchObject({
       valorAdicional: 0,
       valorTotal: 597,
     });
