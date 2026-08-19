@@ -420,7 +420,7 @@ esta seção que diz se o card fechou.
 | PV-023 | Base unificada de legislação | **Concluído** | Entregue em `20c2529`, `e048f48`, `1e124ab`. O seed virou projeção de `@visa/legislacao` (47 → 119 atos). Falta só sincronizar a produção do InspecVISA, que é card de lá. |
 | PV-024 | Link do planner para o comercial | **Concluído** | Campo de cópia no menu interno (`d378356`). Não virou item de navegação: `/planner` é público e sem login. |
 | PV-025 | Rodada autenticada de homologação | Pendente | Resto do PV-012. As specs existem e estão verdes na parte anônima; falta rodar com conta QA. |
-| PV-026 | Limpeza e retenção do Supabase Storage | **Parcial** | **P1 custo.** Faxina feita em 19/08: bucket de 713,1 MB para 534,7 MB, 333 objetos a menos, e zero órfão fora de `templates/`. Falta fechar as duas torneiras que produzem o órfão e decidir a retenção de `output/` (426,9 MB). |
+| PV-026 | Limpeza e retenção do Supabase Storage | **Parcial** | **P1 custo.** Em 19/08: faxina (bucket de 713,1 MB para 534,7 MB) **e** as duas torneiras fechadas — o arquivo passa a sair junto com a linha. Falta decidir a retenção de `output/` (426,9 MB), a terceira torneira (`DELETE /api/templates/[id]`) e a varredura do que nasce órfão em `/api/extrair`. |
 | PV-027 | Teto do planner é por IP, não por atendimento | Pendente | Achado no PV-012. Equipe atrás de um mesmo IP divide 10 requisições a cada 5 minutos. |
 
 Contagem, sobre 28 cards: **17 concluídos**, **4 parciais** (PV-012, PV-013 encerrado, PV-017,
@@ -474,7 +474,7 @@ card bloqueado.**
 | # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de |
 |---|---|---|---|---|---|---|
 | 1 | PV-025 | Rodada autenticada de homologação | P1 lançamento | médio | gpt-5.6-sol | conta QA da Ester |
-| 2 | PV-026 | Fechar as torneiras de órfão e decidir retenção | P1 custo | médio | gpt-5.6-sol | — |
+| 2 | PV-026 | Retenção de `output/` e as duas torneiras restantes | P1 custo | médio | gpt-5.6-sol | decisão da Ester sobre retenção |
 | 3 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
 | 4 | PV-021 | Aceitar pendência de dado faltante | P2 produto | médio | gpt-5.6-terra | — |
 | 5 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
@@ -487,9 +487,9 @@ card bloqueado.**
 cards P2 apesar de ser P1. Corrigido em 19/08, contando as linhas.
 
 **Por que estes dois no topo.** O PV-025 é o resto da homologação do PV-012 e a última coisa entre o
-produto e o aceite de lançamento; só depende da Ester digitar a senha. O PV-026 é conta, não higiene:
-a faxina de 19/08 devolveu 178,4 MB, mas as duas torneiras que produzem o órfão continuam abertas, e
-o `output/` — 426,9 MB gerados por 6 pastas — não tem política de retenção.
+produto e o aceite de lançamento. O PV-026 é conta, não higiene: a faxina de 19/08 devolveu
+178,4 MB e as duas torneiras principais já estão fechadas, mas o `output/` — 426,9 MB gerados por
+6 pastas — continua sem política de retenção e é o único item que só cresce.
 
 **Os dois cards novos vieram da Ester, não de auditoria.** PV-021 e PV-022 nasceram durante a inspeção
 do PV-018 e descrevem trabalho que ela faz hoje na mão. O PV-021 leva junto uma correção de redação
@@ -3030,10 +3030,11 @@ Este card é rodá-las, ler o que elas acharem e consertar.
 **Modelo:** gpt-5.6-sol · **Esforço:** médio · **Prioridade:** P1 custo · **Depende de:** —
 **Resultado:** o Storage guarda o que está em uso, e nada além disso.
 
-> **Estado: PARCIAL.** A faxina foi executada em 19/08: **333 objetos e 178,4 MB removidos**, com a
-> medição antes e depois em `### Resultado`. Falta o que impede o acervo de voltar a crescer —
-> fechar as duas torneiras (`DELETE /api/pastas/[id]` e a exclusão em lote de `uploads-corrigidos`,
-> que deixam o `uploadPath` para trás) e decidir a retenção de `output/`.
+> **Estado: PARCIAL.** Em 19/08 foram feitas as duas metades: a faxina (**333 objetos e 178,4 MB
+> removidos**, medição antes e depois em `### Resultado`) e o fechamento das duas torneiras que
+> produziam o órfão (`### Torneiras fechadas`). Falta **decidir a retenção de `output/`** — 426,9 MB
+> e crescendo —, fechar a terceira torneira achada no caminho (`DELETE /api/templates/[id]`) e a
+> varredura por idade do que nasce órfão na extração.
 
 > **Prioridade subiu para P1 em 19/08**, a pedido da Ester: o projeto estourou o limite do plano
 > grátis do Supabase e hoje paga o Pro por causa desse acervo. Deixou de ser higiene e virou conta.
@@ -3168,15 +3169,64 @@ antes, dentro da validade de 2 h.
 `orfaos-2026-08-19.txt` foi apagado depois do uso, como a regra 6 exige: ele carregava nome de
 documento de cliente, linha a linha. Nunca foi versionado — `/orfaos-*.txt` está no `.gitignore`.
 
+### Torneiras fechadas — 19/08/2026
+
+Decisão da Ester, tomada depois de ver a medição: **o arquivo sai junto com a linha que aponta para
+ele.** A faxina resolvia o passivo; isto é o que impede o acervo de acumular de novo.
+
+`lib/file-storage.ts` passou a ter remoção **por área**, com a mesma trava que o
+`deleteGeneratedDocx` tinha desde o PV-004: a área é literal no código de quem chama, nunca vem do
+pedido, e referência que aponte para fora dela faz a função **lançar em vez de apagar**. Saíram daí
+`deleteUploadedFile` (`storage/uploads`) e `deleteLogoFile` (`storage/logos`).
+
+- `DELETE /api/pastas/[id]` leva junto o `uploadPath` de cada documento de correção **e os dois
+  arquivos da extração** (`formsPdfPath` e `documentosElaboracaoPath`), que ninguém tinha notado —
+  eram órfãos garantidos a cada pasta excluída.
+- `DELETE /api/pastas/[id]/uploads-corrigidos` leva junto o `uploadPath`. O comentário que
+  documentava a escolha antiga saiu junto com ela.
+- **A logo quase virou perda de dado.** `duplicar` copia o `clienteLogoPath` para a pasta nova em vez
+  de gerar cópia no Storage, então o mesmo arquivo pode ter mais de um dono. Só sai quando um `count`
+  não acha nenhuma outra pasta apontando para ele. Tem teste nos dois sentidos.
+- **Falha ao apagar arquivo derruba a exclusão inteira, de propósito.** Melhor a pasta continuar de
+  pé do que a linha sumir e o arquivo virar órfão — que é exatamente o defeito que este card fecha.
+
+Testes: `tests/lib/storage-delete-guard.test.ts` prova a trava de área contra o disco de verdade,
+inclusive `..` no meio do caminho e referência do Supabase de outra área;
+`tests/correction/pasta-delete.test.ts` e a extensão de `tests/correction/bulk-delete.test.ts` provam
+o comportamento decidido. Suíte em **279**, 16 testes deste card. `lint`, `tsc --noEmit` e
+`check:public-boundary` limpos.
+
+> **Ressalva de histórico.** O código de produção destas três mudanças está no commit `b451225`
+> (*"feat: tutorial do planner para o time comercial"*), não em `ad9ace1`. Uma sessão paralela rodou
+> `git add -A` enquanto eu editava e levou junto `lib/file-storage.ts` e as duas rotas. Nada se
+> perdeu e o conteúdo é exatamente o escrito, mas a mensagem daquele commit não descreve metade do
+> que ele carrega. É a regra global 3 na prática: `git add -A` em repositório com duas sessões
+> abertas mistura trabalho de cards diferentes, e o `git log` fica mentindo.
+
+> **`npm run build` não foi refeito neste card.** O servidor de desenvolvimento estava de pé para a
+> rodada autenticada do PV-025 e `next build` disputaria o `.next` com ele. A mudança é toda de
+> servidor — `lib/` e handlers de rota —, sem superfície no bundle do cliente, e por isso a
+> auditoria de bundle do `check:public-boundary` não muda de resultado. Fica para a próxima janela
+> em que o servidor puder cair.
+
 ### O que falta — o card segue aberto
 
-1. **Fechar as duas torneiras.** Enquanto `DELETE /api/pastas/[id]` e a exclusão em lote de
-   `uploads-corrigidos` deixarem o `uploadPath` no Storage, o acervo volta a acumular no mesmo ritmo.
-   A faxina de hoje é o passivo de 6 pastas; sem essa decisão, ela vira rotina manual.
-2. **Decidir a retenção de `output/`** — 426,9 MB, dos quais 121 MB em 176 versões antigas. Hoje é o
+1. **Decidir a retenção de `output/`** — 426,9 MB, dos quais 121 MB em 176 versões antigas. Hoje é o
    maior item do bucket e o único que só cresce. É decisão de produto: quantas versões guardar e por
    quanto tempo depois da entrega.
-3. **Trocar a chave de serviço.** Ela foi colada no chat em 19/08 e é considerada vazada. A troca
+2. **Terceira torneira, achada ao fechar as duas primeiras e não executada:**
+   `DELETE /api/templates/[id]` apaga a linha e deixa o `arquivoPath` em `storage/templates`. São os
+   2 órfãos e 0,7 MB que sobraram depois da faxina. **Não foi junto de propósito**, por dois motivos
+   que mudam o desenho: `snapshotTemplateVersion` grava em `TemplateVersao` o **mesmo** `arquivoPath`
+   do template, então o arquivo é compartilhado entre a versão e o original e a checagem tem de
+   varrer as duas tabelas; e `TemplateVersao` é lida por `$queryRaw` justamente porque a tabela pode
+   não existir no banco, o que faz a checagem precisar de um caminho de falha próprio. Template é o
+   acervo oficial, o de maior valor — não entra de carona num commit de faxina.
+3. **Órfão que nasce órfão.** `/api/extrair` grava o PDF e o DOCX em `storage/uploads` **antes** de
+   existir linha de `Pasta`: só o `confirmar` cria a pasta. Assistente abandonado no meio deixa dois
+   arquivos que nunca tiveram dono, e nenhuma exclusão vai alcançá-los — isso pede varredura por
+   idade, não remoção em cascata.
+4. **Trocar a chave de serviço.** Ela foi colada no chat em 19/08 e é considerada vazada. A troca
    exige atualizar `SUPABASE_SERVICE_ROLE_KEY` na Vercel e redeployar, senão a produção para.
 
 ### Fora de escopo
@@ -3263,7 +3313,8 @@ Não sabemos ainda se isso já mordeu alguém. O card começa por descobrir isso
 | 18/08/2026 | PV-024 | **Concluído** | `d378356` | Não publicado — mesma branch do PV-023 | Campo de cópia do link do pré-planejamento comercial no menu lateral. **Não** virou item de navegação: a regra global 7 mantém `/planner` público e sem login, e um link no menu interno lhe daria porta de entrada autenticada. Campo somente-leitura em vez de só um botão porque `navigator.clipboard` não existe fora de contexto seguro — aí a URL ainda pode ser selecionada à mão. 5 testes, incluindo o caminho sem clipboard e a trava de que `/planner` não entra no array de navegação. Verificação visual autenticada segue sendo da Ester: o checkout local não tem Supabase configurado. |
 | 18/08/2026 | Flake dos testes de PDF | **Concluído** | `7cd4ea0` | Nenhuma | Os dois testes de PDF do planner estouravam os 5 s de `testTimeout` de forma intermitente quando a suíte inteira disputava CPU. Não era regressão: reproduzia em `49a7358`. Causa medida: carga preguiçosa do pdf-parse e inicialização do fontkit, ~0,9 s ocioso e ~2,7 s sob carga, caindo no orçamento do primeiro `it`. `warm-pdf.ts` aquece o pipeline num `beforeAll`. Suíte cheia com paralelismo: 198/198. |
 | 19/08/2026 | PV-012 | **Parcial** | `01b3de2` | `dpl_FjKvKGFX9a122dEbpSVMvyadUxqR` `READY`, alias `pastavisa.vercel.app` | Playwright com 3 specs em `tests/e2e`, `scripts/check-public-boundary.mjs` e `tests/correction/lifecycle-route.test.ts`. **Comprovado em produção:** 16/16 da fronteira anônima contra o deployment novo, e o caminho completo do planner — formulário, análise real, revisão, formato e PDF com cabeçalho `%PDF-`. **Firewall medido, não presumido:** 429 com `x-vercel-mitigated: deny`. Advisor de segurança do Supabase: 0 erro, 10 `INFO` de RLS sem policy (postura desejada do PV-002) e 1 `WARN` de senha vazada, que é o PV-014. Rollback registrado em 2.1. O teste em Vitest achou um erro que eu teria entregado: as duas specs E2E liam `contagens` onde o `preflight` devolve `totalOcorrencias`. A auditoria de bundle também precisou ficar exata — procurava a palavra `service_role` e acusava um comentário do SDK num bundle de `next dev`; passou a decodificar o JWT e a recusar bundle de desenvolvimento. Suíte 244→250. **Falta a rodada autenticada → PV-025.** Abertos também PV-026 (original enviado nunca sai do Storage) e PV-027 (teto do planner é por IP). |
-| 19/08/2026 | PV-026 | **Parcial** | `534f78b` | Nenhuma — remoção direta no Storage de produção, sem deploy | Bucket `pasta-visa` de **713,1 MB / 1.314 objetos para 534,7 MB / 981**: saíram **333 objetos e 178,4 MB**, 25% do acervo, que linha nenhuma do banco referenciava. `output/` e `templates/` intactos. Aceite conferido depois da remoção: sobram 2 órfãos, 0,7 MB, todos em `templates/` — a área que a allowlist recusa de propósito. **O desenho mudou por um achado de segurança:** as tabelas de `public` dão grant só a `postgres`, então o script não consegue — nem deve — descobrir sozinho o que é órfão; dar `SELECT` a `service_role` abriria por HTTPS todo o acervo de documentos de cliente. Quem classifica é consulta privilegiada fora do script, e o resultado chega como manifesto selado por md5, com validade de 2 h, allowlist de área, reconferência no bucket e piso de idade de 24 h. O selo foi calculado dos dois lados e bateu, então a lista é byte a byte a que o banco aponta. O manifesto foi apagado depois do uso — carregava nome de documento de cliente. **Falta fechar as duas torneiras e decidir a retenção de `output/`.** |
+| 19/08/2026 | PV-026 | **Parcial** | `534f78b` | Nenhuma — remoção direta no Storage de produção, sem deploy | Bucket `pasta-visa` de **713,1 MB / 1.314 objetos para 534,7 MB / 981**: saíram **333 objetos e 178,4 MB**, 25% do acervo, que linha nenhuma do banco referenciava. `output/` e `templates/` intactos. Aceite conferido depois da remoção: sobram 2 órfãos, 0,7 MB, todos em `templates/` — a área que a allowlist recusa de propósito. **O desenho mudou por um achado de segurança:** as tabelas de `public` dão grant só a `postgres`, então o script não consegue — nem deve — descobrir sozinho o que é órfão; dar `SELECT` a `service_role` abriria por HTTPS todo o acervo de documentos de cliente. Quem classifica é consulta privilegiada fora do script, e o resultado chega como manifesto selado por md5, com validade de 2 h, allowlist de área, reconferência no bucket e piso de idade de 24 h. O selo foi calculado dos dois lados e bateu, então a lista é byte a byte a que o banco aponta. O manifesto foi apagado depois do uso — carregava nome de documento de cliente. **Falta decidir a retenção de `output/`.** |
+| 19/08/2026 | PV-026 — torneiras | **Parcial** | `b451225` (código, por engano de sessão paralela), `ad9ace1` (testes) | Nenhuma — mudança de servidor, sem deploy nesta janela | Decisão da Ester depois de ver a medição: **o arquivo sai junto com a linha que aponta para ele.** `lib/file-storage.ts` ganhou remoção por área, com a mesma trava do PV-004 — área literal no código de quem chama, e referência de fora dela faz lançar em vez de apagar. `DELETE /api/pastas/[id]` passa a levar o `uploadPath` de cada correção **e os dois arquivos da extração**, que ninguém tinha notado; a exclusão em lote leva o `uploadPath`, e o comentário que defendia a escolha antiga saiu junto. **A logo quase virou perda de dado:** `duplicar` copia o `clienteLogoPath` em vez de gerar cópia no Storage, então o mesmo arquivo pode ter mais de um dono — só sai quando nenhuma outra pasta aponta, com teste nos dois sentidos. Falha ao apagar derruba a exclusão inteira, de propósito. Suíte 263 → 279. **Achados registrados e não executados:** `DELETE /api/templates/[id]` deixa o `arquivoPath` (a terceira torneira, que precisa de desenho próprio porque `TemplateVersao` compartilha o caminho e é lida por `$queryRaw`), e `/api/extrair` grava em `uploads` antes de existir `Pasta`, o que faz assistente abandonado nascer órfão. **Ressalva de processo:** uma sessão paralela rodou `git add -A` e levou o código deste card para dentro de um commit de tutorial. Nada se perdeu; a regra global 3 existe exatamente para isso. |
 
 **As linhas de 17/08 estão agrupadas por assunto, não em ordem cronológica estrita** — o dia teve várias
 idas e vindas no mesmo tema. A última linha da tabela é sempre o estado mais recente.
