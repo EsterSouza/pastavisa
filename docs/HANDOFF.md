@@ -419,12 +419,15 @@ esta seção que diz se o card fechou.
 | PV-020 | `[skip ci]` não impede deploy | **Concluído** | `ignoreCommand` por diff de caminho em `2826545`. `[skip ci]` sai das convenções. |
 | PV-023 | Base unificada de legislação | **Concluído** | Entregue em `20c2529`, `e048f48`, `1e124ab`. O seed virou projeção de `@visa/legislacao` (47 → 119 atos). Falta só sincronizar a produção do InspecVISA, que é card de lá. |
 | PV-024 | Link do planner para o comercial | **Concluído** | Campo de cópia no menu interno (`d378356`). Não virou item de navegação: `/planner` é público e sem login. |
-| PV-025 | Rodada autenticada de homologação | **Parcial** | Rodada local passou inteira em 19/08 (25/25), papéis e ciclo da pasta verdes, limpeza conferida. Achado: a conta QA do PV-003 nunca teve senha utilizável e foi substituída. O smoke do PV-019 entrou, medindo 405 — o card previa 404 e estava errado. Falta a rodada contra produção e apagar a conta QA nova. |
+| PV-025 | Rodada autenticada de homologação | **Concluído** | Duas rodadas em 19/08: local (25/25) e contra produção (26/27, o resto é a análise paga). Papéis e ciclo da pasta verdes; limpeza conferida no banco e no Storage de produção. Achado: a conta QA do PV-003 nunca teve senha utilizável e foi substituída. O smoke do PV-019 entrou medindo **405** — o card previa 404 e estava errado. Rotação de credenciais: decisão da Ester, registrada no card. |
 | PV-026 | Limpeza e retenção do Supabase Storage | **Parcial** | **P1 custo.** Em 19/08: faxina (bucket de 713,1 MB para 534,7 MB) **e** as duas torneiras fechadas — o arquivo passa a sair junto com a linha. Falta decidir a retenção de `output/` (426,9 MB), a terceira torneira (`DELETE /api/templates/[id]`) e a varredura do que nasce órfão em `/api/extrair`. |
 | PV-027 | Teto do planner é por IP, não por atendimento | Pendente | Achado no PV-012. Equipe atrás de um mesmo IP divide 10 requisições a cada 5 minutos. |
 
-Contagem, sobre 28 cards: **17 concluídos**, **5 parciais** (PV-012, PV-013 encerrado, PV-017,
-PV-025, PV-026), **6 pendentes** (PV-014, PV-015, PV-016, PV-021, PV-022, PV-027), **0 bloqueados**.
+Contagem, sobre 28 cards: **18 concluídos**, **4 parciais** (PV-012, PV-013 encerrado, PV-017,
+PV-026), **6 pendentes** (PV-014, PV-015, PV-016, PV-021, PV-022, PV-027), **0 bloqueados**.
+
+**O PV-012 pode ser reavaliado.** Ele ficou Parcial só porque faltava a rodada autenticada, que é o
+PV-025 e está concluído. Quem pegar o próximo card confere e fecha, se concordar.
 
 **Correção de uma contagem anterior.** A versão de 17/08 registrava "13 concluídos, 3 parciais, 4
 pendentes e 1 bloqueado". Contando as linhas daquela mesma tabela: 12 concluídos, 3 parciais, 5
@@ -473,23 +476,24 @@ card bloqueado.**
 
 | # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de |
 |---|---|---|---|---|---|---|
-| 1 | PV-025 | Rodada de homologação contra produção | P1 lançamento | baixo | gpt-5.6-sol | conta QA nova, senha fora do chat |
-| 2 | PV-026 | Retenção de `output/` e as duas torneiras restantes | P1 custo | médio | gpt-5.6-sol | decisão da Ester sobre retenção |
-| 3 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
-| 4 | PV-021 | Aceitar pendência de dado faltante | P2 produto | médio | gpt-5.6-terra | — |
-| 5 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
-| 6 | PV-022 | Identificação e concordância no template | P2 produto | alto | gpt-5.6-sol | — (PV-011 satisfeito) |
-| 7 | PV-027 | Teto do planner é por IP, não por atendimento | P3 | baixo | gpt-5.6-terra | — |
-| 8 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
-| 9 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
+| 1 | PV-026 | Retenção de `output/` e as duas torneiras restantes | P1 custo | médio | gpt-5.6-sol | decisão da Ester sobre retenção |
+| 2 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
+| 3 | PV-021 | Aceitar pendência de dado faltante | P2 produto | médio | gpt-5.6-terra | — |
+| 4 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
+| 5 | PV-022 | Identificação e concordância no template | P2 produto | alto | gpt-5.6-sol | — (PV-011 satisfeito) |
+| 6 | PV-027 | Teto do planner é por IP, não por atendimento | P3 | baixo | gpt-5.6-terra | — |
+| 7 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
+| 8 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
 
 **A numeração desta fila estava quebrada** — havia dois `2` e dois `7`, e o PV-026 aparecia depois de
 cards P2 apesar de ser P1. Corrigido em 19/08, contando as linhas.
 
-**Por que estes dois no topo.** O PV-025 é o resto da homologação do PV-012 e a última coisa entre o
-produto e o aceite de lançamento. O PV-026 é conta, não higiene: a faxina de 19/08 devolveu
-178,4 MB e as duas torneiras principais já estão fechadas, mas o `output/` — 426,9 MB gerados por
-6 pastas — continua sem política de retenção e é o único item que só cresce.
+**O PV-025 saiu desta fila em 19/08: a homologação autenticada foi rodada e passou, local e em
+produção.** Não há mais nada entre o produto e o aceite de lançamento.
+
+**Por que o PV-026 assume o topo.** É conta, não higiene: a faxina de 19/08 devolveu 178,4 MB e as
+duas torneiras principais já estão fechadas, mas o `output/` — 426,9 MB gerados por 6 pastas —
+continua sem política de retenção e é o único item do bucket que só cresce.
 
 **Os dois cards novos vieram da Ester, não de auditoria.** PV-021 e PV-022 nasceram durante a inspeção
 do PV-018 e descrevem trabalho que ela faz hoje na mão. O PV-021 leva junto uma correção de redação
@@ -2997,9 +3001,10 @@ problema. Uma substituição cega produz documento sanitário com erro de portug
 **Modelo:** gpt-5.6-sol · **Esforço:** médio · **Prioridade:** P1 lançamento · **Depende de:** conta QA
 **Resultado:** os papéis e o ciclo completo de uma pasta comprovados contra a aplicação de verdade.
 
-> **Estado: PARCIAL.** A rodada local passou inteira em 19/08 — **25 de 25**, com os 8 critérios
-> autenticados verdes e a limpeza conferida. Falta a rodada contra produção e a rotação da conta QA.
-> A premissa do card sobre "as contas QA" estava errada, e o achado está em `### Resultado`.
+> **Estado: CONCLUÍDO** em 19/08, nas duas rodadas — local (25/25) e contra produção (26/27, o
+> restante é a análise paga do planner, que fica atrás de trava). A limpeza foi conferida no banco e
+> no Storage de produção. A premissa do card sobre "as contas QA" estava errada, e o achado está em
+> `### Resultado`. A rotação de credenciais foi decisão da Ester — registrada em `### Credenciais`.
 
 ### Contexto
 
@@ -3069,17 +3074,44 @@ A asserção entrou em `authenticated-flow.spec.ts` medindo as duas coisas — o
 pastas antes e depois. Escrever 404 ali reprovaria um comportamento correto e mandaria alguém
 "consertar" a rota dinâmica, que é o pior desfecho possível para um teste de homologação.
 
-### O que falta
+### Rodada contra produção — 19/08/2026
 
-1. **Rodar contra produção**, com `PV_E2E_BASE_URL=https://pastavisa.vercel.app`. A rodada local usa
-   o SQLite local; o contrato de papéis já vale, porque a autenticação é a mesma do Supabase de
-   produção, mas o ciclo da pasta ainda não foi exercido contra o banco e o Storage de verdade.
-2. **Apagar a conta QA `operadorqa@teste.com`.** A senha dela apareceu em conversa, e operador em
-   produção enxerga `/api/pastas` inteiro — todas as pastas e documentos de cliente. Na rodada local
-   não houve exposição, porque o alvo era o `localhost`. Para a rodada de produção, conta nova com
-   senha que não passa por chat nenhum.
-3. **Trocar a senha do admin.** Ela foi colada em conversa em 19/08. Trocar não derruba produção,
-   diferente da chave de serviço.
+`PV_E2E_BASE_URL=https://pastavisa.vercel.app`: **26 de 27**, e o não executado é a análise real do
+planner, atrás de `PV_E2E_LIVE_ANALYSIS=1` porque é chamada paga. Aqui o ciclo da pasta correu contra
+o banco e o Storage de verdade, não contra o SQLite local.
+
+**Limpeza conferida em produção, depois da rodada,** por consulta privilegiada:
+
+| | Antes | Depois |
+|---|---:|---:|
+| Pastas | 6 | 6, **zero** com prefixo `QA-E2E` |
+| Documentos enviados | 54 | 54, **zero** com prefixo `QA-E2E` |
+| Órfãos no bucket | 2 · 0,68 MB | 2 · 0,68 MB, os mesmos de `templates/` |
+
+Os 8 objetos que entraram no bucket durante a janela são templates enviados pela Ester entre 11:00 e
+11:35, todos referenciados no banco — trabalho normal, não resíduo de teste.
+
+Vale registrar o que essa rodada prova de graça: **a torneira do PV-026 fechada, em produção.** A
+limpeza do teste apagou a pasta QA e o documento enviado junto. Antes de hoje esse arquivo teria
+ficado no Storage para sempre.
+
+### Credenciais — decisão da Ester
+
+O card previa rotacionar a senha das contas QA ao final. **A Ester decidiu não rotacionar**, optando
+por apagar a conversa onde as credenciais apareceram. Fica registrado como decisão dela, com o que
+foi dito na hora, para ninguém reabrir o assunto achando que foi esquecimento:
+
+- Apareceram em conversa em 19/08 a senha do admin `esterposte@hotmail.com`, a senha da conta QA
+  `operadorqa@teste.com` e, duas vezes, a chave `service_role`.
+- Apagar a conversa no aplicativo **não apaga a transcrição local**, que fica em
+  `~/.claude/projects/`, um arquivo por sessão. Quem quiser fechar o assunto de verdade apaga também
+  esses arquivos.
+- Enquanto `operadorqa@teste.com` existir com a senha que foi dita, ela é uma conta de produção com
+  papel `operador` — e operador enxerga `/api/pastas` inteiro, com todas as pastas e documentos de
+  cliente.
+- A chave `service_role` é a de maior alcance: passa por cima de todo o RLS. Trocá-la exige atualizar
+  `SUPABASE_SERVICE_ROLE_KEY` na Vercel e redeployar, senão a produção para. Segue como item 4 do
+  PV-026.
 
 ### Fora de escopo
 
@@ -3384,6 +3416,7 @@ Não sabemos ainda se isso já mordeu alguém. O card começa por descobrir isso
 | 19/08/2026 | PV-012 | **Parcial** | `01b3de2` | `dpl_FjKvKGFX9a122dEbpSVMvyadUxqR` `READY`, alias `pastavisa.vercel.app` | Playwright com 3 specs em `tests/e2e`, `scripts/check-public-boundary.mjs` e `tests/correction/lifecycle-route.test.ts`. **Comprovado em produção:** 16/16 da fronteira anônima contra o deployment novo, e o caminho completo do planner — formulário, análise real, revisão, formato e PDF com cabeçalho `%PDF-`. **Firewall medido, não presumido:** 429 com `x-vercel-mitigated: deny`. Advisor de segurança do Supabase: 0 erro, 10 `INFO` de RLS sem policy (postura desejada do PV-002) e 1 `WARN` de senha vazada, que é o PV-014. Rollback registrado em 2.1. O teste em Vitest achou um erro que eu teria entregado: as duas specs E2E liam `contagens` onde o `preflight` devolve `totalOcorrencias`. A auditoria de bundle também precisou ficar exata — procurava a palavra `service_role` e acusava um comentário do SDK num bundle de `next dev`; passou a decodificar o JWT e a recusar bundle de desenvolvimento. Suíte 244→250. **Falta a rodada autenticada → PV-025.** Abertos também PV-026 (original enviado nunca sai do Storage) e PV-027 (teto do planner é por IP). |
 | 19/08/2026 | PV-026 | **Parcial** | `534f78b` | Nenhuma — remoção direta no Storage de produção, sem deploy | Bucket `pasta-visa` de **713,1 MB / 1.314 objetos para 534,7 MB / 981**: saíram **333 objetos e 178,4 MB**, 25% do acervo, que linha nenhuma do banco referenciava. `output/` e `templates/` intactos. Aceite conferido depois da remoção: sobram 2 órfãos, 0,7 MB, todos em `templates/` — a área que a allowlist recusa de propósito. **O desenho mudou por um achado de segurança:** as tabelas de `public` dão grant só a `postgres`, então o script não consegue — nem deve — descobrir sozinho o que é órfão; dar `SELECT` a `service_role` abriria por HTTPS todo o acervo de documentos de cliente. Quem classifica é consulta privilegiada fora do script, e o resultado chega como manifesto selado por md5, com validade de 2 h, allowlist de área, reconferência no bucket e piso de idade de 24 h. O selo foi calculado dos dois lados e bateu, então a lista é byte a byte a que o banco aponta. O manifesto foi apagado depois do uso — carregava nome de documento de cliente. **Falta decidir a retenção de `output/`.** |
 | 19/08/2026 | PV-026 — torneiras | **Parcial** | `b451225` (código, por engano de sessão paralela), `ad9ace1` (testes) | Nenhuma — mudança de servidor, sem deploy nesta janela | Decisão da Ester depois de ver a medição: **o arquivo sai junto com a linha que aponta para ele.** `lib/file-storage.ts` ganhou remoção por área, com a mesma trava do PV-004 — área literal no código de quem chama, e referência de fora dela faz lançar em vez de apagar. `DELETE /api/pastas/[id]` passa a levar o `uploadPath` de cada correção **e os dois arquivos da extração**, que ninguém tinha notado; a exclusão em lote leva o `uploadPath`, e o comentário que defendia a escolha antiga saiu junto. **A logo quase virou perda de dado:** `duplicar` copia o `clienteLogoPath` em vez de gerar cópia no Storage, então o mesmo arquivo pode ter mais de um dono — só sai quando nenhuma outra pasta aponta, com teste nos dois sentidos. Falha ao apagar derruba a exclusão inteira, de propósito. Suíte 263 → 282, em três arquivos: a trava de área, a decisão da rota em mock, e a decisão chegando ao disco sem mock nenhum. **Achados registrados e não executados:** `DELETE /api/templates/[id]` deixa o `arquivoPath` (a terceira torneira, que precisa de desenho próprio porque `TemplateVersao` compartilha o caminho e é lida por `$queryRaw`), e `/api/extrair` grava em `uploads` antes de existir `Pasta`, o que faz assistente abandonado nascer órfão. **Ressalva de processo:** uma sessão paralela rodou `git add -A` e levou o código deste card para dentro de um commit de tutorial. Nada se perdeu; a regra global 3 existe exatamente para isso. |
+| 19/08/2026 | PV-025 | **Concluído** | `9e29b35`, `07f7a12` | Nenhuma — a rodada usa produção como alvo, sem publicar nada | Homologação autenticada rodada duas vezes: local **25/25** e contra `pastavisa.vercel.app` **26/27**, sendo o restante a análise paga do planner, que fica atrás de trava. Papéis nos dois sentidos — operador 200 em `/api/pastas`, 403 em `/api/templates` e `/api/legislacoes`, 403 ao excluir pasta; admin 200 nos três — e o ciclo completo pasta → documento → análise → aplicação → prévia → download → restauração → limpeza. **Limpeza conferida em produção depois da rodada:** 6 pastas e 54 documentos, zero com prefixo `QA-E2E`, e os órfãos do bucket seguem sendo os mesmos 2 de `templates/`. De graça, provou a torneira do PV-026 em produção: a pasta QA saiu e o documento enviado saiu junto. **A premissa do card estava errada e custou três tentativas:** as "contas QA" eram duas contas no total, uma delas a conta real da Ester, e a outra criada pelo PV-003 em 08/08 que **nunca fez login uma vez sequer** — senha gerada na criação e, pela regra 6, nunca escrita em lugar nenhum. Conta inutilizável que contava como pronta. Substituída. **Fechou também o smoke que o PV-019 deixou, corrigindo a previsão:** `POST /api/pastas/teste` responde **405**, não 404, porque o caminho casa com o segmento dinâmico `[id]`, que não tem `POST`; o que importava — nenhuma pasta criada — foi medido junto. Rotação de credenciais: decisão da Ester de não rotacionar, registrada no card com o alcance de cada credencial. |
 
 **As linhas de 17/08 estão agrupadas por assunto, não em ordem cronológica estrita** — o dia teve várias
 idas e vindas no mesmo tema. A última linha da tabela é sempre o estado mais recente.
