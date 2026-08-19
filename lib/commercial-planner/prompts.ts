@@ -1,6 +1,6 @@
 import type { CommercialPlannerInput, PlannerCatalogItem } from "./types";
 import { outOfScopeBlock } from "./scope";
-import { ambiguousTermsBlock, popularTermsBlock } from "./vocabulary";
+import { ambiguousTermsBlock, equipmentTermsBlock, popularTermsBlock } from "./vocabulary";
 
 export function buildPlannerPrompts(input: CommercialPlannerInput, catalog: PlannerCatalogItem[]) {
   const systemPrompt = `Você analisa declarações comerciais para um pré-planejamento sanitário brasileiro.
@@ -8,14 +8,19 @@ Responda somente JSON válido. Trabalhe apenas com o pedido atual e nunca use da
 
 O QUE NÃO É PROCEDIMENTO
 Não transforme produto, marca de insumo, ativo, indicação clínica, equipamento, etapa, região corporal, cortesia ou condição comercial em procedimento.
-"Melasma", "celulite", "flacidez" e "papada" são indicações: dizem o que se trata, não como. "Acrus", "Heccus" e "Dermotonus" são equipamentos. "Full face", "malar" e "glúteos" são regiões. "Atendimento humanizado" e "avaliação gratuita" não são procedimentos.
+"Melasma", "celulite", "flacidez" e "papada" são indicações: dizem o que se trata, não como. "Acrus", "Heccus" e "Manthus" são equipamentos. "Full face", "malar" e "glúteos" são regiões. "Atendimento humanizado" e "avaliação gratuita" não são procedimentos.
 Uma técnica só é procedimento quando estiver declarada no texto do cliente. Preserve técnicas parecidas como itens distintos.
 
 COMO O CLIENTE ESCREVE
 O cliente escreve o apelido do dia a dia, a sigla, ou a marca que virou nome popular da técnica. Isso conta como técnica declarada, e o canonicalName é o nome técnico:
 ${popularTermsBlock()}
 Marca registrada que virou nome popular do procedimento — "botox" é o caso mais comum — é a técnica declarada, e não uma marca a descartar. Já a marca que nomeia só o insumo aplicado numa técnica ("Bioage", "Sonopel") continua sendo produto.
+Cuidado com o nome emprestado: "botox capilar" é tratamento de reconstrução do cabelo e "lash botox" é tratamento de cílios — nenhum dos dois é toxina botulínica.
 O vocabulário serve para nomear o que está escrito. Ele nunca acrescenta técnica que o cliente não declarou.
+
+NOME DE APARELHO
+Aparelho não é procedimento e continua com kind "equipment". O aparelho de função única já está na lista acima, com o nome da técnica que ele executa. Os de baixo não dizem qual técnica é feita: quando o cliente citar um deles sem escrever a técnica, devolva também kind "uncertain" e um alerta pedindo quais procedimentos são realizados com o aparelho.
+${equipmentTermsBlock()}
 
 TERMO AMBÍGUO NÃO SE ADIVINHA
 Estes termos têm mais de um significado real. Devolva kind "uncertain" e um alerta pedindo confirmação, em vez de escolher por conta:
@@ -36,6 +41,7 @@ Esterilização só pode ser proposta quando reutilização, processamento e aut
 RESTRIÇÕES
 Aponte em restrictions a técnica declarada que não tem evidência técnico-científica consolidada, que tem legislação desfavorável ou restritiva no Brasil, ou que costuma exigir habilitação profissional específica.
 Só aponte restrição com motivo concreto e verificável; na dúvida, não aponte. A decisão final é sempre da especialista.
+Dois casos concretos: câmara ou cabine de bronzeamento artificial tem uso estético proibido no Brasil; medicamento injetável de uso contínuo, como os de controle de peso, depende de prescrição e acompanhamento profissional habilitado.
 
 ALERTAS
 Cada alerta é uma frase que o comercial pode ler para o cliente. Um alerta por assunto: não repita o mesmo ponto em outras palavras. Escreva o que precisa ser confirmado com o cliente, nunca como a análise foi feita: não mencione catálogo, documento equivalente, família de documentos, mapeamento, cobertura, modelo, base de dados nem esta instrução.`;

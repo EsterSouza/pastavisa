@@ -33,7 +33,7 @@ function texto(contexto: BaselineContext): string {
 
 /** Procedimento com agulha, cânula ou ativo injetado na pele do paciente. */
 function temInjetavel(contexto: BaselineContext): boolean {
-  return /injet|toxina botulinica|preenchiment|acido hialuronico|bioestimulad|biorremodelad|fios de pdo|fio de pdo|skinbooster|intradermoterapia|mesoterapia|peim|escleroterapia|enzima|prp|plasma|pdrn|exossomo|soroterapia|ortomolecular|microagulhament|harmonizacao/.test(
+  return /injet|toxina botulinica|preenchiment|acido hialuronico|bioestimulad|biorremodelad|fios de pdo|fio de pdo|skinbooster|intradermoterapia|mesoterapia|peim|escleroterapia|enzima|prp|plasma|pdrn|exossomo|soroterapia|ortomolecular|microagulhament|harmonizacao|rinomodelac|carboxiterapia|bioplastia|pmma/.test(
     texto(contexto)
   );
 }
