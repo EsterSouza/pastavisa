@@ -95,11 +95,15 @@ export async function extractExplicitTechniques(
   }
 
   // A restrição só vira ressalva quando recai sobre uma técnica que ficou no plano:
-  // ressalva sobre técnica que não entrou confundiria quem lê.
+  // ressalva sobre técnica que não entrou confundiria quem lê. E uma por técnica: a
+  // calibragem devolveu duas ressalvas para o mesmo preenchimento, ambas começando
+  // com a mesma frase, e o comercial lê isso como repetição, não como dois pontos.
+  const comRessalva = new Set<string>();
   for (const restriction of analysis.restrictions) {
     const key = normalizeTechnique(restriction.technique);
     const technique = techniques.get(key);
-    if (!technique) continue;
+    if (!technique || comRessalva.has(key)) continue;
+    comRessalva.add(key);
     alerts.push(restrictionAlert(technique.name, restriction.reason, restriction.detail));
   }
   if (techniques.size === 0) {

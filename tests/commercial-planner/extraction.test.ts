@@ -193,6 +193,30 @@ describe("extração das técnicas declaradas", () => {
     expect(resultado.alerts.some((alerta) => /legislação sanitária/.test(alerta))).toBe(true);
   });
 
+  it("escreve uma ressalva por técnica, não uma por restrição", async () => {
+    const resultado = await extractExplicitTechniques(
+      pedido("preenchimento labial"),
+      [],
+      analisador({
+        mentions: [mencao("preenchimento labial", "procedure", "Preenchimento Dérmico com Ácido Hialurônico")],
+        restrictions: [
+          {
+            technique: "Preenchimento Dérmico com Ácido Hialurônico",
+            reason: "legislacao_desfavoravel",
+            detail: "Produto manipulado é proibido.",
+          },
+          {
+            technique: "Preenchimento Dérmico com Ácido Hialurônico",
+            reason: "legislacao_desfavoravel",
+            detail: "Aplicação sem agulha não tem produto registrado.",
+          },
+        ],
+      })
+    );
+
+    expect(resultado.alerts.filter((alerta) => /fica sujeita à análise da especialista/.test(alerta))).toHaveLength(1);
+  });
+
   it("não pede confirmação de prática proibida", async () => {
     const resultado = await extractExplicitTechniques(
       pedido("escova progressiva com formol"),

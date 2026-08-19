@@ -1697,10 +1697,60 @@ não pegava um nome copiado da base. Agora `nomeDeOrigem` barra sequência longa
 sigla solta continua passando, porque PGRSS, MBP e PRP são o vocabulário normal do comercial. Depois do
 conserto o mesmo caso voltou sem nenhum alerta.
 
-**Ressalvas para a Ester decidir.** Três verbetes foram incluídos por serem comuns no mercado, não por estarem
-no acervo: bioplastia com PMMA, terapia injetável para controle de peso (caneta emagrecedora) e os serviços de
-salão de cabeleireiro. Se algum deles não deve gerar documento nesta pasta, o conserto é tirar a linha — ou
-movê-la para `FORA_DO_ESCOPO`, se for para barrar de vez.
+**Ressalvas levantadas e a resposta da Ester.** Três verbetes tinham entrado por serem comuns no mercado, não
+por estarem no acervo: bioplastia com PMMA, terapia injetável para controle de peso e os serviços de salão de
+cabeleireiro. A Ester tirou os dois primeiros — *"nada com PMMA pode ser feito"* — e manteve o salão. Os
+serviços de cabeleireiro seguem no vocabulário; o PMMA virou proibição, na seção seguinte.
+
+---
+
+#### Proibido por lei — a camada que faltava — 19/08/2026
+
+Ao tirar o PMMA do vocabulário, a Ester pediu a calibragem contra procedimento e produto proibidos por lei.
+Só tirar o verbete não bastava: sem verbete, a análise ainda podia devolver "bioplastia" como técnica e gerar
+POP e TCLE para ela.
+
+**Proibido é diferente de fora do escopo.** Fora do escopo é atividade de outro regime sanitário, que alguém
+atende com o licenciamento certo — cirurgia, odontologia, imagem. Proibido é o que a legislação não permite
+para fins estéticos, por ninguém. As duas barreiras vivem em `lib/commercial-planner/scope.ts`, barram no
+código e escrevem frases diferentes: uma manda tratar separadamente, a outra avisa que não gera documento.
+
+**As seis proibições**, conferidas nas páginas oficiais da ANVISA em 19/08/2026:
+
+| prática | o que a norma diz | fonte |
+| --- | --- | --- |
+| PMMA / bioplastia | registro só para correção reparadora — sequela de doença e lipodistrofia do HIV —, aplicado por médico ou dentista; sem indicação estética aprovada | página de campanha da ANVISA sobre PMMA e a reavaliação de 2025 |
+| silicone líquido industrial injetável | uso estético proibido; o desvio é crime | notícia ANVISA de 2018 |
+| câmara ou cabine de bronzeamento artificial | RDC 56/2009 proíbe uso, importação, doação, locação e comercialização para fins estéticos | notícia e alerta ANVISA |
+| formol como alisante capilar | em cosmético só é permitido como conservante (0,2%) e endurecedor de unha (5%); como alisante é adulteração. A RDC 36/2009 restringe a venda | página ANVISA sobre alisantes |
+| preenchedor manipulado em farmácia de manipulação | RE 4.424/2023 proíbe manipulação, venda e uso | notícia ANVISA de 2025 |
+| caneta pressurizada sem agulha | a ANVISA já proibiu os produtos vendidos para essa aplicação (RE 2.603/2022, RE 3.274/2022); não há preenchedor registrado para uso sem agulha | resoluções e interdição de 2023 |
+
+**O número da norma não vai ao cliente.** Ele fica no comentário do código e nesta tabela. Norma muda, e número
+errado na frente do cliente é pior que número nenhum — quem cita a base legal é a equipe técnica.
+
+**O risco é o falso positivo, e o teste cobre os dois lados.** "Progressiva sem formol", "bronzeamento a
+jato", "hidratação capilar com silicone" e "preenchimento com ácido hialurônico" continuam passando; cada
+proibição tem contexto próprio de negação, porque "sem formol" e "a jato" são exatamente o oposto do que se
+barra.
+
+**Resultado em produção.**
+
+| caso | escrita da cliente | resultado |
+| --- | --- | --- |
+| proibido declarado | aplico botox, pmma e tenho câmara de bronzeamento artificial | só Toxina Botulínica entrou; PMMA e câmara barrados, cada um com o motivo |
+| falso positivo | escova progressiva sem formol, bronzeamento a jato e preenchimento com ácido hialurônico | os três passaram; nenhum bloqueio indevido |
+| produto e método proibidos | preenchimento labial com hyaluron pen e preenchedor manipulado na farmácia | avisos dizendo que o método e o insumo não são permitidos, e qual é o caminho conforme |
+
+**Decisão de produto no terceiro caso.** A técnica declarada continuou no plano: o preenchimento em si é
+permitido, o que a lei barra é o método (caneta pressurizada) e o insumo (manipulado). O plano entrega o POP
+de preenchimento e avisa que método e produto precisam mudar, em vez de apagar o procedimento — que é o que a
+consultoria de fato faz. **Se a Ester preferir que a técnica caia junto**, basta o `forbiddenReason` passar a
+olhar também o texto declarado, e não só o nome da técnica.
+
+**Ruído consertado no caminho.** Esse mesmo caso rendeu duas ressalvas para a mesma técnica, as duas
+começando com a frase idêntica, porque a análise devolveu duas restrições sobre o preenchimento. Agora é uma
+ressalva por técnica.
 
 ---
 
