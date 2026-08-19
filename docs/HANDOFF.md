@@ -1764,6 +1764,12 @@ Na tela o alerta filtrado ganha a marca **"não sai no PDF"**. Sem ela o comerci
 cliente não leu aquilo, e trata o assunto como já dito — que é justamente o erro que essa decisão poderia
 criar.
 
+**Provado de ponta a ponta em produção.** "limpeza de pele, botox, pmma e câmara de bronzeamento artificial"
+devolveu duas técnicas e dois avisos de legislação, escritos pela análise com as próprias palavras — o que é
+justamente o caso que um filtro só sobre o texto da camada determinística deixaria passar. O PDF baixado do
+token (63 KB, 3 páginas) traz o plano e os procedimentos e não contém "PMMA", "proibido", "bronzeamento
+artificial" nem "legislação sanitária". A ressalva oficial de rodapé continua impressa, como deve.
+
 ---
 
 ## PV-010 — Redesign interno principal
