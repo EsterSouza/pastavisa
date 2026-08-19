@@ -146,8 +146,10 @@ describe("planner comercial público", () => {
         ...plano,
         alertas: [
           "A documentação de Microagulhamento precisa de validação técnica antes da produção final.",
-          "Atenção à legislação sanitária: câmara de bronzeamento artificial tem uso estético proibido no Brasil.",
+          "Câmara de bronzeamento artificial não pode ser usada para fins estéticos.",
         ],
+        // Quem classifica é o servidor, que é também quem tira a linha do token do PDF.
+        alertasReservados: ["Câmara de bronzeamento artificial não pode ser usada para fins estéticos."],
       }),
     });
 

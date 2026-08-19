@@ -36,6 +36,7 @@ const plano = {
   documentos: [{ nome: "POP — Limpeza de pele", tipo: "POP" }],
   vinculos: [{ documento: "POP — Limpeza de pele", tipo: "POP", procedimentos: ["Limpeza de pele"] }],
   alertas: [],
+  alertasReservados: [],
   resumo: { totalProcedimentos: 1, totalDocumentos: 1, revisaoTecnicaObrigatoria: true },
   aviso: "Pré-planejamento comercial provisório, sujeito à validação da equipe técnica.",
 } as PublicCommercialPlan;

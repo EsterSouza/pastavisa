@@ -122,6 +122,8 @@ export interface PublicCommercialPlan {
   documentos: PublicPlannerDocument[];
   vinculos: PublicPlannerLink[];
   alertas: string[];
+  /** Subconjunto de `alertas` que fica na tela do comercial e não entra no PDF. */
+  alertasReservados: string[];
   resumo: {
     totalProcedimentos: number;
     totalDocumentos: number;

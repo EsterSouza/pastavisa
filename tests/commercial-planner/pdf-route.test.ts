@@ -29,6 +29,7 @@ const plano: PublicCommercialPlan = {
     { documento: "Manual de Boas Práticas", tipo: "MBP", procedimentos: [] },
   ],
   alertas: [],
+  alertasReservados: [],
   resumo: { totalProcedimentos: 2, totalDocumentos: 3, revisaoTecnicaObrigatoria: true },
   aviso: "Pré-planejamento comercial provisório, sujeito à validação da equipe técnica.",
 };

@@ -49,6 +49,39 @@ describe("validação e saída pública", () => {
     expect(output.aviso).toBe("Pré-planejamento comercial provisório, sujeito à validação da equipe técnica.");
   });
 
+  it("reconhece a ressalva de legislação pelo termo declarado, não pela redação", () => {
+    // A calibragem em produção mostrou o buraco: a análise escreveu "PMMA não pode
+    // ser usado para fins estéticos", sem nenhuma das expressões que a lista
+    // procurava, e a ressalva teria ido parar no PDF do cliente.
+    const plan: InternalCommercialPlan = {
+      techniques: [],
+      documents: [],
+      alerts: [
+        "PMMA não pode ser usado para fins estéticos. Trate o ponto com a equipe técnica.",
+        "Confirme se a cliente realiza limpeza de pele com extração manual.",
+      ],
+      coverage: { techniques: [], candidates: [], alerts: [] },
+    };
+
+    const saida = toPublicPlannerOutput(plan, "limpeza de pele, botox e pmma");
+
+    expect(saida.alertas).toHaveLength(2);
+    expect(saida.alertasReservados).toEqual([
+      "PMMA não pode ser usado para fins estéticos. Trate o ponto com a equipe técnica.",
+    ]);
+  });
+
+  it("não reserva alerta comum quando nada proibido foi declarado", () => {
+    const plan: InternalCommercialPlan = {
+      techniques: [],
+      documents: [],
+      alerts: ["Confirme qual tipo de peeling é realizado."],
+      coverage: { techniques: [], candidates: [], alerts: [] },
+    };
+
+    expect(toPublicPlannerOutput(plan, "limpeza de pele e peeling").alertasReservados).toEqual([]);
+  });
+
   it("não deixa passar alerta que cita documento pelo nome de origem", () => {
     // A calibragem em produção pegou este alerta: a análise perguntou se "o TCLE
     // MICROPIGMENTACAO FACIAL cobre ambas as regiões" e o nome interno chegaria ao

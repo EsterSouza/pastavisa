@@ -176,6 +176,18 @@ export function forbiddenReason(technique: string): string | null {
 }
 
 /**
+ * Os termos proibidos que o cliente escreveu, já normalizados.
+ *
+ * Serve para reconhecer, pelo assunto e não pela redação, qual alerta fala de
+ * proibição. A análise escreve com as palavras dela — "PMMA não pode ser usado para
+ * fins estéticos" numa vez, "proibido pela legislação sanitária" na outra —, e
+ * procurar frase feita no texto dela falha na primeira variação.
+ */
+export function forbiddenTerms(declared: string): string[] {
+  return acertos(PROIBIDOS, declared).map((acerto) => acerto.termo);
+}
+
+/**
  * Avisos para o que o cliente declarou e não é atendido por esta pasta.
  *
  * Rede de segurança, não porta-voz: quando a análise já explicou aquele termo — e

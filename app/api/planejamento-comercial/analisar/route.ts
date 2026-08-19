@@ -91,11 +91,19 @@ export async function POST(request: NextRequest) {
     // O token carrega so o que o PDF nao consegue refazer sozinho. Documentos saem
     // porque vinculos ja tem nome e tipo; preco, prazo, resumo e aviso saem porque o
     // servidor os recalcula na hora do download.
+    //
+    // A ressalva de legislacao tambem fica de fora: e o token que alimenta o PDF, e o
+    // que nao entra nele nao tem como chegar ao cliente por descuido de redacao.
+    const reservados = new Set(plan.alertasReservados);
     const token = signPlan({
       cliente: input.cliente,
       municipio: input.municipio,
       uf: input.uf,
-      plano: { procedimentos: plan.procedimentos, vinculos: plan.vinculos, alertas: plan.alertas },
+      plano: {
+        procedimentos: plan.procedimentos,
+        vinculos: plan.vinculos,
+        alertas: plan.alertas.filter((alerta) => !reservados.has(alerta)),
+      },
     });
 
     return response({ ...plan, preco, prazo, token }, 200);

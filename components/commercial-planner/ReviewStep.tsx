@@ -1,6 +1,5 @@
 "use client";
 
-import { alertaSomenteComercial } from "@/lib/commercial-planner/output";
 import { AUTHORSHIP_NOTE, OUT_OF_FOLDER_NOTE } from "@/lib/commercial-planner/references";
 import type { PublicCommercialPlan } from "@/lib/commercial-planner/types";
 import type { WithdrawalResult } from "@/lib/commercial-planner/withdrawal";
@@ -14,6 +13,8 @@ interface ReviewStepProps {
 
 export function ReviewStep({ plano, retirada, retirados, onToggle }: ReviewStepProps) {
   const retiradosSet = new Set(retirados);
+  // Quem decide é o servidor, que também é quem tira essas linhas do token do PDF.
+  const reservados = new Set(plano.alertasReservados ?? []);
 
   return (
     <div className="space-y-8">
@@ -101,8 +102,8 @@ export function ReviewStep({ plano, retirada, retirados, onToggle }: ReviewStepP
                 {alerta}
                 {/* Sem esta marca o comercial não tem como saber que o cliente não
                     leu isso no PDF, e trata como assunto já dito. */}
-                {alertaSomenteComercial(alerta) && (
-                  <span className="ml-2 whitespace-nowrap rounded bg-status-warning-soft px-1.5 py-0.5 text-xs text-status-warning">
+                {reservados.has(alerta) && (
+                  <span className="ml-2 whitespace-nowrap rounded border border-status-warning bg-surface-card px-1.5 py-0.5 text-xs font-semibold text-status-warning">
                     não sai no PDF
                   </span>
                 )}

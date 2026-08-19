@@ -1,4 +1,5 @@
 import { nameFromTechnique, officialDocument, procedureDocumentName } from "./naming";
+import { forbiddenTerms } from "./scope";
 import type { InternalCommercialPlan, PublicCommercialPlan, PublicPlannerDocument } from "./types";
 
 /** Categorias entregues em outros trabalhos, que não são elaboradas dentro desta pasta. */
@@ -71,9 +72,21 @@ function alertaInterno(value: string): boolean {
  * usa produto proibido é conversa que o comercial faz na hora — não papel que ele
  * leva embora. Na tela continua inteira, porque é justamente o que o comercial
  * precisa saber antes de fechar proposta.
+ *
+ * Reconhece pelo assunto antes da redação: `termos` são as palavras proibidas que o
+ * próprio cliente escreveu, então o alerta que fala de PMMA é reconhecido mesmo
+ * quando a análise não usa nenhuma das expressões da lista. A lista continua como
+ * segunda rede, para quando a análise fala do assunto sem repetir o termo.
  */
-export function alertaSomenteComercial(value: string): boolean {
-  return /proibid|vedad[oa]|n[ãa]o [ée] permitid|n[ãa]o [ée] autorizad|sem registro|n[ãa]o tem registro|n[ãa]o existe .{0,40}registrad|indica[çc][ãa]o est[ée]tica aprovada|legisla[çc][ãa]o (sanit[áa]ria|desfavor[áa]vel)|adultera[çc][ãa]o/i.test(
+export function alertaSomenteComercial(value: string, termos: readonly string[] = []): boolean {
+  const alvo = value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+
+  if (termos.some((termo) => termo.length > 2 && alvo.includes(termo))) return true;
+
+  return /proibid|vedad[oa]|n[ãa]o pode ser (usad|utilizad|realizad|aplicad)|n[ãa]o [ée] permitid|n[ãa]o [ée] autorizad|sem registro|n[ãa]o tem registro|n[ãa]o existe .{0,40}registrad|indica[çc][ãa]o est[ée]tica aprovada|legisla[çc][ãa]o (sanit[áa]ria|desfavor[áa]vel)|adultera[çc][ãa]o/i.test(
     value
   );
 }
@@ -89,7 +102,10 @@ function nomeDeOrigem(value: string): boolean {
   return sequencias.some((sequencia) => sequencia.replace(/\s+/g, "").length >= 10);
 }
 
-export function toPublicPlannerOutput(plan: InternalCommercialPlan): PublicCommercialPlan {
+export function toPublicPlannerOutput(
+  plan: InternalCommercialPlan,
+  declarado = ""
+): PublicCommercialPlan {
   // O vínculo documento → procedimento existe para a retirada do PV-009: sem ele o
   // comercial não teria como saber quais documentos caem ao tirar um procedimento.
   // Usa apenas nomes públicos; nunca id de origem, modo de cobertura ou pontuação.
@@ -115,6 +131,8 @@ export function toPublicPlannerOutput(plan: InternalCommercialPlan): PublicComme
   }
 
   const entries = Array.from(documentsByName.values()).sort((a, b) => ordenar(a.documento, b.documento));
+  const alertas = Array.from(new Set(plan.alerts.filter((alerta) => !alertaInterno(alerta))));
+  const termos = forbiddenTerms(declarado);
 
   return {
     procedimentos: plan.techniques.map((technique) => technique.name),
@@ -124,7 +142,8 @@ export function toPublicPlannerOutput(plan: InternalCommercialPlan): PublicComme
       tipo: entry.documento.tipo,
       procedimentos: Array.from(entry.procedimentos),
     })),
-    alertas: Array.from(new Set(plan.alerts.filter((alerta) => !alertaInterno(alerta)))),
+    alertas,
+    alertasReservados: alertas.filter((alerta) => alertaSomenteComercial(alerta, termos)),
     resumo: {
       totalProcedimentos: plan.techniques.length,
       totalDocumentos: entries.length,

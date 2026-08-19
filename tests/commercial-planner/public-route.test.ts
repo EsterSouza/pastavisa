@@ -71,6 +71,37 @@ describe("public planning analysis route", () => {
     expect(JSON.stringify(mocks.logPlannerRequest.mock.calls)).not.toContain("Cliente A");
   });
 
+  it("assina o token sem a ressalva de legislação, que fica só na tela", async () => {
+    // É o token que alimenta o PDF: o que não entra nele não tem como chegar ao
+    // cliente por descuido de redação mais adiante.
+    const reservado = "PMMA não pode ser usado para fins estéticos.";
+    mocks.createCommercialPlan.mockResolvedValue({
+      ...plan,
+      alertas: ["Confirme qual tipo de peeling é realizado.", reservado],
+      alertasReservados: [reservado],
+    });
+
+    const response = await POST(
+      request(
+        JSON.stringify({
+          cliente: "Cliente A",
+          procedimentos: "peeling e pmma",
+          equipamentos: [],
+          formato: "digital",
+        })
+      )
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json.alertas).toContain(reservado);
+    expect(mocks.signPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plano: expect.objectContaining({ alertas: ["Confirme qual tipo de peeling é realizado."] }),
+      })
+    );
+  });
+
   it("retorna 400 para JSON invalido, tipo incorreto e corpo acima de 12 KB", async () => {
     expect((await POST(request("{"))).status).toBe(400);
     expect((await POST(request("{}", "text/plain"))).status).toBe(400);

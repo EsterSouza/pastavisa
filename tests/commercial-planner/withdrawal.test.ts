@@ -23,6 +23,7 @@ function plan(overrides: Partial<PublicCommercialPlan> = {}): PublicCommercialPl
       { documento: "Manual de Boas Práticas", tipo: "MBP", procedimentos: [] },
     ],
     alertas: [],
+    alertasReservados: [],
     resumo: { totalProcedimentos: 3, totalDocumentos: 4, revisaoTecnicaObrigatoria: true },
     aviso: "Pré-planejamento comercial provisório, sujeito à validação da equipe técnica.",
     ...overrides,

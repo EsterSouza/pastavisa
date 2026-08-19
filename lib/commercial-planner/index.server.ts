@@ -20,5 +20,5 @@ export async function createCommercialPlan(
   const catalog = dependencies.catalog ? [...dependencies.catalog] : await loadActivePlannerCatalog();
   const extraction = await extractExplicitTechniques(input, catalog, dependencies.analyzer);
   const coverage = buildCoverageMap(extraction, catalog);
-  return toPublicPlannerOutput(buildMinimumPlan(input, coverage));
+  return toPublicPlannerOutput(buildMinimumPlan(input, coverage), input.procedimentos);
 }
