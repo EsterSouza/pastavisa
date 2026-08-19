@@ -3041,23 +3041,32 @@ isso o script **não os toca**.
   - `templates/` fica de fora por padrão (`--incluir-templates` para incluir);
   - `--manifesto` grava a lista antes de apagar, em arquivo ignorado pelo git — ele carrega nome de
     documento de cliente e nunca entra em commit ou handoff (regra 6).
-- Falta rodar com `--apply`. Exige `DATABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`. **O MCP do Supabase
-  não entrega nenhum dos dois** — a única ferramenta de chave dele é `get_publishable_keys`, e
-  publicável é justamente a que pode ir para o navegador. Segredo de produção sai da Vercel ou do
-  painel do Supabase, pela mão da Ester:
+- Falta rodar com `--apply`. Exige **só** `SUPABASE_SERVICE_ROLE_KEY`:
 
   ```bash
-  npx vercel login
-  npx vercel env pull .env.producao --environment=production
-  node scripts/audit-storage-orphans.mjs --env .env.producao
+  echo "SUPABASE_SERVICE_ROLE_KEY=..." > .env.limpeza
+  node scripts/audit-storage-orphans.mjs --env .env.limpeza
   ```
 
-  **O arquivo tem de ser separado do `.env.local`.** Com `DATABASE_URL` de produção no `.env.local`,
-  o `next dev` desta máquina abandona o SQLite e passa a escrever no banco de produção — inclusive a
-  suíte E2E, que cria e apaga pasta.
-- Piso de idade de 24 h: órfão recém-criado é preservado, porque um envio em andamento existe no
-  Storage antes de a linha do banco ser gravada. Medido em 19/08: **zero** órfão com menos de 24 h,
-  então o piso não custa nada hoje e fecha a corrida para sempre.
+  **`DATABASE_URL` não serve e não é obtível.** Na Vercel ela está marcada como *Sensitive*, e
+  variável sensível é write-only: `vercel env pull` devolve `[SENSITIVE]` — verificado em 19/08, com
+  15 das 43 variáveis nessa condição. Do lado do Supabase, a senha do Postgres não é exibida depois
+  da criação do projeto; só existe reset, que derrubaria a produção até a Vercel ser atualizada. O
+  script foi reescrito para ler as tabelas pela API REST e os objetos pela API de Storage, ambas com
+  a chave `service_role`, que é revelável no painel.
+
+  **O arquivo tem de ser separado do `.env.local`**, que é lido pelo `next dev`. O `.env.limpeza`
+  já cai no `.env*` do `.gitignore`.
+- Três travas no script, além do `--apply`:
+  - **guarda de schema:** lê a especificação OpenAPI que a própria API REST publica e para se
+    aparecer coluna de caminho desconhecida. E para também se **não reencontrar** as 10 colunas que
+    já conhece — uma varredura que não acha o que se sabe existir está quebrada, e o modo silencioso
+    de falhar aqui é apagar arquivo em uso.
+  - **piso de idade de 24 h:** um envio em andamento existe no Storage antes de a linha do banco ser
+    gravada. Medido em 19/08: **zero** órfão com menos de 24 h, então o piso não custa nada hoje e
+    fecha a corrida para sempre.
+  - `templates/` fora por padrão, e `--manifesto` grava a lista antes de apagar, em arquivo ignorado
+    pelo git — ela carrega nome de documento de cliente (regra 6).
 - Fechar a torneira, para não voltar a acumular: decidir com a Ester o que `DELETE /api/pastas/[id]`
   e a exclusão em lote fazem com o `uploadPath`, e implementar com a mesma trava de caminho absoluto
   que `deleteGeneratedDocx` já usa.
