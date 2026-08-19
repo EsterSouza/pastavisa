@@ -81,7 +81,10 @@ foram medidos nesta data, contra o checkout, o Supabase de produção e a Vercel
 Medido em 19/08/2026, **após** a entrega parcial do PV-012.
 
 - Checkout fora do OneDrive em `C:\Saas\PASTAVISA`; worktree **limpo**.
-- `HEAD = main = origin/main = 01b3de266ac95d4585cb3f56d14ac0ae498e1ff8`.
+- `HEAD = main = origin/main = bfed01f731027f3ea9f0d8001c7f021f0deb2b95`. O commit do PV-012 é
+  `01b3de2`; a `main` andou duas vezes por cima dele **durante** a execução deste card, porque outra
+  sessão trabalha no mesmo checkout. Fato a levar em conta em todo card daqui em diante: `git fetch`
+  no começo não basta, é preciso conferir de novo antes de cada commit.
 - Remoto: `https://github.com/EsterSouza/pastavisa.git` (repositório **público**).
 - Vercel: projeto `pasta-visa` (`prj_3hksb7xOH6gQbc2lnOsKpFOsHYUa`, team `estersouzas-projects`).
   Deployment de produção do PV-012: `dpl_FjKvKGFX9a122dEbpSVMvyadUxqR`, commit `01b3de2`,
