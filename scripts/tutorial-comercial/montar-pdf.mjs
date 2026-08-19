@@ -2,7 +2,7 @@
 // capturadas em produção e as marcações desenhadas por cima, na coordenada exata que
 // o navegador reportou para cada campo.
 
-import { PDFDocument, rgb, degrees } from "pdf-lib";
+import { PDFDocument, PDFName, PDFString, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import sharp from "sharp";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -27,7 +27,19 @@ const CINZA = rgb(57 / 255, 82 / 255, 114 / 255);
 const BRANCO = rgb(1, 1, 1);
 const VERDE = rgb(22 / 255, 122 / 255, 90 / 255);
 const VERDE_PALE = rgb(233 / 255, 247 / 255, 242 / 255);
-const VERMELHO = rgb(176 / 255, 42 / 255, 42 / 255);
+const VINHO = rgb(122 / 255, 18 / 255, 28 / 255);
+const VINHO_PALE = rgb(255 / 255, 237 / 255, 235 / 255);
+
+/**
+ * Vermelho de marcação: a única cor deste guia que não aparece em mais nada.
+ * Quando ela surge, quer dizer "olhe aqui na tela". O painel é azul e o documento é
+ * azul da marca — marcação azul sobre interface azul não é achada, é procurada. É
+ * o mesmo motivo pelo qual os guias de documentação técnica padronizam vermelho
+ * para seta e caixa, e mandam trocar de cor quando a própria interface é vermelha.
+ */
+const MARCA = rgb(226 / 255, 33 / 255, 25 / 255);
+
+const LINK = "https://pastavisa.vercel.app/planner";
 
 const capturas = new Map();
 for (const arquivo of ["capturas.json", "capturas-2.json"]) {
@@ -46,6 +58,22 @@ const fontes = {
   corpoForte: await doc.embedFont(readFileSync("public/brand/fonts/SourceSans3-SemiBold.ttf"), { subset: true }),
 };
 const logo = await doc.embedPng(readFileSync("public/brand/treinavisa-logo-print.png"));
+
+/** Área clicável que abre o endereço no leitor de PDF. */
+function link(alvo, x, y, largura, altura, url) {
+  const anotacao = doc.context.register(
+    doc.context.obj({
+      Type: "Annot",
+      Subtype: "Link",
+      Rect: [x, y, x + largura, y + altura],
+      Border: [0, 0, 0],
+      A: { Type: "Action", S: "URI", URI: PDFString.of(url) },
+    })
+  );
+  const existentes = alvo.node.Annots();
+  if (existentes) existentes.push(anotacao);
+  else alvo.node.set(PDFName.of("Annots"), doc.context.obj([anotacao]));
+}
 
 let pagina;
 let y;
@@ -143,10 +171,10 @@ function cabecalho(rotulo) {
   y = A4.altura - 26 - 22;
 }
 
-function seta(x1, y1, x2, y2, cor = ACAO) {
-  pagina.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness: 1.4, color: cor });
+function seta(x1, y1, x2, y2, cor = MARCA, espessura = 1.7) {
+  pagina.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness: espessura, color: cor });
   const angulo = Math.atan2(y2 - y1, x2 - x1);
-  const tamanho = 5.5;
+  const tamanho = espessura * 3.8;
   const pontos = [
     [x2, y2],
     [x2 - tamanho * Math.cos(angulo - Math.PI / 7), y2 - tamanho * Math.sin(angulo - Math.PI / 7)],
@@ -158,7 +186,7 @@ function seta(x1, y1, x2, y2, cor = ACAO) {
   });
 }
 
-function selo(numero, cx, cy, cor = ACAO) {
+function selo(numero, cx, cy, cor = MARCA) {
   // Halo branco: o número às vezes cai sobre a tela, e sem ele se mistura ao conteúdo.
   pagina.drawCircle({ x: cx, y: cy, size: 11, color: BRANCO });
   pagina.drawCircle({ x: cx, y: cy, size: 9, color: cor });
@@ -221,41 +249,79 @@ async function tela(id, itens, opcoes = {}) {
     borderWidth: 0.8,
   });
 
-  itens.forEach((item, indice) => {
-    const alvo = captura.alvos[item.alvo];
-    if (!alvo) return;
-    const cor = item.cor ?? ACAO;
-    const caixaX = x0 + alvo.x * escala;
-    const caixaTopo = topo - (alvo.y - recorteY) * escala;
-    const caixaAltura = alvo.h * escala;
-    const caixaLargura = Math.min(alvo.w * escala, larguraImagem - alvo.x * escala);
+  const marcas = itens
+    .map((item, indice) => ({ item, indice, alvo: captura.alvos[item.alvo] }))
+    .filter((marca) => marca.alvo)
+    .map((marca) => ({
+      ...marca,
+      x: x0 + marca.alvo.x * escala,
+      topoCaixa: topo - (marca.alvo.y - recorteY) * escala,
+      altura: marca.alvo.h * escala,
+      largura: Math.min(marca.alvo.w * escala, larguraImagem - marca.alvo.x * escala),
+    }));
 
-    pagina.drawRectangle({
-      x: caixaX - 2,
-      y: caixaTopo - caixaAltura - 2,
-      width: caixaLargura + 4,
-      height: caixaAltura + 4,
-      borderColor: cor,
-      borderWidth: 1.4,
-    });
+  for (const marca of marcas) {
+    // Traço branco por baixo do vermelho. A mesma caixa cai ora sobre campo claro,
+    // ora sobre o azul do cartão; um contorno só falha em um dos dois fundos.
+    for (const [borderColor, borderWidth] of [
+      [BRANCO, 3.4],
+      [marca.item.cor ?? MARCA, 1.8],
+    ]) {
+      pagina.drawRectangle({
+        x: marca.x - 2,
+        y: marca.topoCaixa - marca.altura - 2,
+        width: marca.largura + 4,
+        height: marca.altura + 4,
+        borderColor,
+        borderWidth,
+      });
+    }
+  }
 
-    // O número fica na faixa da esquerda quando o campo é rente à borda, e colado no
-    // próprio campo quando ele está no meio ou à direita: seta longa atravessando o
-    // cartão risca o conteúdo em vez de apontar para ele.
-    const centro = caixaTopo - caixaAltura / 2;
-    const distante = caixaX - x0 > 40;
-    const cx = distante ? caixaX - 14 : MARGEM + 12;
-    selo(indice + 1, cx, centro, cor);
-    if (!distante && caixaX - 12 > cx + 12) seta(cx + 11, centro, caixaX - 4, centro, cor);
-  });
+  if (opcoes.numerar === false) {
+    y = y0 - 16;
+    return;
+  }
+
+  /** O selo pousaria dentro da caixa de outra marcação? */
+  function invade(cx, cy, propria) {
+    return marcas.some(
+      (marca) =>
+        marca !== propria &&
+        cx + 12 > marca.x - 4 &&
+        cx - 12 < marca.x + marca.largura + 4 &&
+        cy + 12 > marca.topoCaixa - marca.altura - 4 &&
+        cy - 12 < marca.topoCaixa + 4
+    );
+  }
+
+  for (const marca of marcas) {
+    const cor = marca.item.cor ?? MARCA;
+    const centro = marca.topoCaixa - marca.altura / 2;
+
+    // Campo rente à borda esquerda: número na faixa de fora, ligado por seta. Campo
+    // no meio ou à direita: número colado nele — seta longa atravessando o cartão
+    // risca o conteúdo em vez de apontar para ele.
+    if (marca.x - x0 <= 40) {
+      const cx = MARGEM + 12;
+      selo(marca.indice + 1, cx, centro, cor);
+      if (marca.x - 12 > cx + 12) seta(cx + 11, centro, marca.x - 4, centro, cor);
+      continue;
+    }
+
+    const aoLado = [marca.x - 14, centro];
+    const noCanto = [marca.x, marca.topoCaixa + 1];
+    const [cx, cy] = invade(aoLado[0], aoLado[1], marca) ? noCanto : aoLado;
+    selo(marca.indice + 1, cx, cy, cor);
+  }
 
   y = y0 - 16;
 }
 
 function lista(itens, opcoes = {}) {
-  const { tamanho = 10, gap = 7 } = opcoes;
+  const { tamanho = 10, gap = 7, cor: corPadrao = ACAO } = opcoes;
   itens.forEach((item, indice) => {
-    const cor = item.cor ?? ACAO;
+    const cor = item.cor ?? corPadrao;
     const linhas = quebrar(item.texto, fontes.corpo, tamanho, LARGURA_TEXTO - 26);
     const alturaBloco = linhas.length * tamanho * 1.38;
     selo(indice + 1, MARGEM + 9, y - 6.5, cor);
@@ -266,6 +332,16 @@ function lista(itens, opcoes = {}) {
     }
     y -= alturaBloco + gap;
   });
+}
+
+/**
+ * A lista que explica a tela logo acima. Vai no vermelho das marcações porque o
+ * número desenhado na imagem e o número desta lista precisam ser, para o olho, a
+ * mesma coisa. Numeração de tópico do documento continua azul: são duas conversas
+ * diferentes e não podem sair da mesma cor.
+ */
+function legenda(itens, opcoes = {}) {
+  lista(itens, { tamanho: 9.8, ...opcoes, cor: MARCA });
 }
 
 function marcadores(itens, opcoes = {}) {
@@ -382,13 +458,23 @@ const alturaLink = 54;
 y -= alturaLink;
 pagina.drawRectangle({ x: MARGEM, y, width: LARGURA_TEXTO, height: alturaLink, color: PALE, borderColor: BORDA, borderWidth: 0.8 });
 pagina.drawText("O link do atendimento", { x: MARGEM + 16, y: y + alturaLink - 20, size: 9.5, font: fontes.corpoForte, color: ACAO });
-pagina.drawText("https://pastavisa.vercel.app/planner", {
-  x: MARGEM + 16,
-  y: y + 14,
-  size: 14,
-  font: fontes.display,
-  color: NAVY,
+pagina.drawText(LINK, { x: MARGEM + 16, y: y + 14, size: 14, font: fontes.display, color: ACAO });
+const larguraLinkCapa = fontes.display.widthOfTextAtSize(LINK, 14);
+pagina.drawLine({
+  start: { x: MARGEM + 16, y: y + 10 },
+  end: { x: MARGEM + 16 + larguraLinkCapa, y: y + 10 },
+  thickness: 0.9,
+  color: ACAO,
 });
+const dicaLink = "clique para abrir";
+pagina.drawText(dicaLink, {
+  x: A4.largura - MARGEM - 16 - fontes.corpo.widthOfTextAtSize(dicaLink, 9),
+  y: y + 17,
+  size: 9,
+  font: fontes.corpo,
+  color: CINZA,
+});
+link(pagina, MARGEM, y, LARGURA_TEXTO, alturaLink, LINK);
 y -= 20;
 
 texto("O que este link é", { fonte: fontes.display, tamanho: 13, gap: 8 });
@@ -455,7 +541,7 @@ etapas.forEach(([nome, descricao], indice) => {
     pagina.drawText(linha, { x: x + 12, y: linhaY, size: 9, font: fontes.corpo, color: CINZA });
   }
   if (indice < 3) {
-    seta(x + larguraEtapa + 1, y + alturaEtapa / 2, x + larguraEtapa + 7, y + alturaEtapa / 2, BORDA);
+    seta(x + larguraEtapa + 1, y + alturaEtapa / 2, x + larguraEtapa + 7, y + alturaEtapa / 2, BORDA, 1);
   }
 });
 y -= 22;
@@ -486,7 +572,10 @@ aviso(
 novaPagina();
 cabecalho("Etapa 1 de 4");
 faixaEtapa(1, "Cliente e local");
-texto("Só o nome é obrigatório. Município e UF entram no PDF e ajudam a equipe a considerar as regras locais depois.", { cor: CINZA });
+texto(
+  "Só o nome é obrigatório. Município e UF entram no PDF e ajudam a equipe a considerar as regras locais depois. As marcas em vermelho são deste guia, não da tela: cada uma aponta um campo, e o número corresponde à lista logo abaixo.",
+  { cor: CINZA }
+);
 
 await tela(
   "etapa-1-cliente",
@@ -499,7 +588,7 @@ await tela(
   { ate: 640 }
 );
 
-lista([
+legenda([
   { texto: "Nome do cliente. Obrigatório, e é o que aparece no PDF. Use o nome que a cliente usa nas redes e na fachada." },
   { texto: "Município do estabelecimento. A equipe técnica pesquisa a legislação local a partir dele." },
   { texto: "UF, só as duas letras. O campo já converte para maiúscula sozinho." },
@@ -525,7 +614,7 @@ await tela(
   { de: 296, ate: 1022 }
 );
 
-lista(
+legenda(
   [
     {
       texto: "Procedimentos realizados. Um por linha. Quanto mais exato o nome, mais certeiro o planejamento — a página seguinte mostra como escrever.",
@@ -537,7 +626,7 @@ lista(
     { texto: "Equipamentos declarados. Opcional, um por linha. É o que traz o POP de gestão e manutenção de equipamentos para a pasta." },
     { texto: "Analisar operação. A análise leva de quinze a quarenta segundos. Não clique duas vezes." },
   ],
-  { tamanho: 9.8, gap: 6 }
+  { gap: 6 }
 );
 
 // ---------------------------------------------------------------- como escrever
@@ -584,8 +673,8 @@ duasColunas(
 aviso(
   "Se a cliente citar algo que a lei não permite, o sistema barra sozinho",
   "PMMA, silicone líquido industrial, câmara de bronzeamento artificial, formol como alisante e preenchedor manipulado em farmácia não geram documento nenhum. Aparece um aviso amarelo para você, e o assunto vai para a equipe técnica antes de qualquer proposta.",
-  VERMELHO,
-  rgb(253 / 255, 240 / 255, 240 / 255)
+  VINHO,
+  VINHO_PALE
 );
 
 aviso(
@@ -607,13 +696,10 @@ await tela("card-procedimentos", [
   { alvo: "caixa", texto: "" },
 ]);
 
-lista(
-  [
-    { texto: "Quantos procedimentos estão valendo, de quantos foram identificados. É este número que define o preço." },
-    { texto: "Desmarque para retirar um procedimento. Ele fica riscado, e os documentos que dependiam só dele saem da lista." },
-  ],
-  { tamanho: 9.8 }
-);
+legenda([
+  { texto: "Quantos procedimentos estão valendo, de quantos foram identificados. É este número que define o preço." },
+  { texto: "Desmarque para retirar um procedimento. Ele fica riscado, e os documentos que dependiam só dele saem da lista." },
+]);
 
 y -= 4;
 texto("Ao desmarcar, o procedimento fica riscado e as contas mudam na hora:", {
@@ -621,7 +707,9 @@ texto("Ao desmarcar, o procedimento fica riscado e as contas mudam na hora:", {
   tamanho: 10,
   gap: 2,
 });
-await tela("card-procedimentos-retirado", [{ alvo: "retirado", texto: "" }, { alvo: "contagem", texto: "" }]);
+await tela("card-procedimentos-retirado", [{ alvo: "retirado", texto: "" }, { alvo: "contagem", texto: "" }], {
+  numerar: false,
+});
 
 novaPagina();
 cabecalho("Etapa 3 de 4");
@@ -630,12 +718,11 @@ texto("A lista mostra tudo o que a equipe vai elaborar para essa operação. Val
 
 await tela("card-documentos", [{ alvo: "contagem", texto: "" }, { alvo: "selo", texto: "" }], { ate: 388 });
 
-lista(
+legenda(
   [
     { texto: "Total de documentos previstos. Além dos POPs de cada procedimento, entram os documentos que toda pasta tem: MBP, PGRSS, plano de segurança do paciente, fichas, termos e planilhas." },
     { texto: "A etiqueta mostra o tipo de cada documento. A lista continua abaixo — role a página para ver tudo com a cliente." },
-  ],
-  { tamanho: 9.8 }
+  ]
 );
 
 // ---------------------------------------------------------------- avisos
@@ -648,7 +735,7 @@ texto(
   { cor: CINZA }
 );
 
-await tela("card-alertas-legislacao", [{ alvo: "titulo", texto: "" }]);
+await tela("card-alertas-legislacao", [{ alvo: "titulo", texto: "" }], { numerar: false });
 
 y += 6;
 titulo("O que fazer com cada tipo de aviso", { tamanho: 14 });
@@ -688,13 +775,12 @@ await tela(
   { de: 314, ate: 950 }
 );
 
-lista(
+legenda(
   [
     { texto: "Escolha o formato com a cliente. O valor de cada um aparece no próprio cartão, então dá para comparar na hora." },
     { texto: "Resumo do pedido: procedimentos, documentos, valor base, adicional por volume e total. O prazo padrão é de quinze dias úteis." },
     { texto: "Baixar PDF. O arquivo salva como pre-planejamento.pdf, na pasta de downloads do seu navegador." },
-  ],
-  { tamanho: 9.8 }
+  ]
 );
 
 // ---------------------------------------------------------------- fechamento
@@ -757,13 +843,17 @@ paginas.forEach((alvo, indice) => {
     font: fontes.corpo,
     color: CINZA,
   });
-  alvo.drawText("Guia do time comercial — Pasta Sanitária", {
-    x: MARGEM,
-    y: 26,
-    size: 8,
-    font: fontes.corpo,
-    color: CINZA,
+  // O endereço no rodapé de todas as páginas: quem imprime o guia e quem lê na tela
+  // acha o link sem voltar à capa, e no leitor ele abre com um clique.
+  alvo.drawText(LINK, { x: MARGEM, y: 26, size: 8, font: fontes.corpoForte, color: ACAO });
+  const larguraRodape = fontes.corpoForte.widthOfTextAtSize(LINK, 8);
+  alvo.drawLine({
+    start: { x: MARGEM, y: 23.6 },
+    end: { x: MARGEM + larguraRodape, y: 23.6 },
+    thickness: 0.5,
+    color: ACAO,
   });
+  link(alvo, MARGEM - 2, 22, larguraRodape + 4, 14, LINK);
 });
 
 doc.setTitle("Como usar o pré-planejamento comercial — guia do time comercial");

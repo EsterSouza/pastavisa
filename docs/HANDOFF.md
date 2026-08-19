@@ -1801,6 +1801,17 @@ para fins estéticos" — redação que o filtro de texto não reconhecia. A res
 cliente. Consertado em `a6a28b0`: a classificação passou a ser pelo termo proibido que o próprio cliente
 escreveu, e o token assinado já sai sem esses alertas.
 
+**Revisão visual — 19/08/2026.** A primeira versão marcava a tela em azul, a mesma cor da numeração de tópico
+do documento e do próprio painel: nada saltava. As marcações passaram para vermelho vivo, que é a única cor do
+guia sem outro uso, e a legenda numerada abaixo de cada tela passou a sair na mesma cor, para que o número
+desenhado na imagem e o número do texto sejam a mesma coisa aos olhos (`legenda()`). A numeração de tópico
+continua azul. Duas correções sustentam a marcação: contorno branco por baixo do vermelho, porque a mesma caixa
+cai ora sobre campo claro ora sobre o azul do cartão; e desenho em duas passadas, todas as caixas antes dos
+números, com checagem de colisão — o número de "Município" pousava dentro do campo "Nome do cliente". O vermelho
+da marcação obrigou o bloco de proibidos por lei a mudar para vinho escuro, para não disputar. O endereço do
+planner agora é anotação clicável na capa e no rodapé de todas as páginas. Regras registradas em
+`scripts/tutorial-comercial/README.md`.
+
 ---
 
 ## PV-010 — Redesign interno principal
