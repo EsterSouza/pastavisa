@@ -1777,6 +1777,32 @@ artificial" nem "legislação sanitária". A ressalva oficial de rodapé continu
 
 ---
 
+#### Tutorial do planner para o comercial — 19/08/2026
+
+`docs/tutorial-planner-comercial.pdf`, 10 páginas, com as telas reais do `/planner` em produção e as
+marcações desenhadas por cima. Gerado por `scripts/tutorial-comercial/` — dois scripts de captura em
+Playwright e um montador em pdf-lib, com as fontes e a logo do manual de marca.
+
+**Por que gerado e não desenhado à mão.** As coordenadas de cada campo vêm do próprio navegador
+(`boundingBox`), então a seta cai no campo certo mesmo quando a tela muda de altura. Quando a interface do
+planner mudar, refazer as capturas basta para o tutorial acompanhar — não há posição de seta escrita à mão
+para conferir. O montador aborta quando uma tela não cabe na página, em vez de deixar a imagem passar por
+cima do rodapé.
+
+**Custo de rodar.** Cada script de captura faz uma análise real em produção, que é chamada paga e conta no
+limite de 10 requisições por IP a cada 5 minutos.
+
+**O que o tutorial cobre.** As quatro etapas campo a campo; como escrever os procedimentos, com a tabela do
+que pode ser escrito como apelido e do que ele vai perguntar; o que fazer com cada tipo de aviso amarelo e a
+marca "não sai no PDF"; formato, preço e download; e as quatro mensagens de erro com o que significam.
+
+**Defeito que a captura achou.** Ao montar a página dos avisos, a análise devolveu "PMMA não pode ser usado
+para fins estéticos" — redação que o filtro de texto não reconhecia. A ressalva teria ido para o PDF do
+cliente. Consertado em `a6a28b0`: a classificação passou a ser pelo termo proibido que o próprio cliente
+escreveu, e o token assinado já sai sem esses alertas.
+
+---
+
 ## PV-010 — Redesign interno principal
 
 **Modelo:** gpt-5.6-terra · **Esforço:** alto · **Prioridade:** P2 · **Depende de:** PV-005, PV-008

@@ -250,12 +250,19 @@ export async function storageFileExists(ref?: string | null): Promise<boolean> {
   }
 }
 
-export async function deleteGeneratedDocx(ref?: string | null): Promise<void> {
+/**
+ * Remove um arquivo administrado, e só dele: a área é literal no código de quem
+ * chama, nunca vem do pedido. Uma referência que aponte para fora da área — por
+ * dado corrompido no banco ou por caminho forjado — faz a função lançar em vez
+ * de apagar. É a mesma trava que o `deleteGeneratedDocx` já tinha desde o
+ * PV-004, agora valendo para todas as áreas.
+ */
+async function deleteManagedStorageFile(ref: string | null | undefined, folder: StorageFolder): Promise<void> {
   if (!ref) return;
 
   if (isSupabaseReference(ref)) {
-    if (!isManagedStorageReference(ref, "output")) {
-      throw new Error("Referência de arquivo gerado fora do armazenamento permitido");
+    if (!isManagedStorageReference(ref, folder)) {
+      throw new Error(`Referência de arquivo fora do armazenamento permitido (${folder})`);
     }
     const { bucket, filePath } = parseSupabaseRef(ref);
     const supabase = supabaseAdminClient();
@@ -264,12 +271,35 @@ export async function deleteGeneratedDocx(ref?: string | null): Promise<void> {
     return;
   }
 
-  const outputRoot = path.resolve(process.cwd(), "storage", "output");
+  const folderRoot = path.resolve(process.cwd(), "storage", folder);
   const localPath = path.resolve(resolveProjectPath(ref));
-  if (localPath !== outputRoot && !localPath.startsWith(`${outputRoot}${path.sep}`)) {
-    throw new Error("Referência de arquivo gerado fora do diretório permitido");
+  if (localPath !== folderRoot && !localPath.startsWith(`${folderRoot}${path.sep}`)) {
+    throw new Error(`Referência de arquivo fora do diretório permitido (${folder})`);
   }
   if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+}
+
+/** Documento produzido pelo motor: vive em `storage/output`. */
+export async function deleteGeneratedDocx(ref?: string | null): Promise<void> {
+  return deleteManagedStorageFile(ref, "output");
+}
+
+/**
+ * Documento que o cliente enviou: vive em `storage/uploads`. Sai junto com a
+ * linha que aponta para ele — sem isto, o original sobrevive à exclusão da
+ * pasta e ocupa cota para sempre, que é o que o PV-026 mediu em 19/08.
+ */
+export async function deleteUploadedFile(ref?: string | null): Promise<void> {
+  return deleteManagedStorageFile(ref, "uploads");
+}
+
+/**
+ * Logo do cliente: vive em `storage/logos`. Atenção ao chamar — `duplicar`
+ * copia o `clienteLogoPath` para a pasta nova, então o mesmo arquivo pode ter
+ * mais de um dono. Confira que ninguém mais aponta para ele antes de remover.
+ */
+export async function deleteLogoFile(ref?: string | null): Promise<void> {
+  return deleteManagedStorageFile(ref, "logos");
 }
 
 export async function materializeStorageFile(ref?: string | null): Promise<string> {

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { deleteGeneratedDocx, saveStorageBuffer, safeStorageFileName } from "@/lib/file-storage";
+import {
+  deleteGeneratedDocx,
+  deleteUploadedFile,
+  saveStorageBuffer,
+  safeStorageFileName,
+} from "@/lib/file-storage";
 import { requireAdmin } from "@/lib/auth/authorization";
 
 export const runtime = "nodejs";
@@ -100,7 +105,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     const docs = await prisma.documentoUpload.findMany({
       where: { id: { in: ids }, pastaId: params.id },
-      select: { id: true, outputPath: true, versoes: { select: { outputPath: true } } },
+      select: {
+        id: true,
+        uploadPath: true,
+        outputPath: true,
+        versoes: { select: { outputPath: true } },
+      },
     });
     if (docs.length !== ids.length) {
       return NextResponse.json(
@@ -109,15 +119,25 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       );
     }
 
-    // uploadPath lives under "uploads", not "output", so it's intentionally left
-    // alone here (deleteGeneratedDocx only allows removing files under storage/output).
     const outputPaths = new Set(
       docs.flatMap((doc) => [
         ...(doc.outputPath ? [doc.outputPath] : []),
         ...doc.versoes.map((versao) => versao.outputPath),
       ])
     );
-    await Promise.all(Array.from(outputPaths).map((outputPath) => deleteGeneratedDocx(outputPath)));
+    // O original enviado também sai. Ficava para trás até 19/08 porque a remoção
+    // só alcançava `storage/output`; o documento do cliente sobrevivia à
+    // exclusão da linha, sem nada apontando para ele. Agora `deleteUploadedFile`
+    // tem a mesma trava de área, só que sobre `storage/uploads`.
+    const uploadPaths = new Set(
+      docs.flatMap((doc) => (doc.uploadPath ? [doc.uploadPath] : []))
+    );
+    // Falha ao apagar arquivo derruba a exclusão inteira, de propósito: melhor o
+    // documento continuar na lista do que a linha sumir e o arquivo ficar órfão.
+    await Promise.all([
+      ...Array.from(outputPaths).map((outputPath) => deleteGeneratedDocx(outputPath)),
+      ...Array.from(uploadPaths).map((uploadPath) => deleteUploadedFile(uploadPath)),
+    ]);
     const removed = await prisma.documentoUpload.deleteMany({
       where: { id: { in: ids }, pastaId: params.id },
     });
