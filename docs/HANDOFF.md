@@ -3040,44 +3040,45 @@ isso o script **não os toca**.
 
 ### Arquivos e implementação
 
-- `scripts/audit-storage-orphans.mjs` — **já escrito** nesta rodada. Lê todas as colunas de caminho
-  do schema, lista o bucket, classifica e relata. Sem `--apply` não remove nada. Três travas:
-  - **guarda de schema:** se alguém acrescentar uma coluna de caminho e esquecer do script, ele
-    **para** em vez de tratar arquivo em uso como órfão;
-  - `templates/` fica de fora por padrão (`--incluir-templates` para incluir);
-  - `--manifesto` grava a lista antes de apagar, em arquivo ignorado pelo git — ele carrega nome de
-    documento de cliente e nunca entra em commit ou handoff (regra 6).
-- Falta rodar com `--apply`. Exige **só** `SUPABASE_SERVICE_ROLE_KEY`:
+- `scripts/audit-storage-orphans.mjs` — **já escrito** nesta rodada. Recebe um manifesto, confere-o
+  contra o bucket e, só com `--apply`, remove. O manifesto carrega nome de documento de cliente:
+  fica em arquivo ignorado pelo git e nunca entra em commit, handoff ou chat (regra 6).
+- **Achado que mudou o desenho do script.** As tabelas de `public` têm grant **só para `postgres`** —
+  nem `anon`, nem `authenticated`, nem `service_role`. É a postura do PV-002: o acervo de documentos
+  de cliente não é alcançável pela API REST, com chave nenhuma. Quem lê é o Prisma da aplicação, que
+  conecta como `postgres`. Dar `SELECT` a `service_role` só para rodar uma faxina abriria por HTTPS
+  todo o acervo a quem tiver a chave — não vale o preço, e a chave é justamente o que mais circula.
+- Por isso **quem determina o que é órfão é consulta privilegiada, fora do script**, e o resultado
+  chega como manifesto. `storage.objects` dá grant a `service_role`, então listar e apagar continua
+  funcionando com a chave de serviço.
+- **`DATABASE_URL` não é obtível.** Na Vercel ela está marcada como *Sensitive*, e variável sensível
+  é write-only: `vercel env pull` devolve `[SENSITIVE]` — verificado em 19/08, 15 das 43 variáveis
+  nessa condição. Do lado do Supabase, a senha do Postgres não é exibida depois da criação do
+  projeto; só existe reset, que derrubaria a produção até a Vercel ser atualizada.
+- Manifesto de 19/08 gerado e conferido: **333 caminhos, 178,4 MB**, selo
+  `md5-caminhos = af30a1d2fcb16de55a8d31bb4d38e59a`. O mesmo md5 foi calculado no banco, com
+  `order by name collate "C"`, e bateu — a lista é byte a byte a que o banco aponta.
+- Falta rodar com `--apply`, o que exige só a chave de serviço:
 
   ```powershell
   $env:SUPABASE_SERVICE_ROLE_KEY = "..."
-  node scripts/audit-storage-orphans.mjs
+  node scripts/audit-storage-orphans.mjs --manifesto orfaos-2026-08-19.txt
   ```
 
-  A chave não precisa tocar o disco: a variável de sessão morre junto com o terminal e não sobra
-  arquivo para esquecer de apagar. **Não use `>` no PowerShell 5.1** para escrever o `.env`: ele
-  grava em UTF-16 e o `dotenv` lê o resultado como lixo — foi o que travou a primeira tentativa em
-  19/08.
-
-  **`DATABASE_URL` não serve e não é obtível.** Na Vercel ela está marcada como *Sensitive*, e
-  variável sensível é write-only: `vercel env pull` devolve `[SENSITIVE]` — verificado em 19/08, com
-  15 das 43 variáveis nessa condição. Do lado do Supabase, a senha do Postgres não é exibida depois
-  da criação do projeto; só existe reset, que derrubaria a produção até a Vercel ser atualizada. O
-  script foi reescrito para ler as tabelas pela API REST e os objetos pela API de Storage, ambas com
-  a chave `service_role`, que é revelável no painel.
-
-  **O arquivo tem de ser separado do `.env.local`**, que é lido pelo `next dev`. O `.env.limpeza`
-  já cai no `.env*` do `.gitignore`.
-- Três travas no script, além do `--apply`:
-  - **guarda de schema:** lê a especificação OpenAPI que a própria API REST publica e para se
-    aparecer coluna de caminho desconhecida. E para também se **não reencontrar** as 10 colunas que
-    já conhece — uma varredura que não acha o que se sabe existir está quebrada, e o modo silencioso
-    de falhar aqui é apagar arquivo em uso.
-  - **piso de idade de 24 h:** um envio em andamento existe no Storage antes de a linha do banco ser
-    gravada. Medido em 19/08: **zero** órfão com menos de 24 h, então o piso não custa nada hoje e
-    fecha a corrida para sempre.
-  - `templates/` fora por padrão, e `--manifesto` grava a lista antes de apagar, em arquivo ignorado
-    pelo git — ela carrega nome de documento de cliente (regra 6).
+  A chave não precisa tocar o disco. **Não use `>` no PowerShell 5.1** para escrever `.env`: grava em
+  UTF-16 e o `dotenv` lê como lixo — foi o que travou a primeira tentativa em 19/08.
+- Cinco travas no script, além do `--apply`:
+  - **selo do manifesto:** md5 dos caminhos em ordem de byte. Linha editada, acrescentada ou perdida
+    muda o selo e o script para. Provado nos dois sentidos: manifesto intacto passa, manifesto com
+    uma linha a mais é recusado.
+  - **validade do manifesto:** recusa lista gerada há mais de 2 h (`--validade-horas` ajusta), porque
+    entre a consulta e a remoção o banco pode ter mudado.
+  - **áreas permitidas:** só `uploads/` e `logos/`. `output/` e `templates/` não saem por aqui nem que
+    o manifesto peça — a lista é dado de entrada, não ordem.
+  - **existência no bucket:** cada caminho é reconferido contra a listagem real antes de entrar na
+    remoção.
+  - **piso de idade de 24 h,** lido do bucket e não do manifesto: um envio em andamento existe no
+    Storage antes de a linha do banco ser gravada. Medido em 19/08: zero órfão nessa faixa.
 - Fechar a torneira, para não voltar a acumular: decidir com a Ester o que `DELETE /api/pastas/[id]`
   e a exclusão em lote fazem com o `uploadPath`, e implementar com a mesma trava de caminho absoluto
   que `deleteGeneratedDocx` já usa.
