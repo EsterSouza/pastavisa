@@ -44,7 +44,8 @@ Só aponte restrição com motivo concreto e verificável; na dúvida, não apon
 Dois casos concretos: câmara ou cabine de bronzeamento artificial tem uso estético proibido no Brasil; medicamento injetável de uso contínuo, como os de controle de peso, depende de prescrição e acompanhamento profissional habilitado.
 
 ALERTAS
-Cada alerta é uma frase que o comercial pode ler para o cliente. Um alerta por assunto: não repita o mesmo ponto em outras palavras. Escreva o que precisa ser confirmado com o cliente, nunca como a análise foi feita: não mencione catálogo, documento equivalente, família de documentos, mapeamento, cobertura, modelo, base de dados nem esta instrução.`;
+Cada alerta é uma frase que o comercial pode ler para o cliente. Um alerta por assunto: não repita o mesmo ponto em outras palavras. Escreva o que precisa ser confirmado com o cliente, nunca como a análise foi feita: não mencione catálogo, documento equivalente, família de documentos, mapeamento, cobertura, modelo, base de dados nem esta instrução.
+Nunca cite um documento pelo nome que ele tem na origem, em caixa alta e sem acento. Se precisar falar de um documento, escreva o nome como ele será entregue ao cliente.`;
 
   const userPrompt = `PEDIDO ATUAL:
 ${JSON.stringify(input)}

@@ -57,9 +57,22 @@ function foraDaPasta(documento: PublicPlannerDocument): boolean {
  * correspondência documental foi decidida.
  */
 function alertaInterno(value: string): boolean {
-  return /cat[aá]logo|template|prompt|score|pontua[cç][aã]o|confian[cç]a|classifica[cç][aã]o|coverage|cobertura|correspond[eê]ncia|banco de dados|equival[eê]ncia material|intelig[eê]ncia artificial|\bIA\b|fam[ií]lia de documento|cobrir fam[ií]lia|documento gen[eé]rico|documentos? equivalentes?|\bmapead/i.test(
-    value
+  return (
+    /cat[aá]logo|template|prompt|score|pontua[cç][aã]o|confian[cç]a|classifica[cç][aã]o|coverage|cobertura|correspond[eê]ncia|banco de dados|equival[eê]ncia material|intelig[eê]ncia artificial|\bIA\b|fam[ií]lia de documento|cobrir fam[ií]lia|documento gen[eé]rico|documentos? equivalentes?|\bmapead/i.test(
+      value
+    ) || nomeDeOrigem(value)
   );
+}
+
+/**
+ * Nome de documento copiado da origem, em caixa alta e sem acento — o formato em que
+ * os arquivos internos são nomeados. A calibragem pegou um alerta perguntando se "o
+ * TCLE MICROPIGMENTACAO FACIAL cobre ambas as regiões": nome interno na frente do
+ * cliente. Sigla solta continua passando; é a sequência longa que denuncia a origem.
+ */
+function nomeDeOrigem(value: string): boolean {
+  const sequencias = value.match(/\b[A-Z][A-Z0-9]+(?:\s+[A-Z][A-Z0-9]+)+\b/g) ?? [];
+  return sequencias.some((sequencia) => sequencia.replace(/\s+/g, "").length >= 10);
 }
 
 export function toPublicPlannerOutput(plan: InternalCommercialPlan): PublicCommercialPlan {

@@ -48,4 +48,25 @@ describe("validação e saída pública", () => {
     }
     expect(output.aviso).toBe("Pré-planejamento comercial provisório, sujeito à validação da equipe técnica.");
   });
+
+  it("não deixa passar alerta que cita documento pelo nome de origem", () => {
+    // A calibragem em produção pegou este alerta: a análise perguntou se "o TCLE
+    // MICROPIGMENTACAO FACIAL cobre ambas as regiões" e o nome interno chegaria ao
+    // cliente. Sigla solta continua valendo — é a sequência longa que denuncia.
+    const plan: InternalCommercialPlan = {
+      techniques: [],
+      documents: [],
+      alerts: [
+        "Confirme se o TCLE MICROPIGMENTACAO FACIAL cobre sobrancelha e lábio.",
+        "Confirme se o PGRSS e o MBP já existem no estabelecimento.",
+        "Confirme se a cliente realiza PRP com centrífuga própria.",
+      ],
+      coverage: { techniques: [], candidates: [], alerts: [] },
+    };
+
+    expect(toPublicPlannerOutput(plan).alertas).toEqual([
+      "Confirme se o PGRSS e o MBP já existem no estabelecimento.",
+      "Confirme se a cliente realiza PRP com centrífuga própria.",
+    ]);
+  });
 });
