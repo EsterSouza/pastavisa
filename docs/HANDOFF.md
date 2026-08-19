@@ -3049,10 +3049,15 @@ isso o script **não os toca**.
     documento de cliente e nunca entra em commit ou handoff (regra 6).
 - Falta rodar com `--apply`. Exige **só** `SUPABASE_SERVICE_ROLE_KEY`:
 
-  ```bash
-  echo "SUPABASE_SERVICE_ROLE_KEY=..." > .env.limpeza
-  node scripts/audit-storage-orphans.mjs --env .env.limpeza
+  ```powershell
+  $env:SUPABASE_SERVICE_ROLE_KEY = "..."
+  node scripts/audit-storage-orphans.mjs
   ```
+
+  A chave não precisa tocar o disco: a variável de sessão morre junto com o terminal e não sobra
+  arquivo para esquecer de apagar. **Não use `>` no PowerShell 5.1** para escrever o `.env`: ele
+  grava em UTF-16 e o `dotenv` lê o resultado como lixo — foi o que travou a primeira tentativa em
+  19/08.
 
   **`DATABASE_URL` não serve e não é obtível.** Na Vercel ela está marcada como *Sensitive*, e
   variável sensível é write-only: `vercel env pull` devolve `[SENSITIVE]` — verificado em 19/08, com
@@ -3078,6 +3083,15 @@ isso o script **não os toca**.
   que `deleteGeneratedDocx` já usa.
 - Decidir a retenção do histórico e do `output/` entregue: quantas versões guardar, e por quanto
   tempo depois da entrega. Sem isso, os 426,9 MB só crescem — 6 pastas já produziram tudo isso.
+
+### Segurança da chave
+
+A `service_role` passa por cima de todo o RLS: ela lê e apaga qualquer documento de cliente. Vale
+para ela o que a regra 6 já diz — nunca em commit, handoff, log, screenshot **nem em chat**. Se ela
+aparecer em algum desses lugares, é considerada vazada e tem de ser trocada, o que envolve atualizar
+`SUPABASE_SERVICE_ROLE_KEY` na Vercel e redeployar, senão a produção para.
+
+Precedente: em 19/08 a chave legada foi colada no chat e precisou ser rotacionada.
 
 ### Testes e aceite
 

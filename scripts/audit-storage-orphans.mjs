@@ -38,6 +38,17 @@
  * `next dev`, e chave de serviço não tem por que ficar ao alcance do servidor de
  * desenvolvimento.
  *
+ * ### Sem arquivo nenhum — o caminho recomendado
+ *
+ * A chave não precisa tocar o disco. No PowerShell:
+ *
+ *   $env:SUPABASE_SERVICE_ROLE_KEY = "..."
+ *   node scripts/audit-storage-orphans.mjs
+ *
+ * A variável morre junto com o terminal, e não sobra arquivo para esquecer de
+ * apagar. Cuidado com `>` no PowerShell 5.1: ele grava em UTF-16 e o `dotenv`
+ * lê o resultado como lixo. Se for mesmo usar arquivo, `Set-Content -Encoding utf8`.
+ *
  * Sem `--apply` nada é removido: o padrão é sempre a leitura.
  */
 
@@ -93,6 +104,27 @@ if (!supabaseUrl || !serviceRoleKey) {
   );
   process.exit(1);
 }
+// A chave publicável e a de serviço são fáceis de trocar, e a publicável não lê
+// nada aqui — RLS bloqueia tudo. Sem esta conferência o erro apareceria como
+// "0 objetos, 0 referenciados", que é indistinguível de bucket limpo.
+const papel = (() => {
+  const partes = serviceRoleKey.split(".");
+  if (partes.length !== 3) return null;
+  try {
+    return JSON.parse(Buffer.from(partes[1], "base64url").toString("utf8")).role ?? null;
+  } catch {
+    return null;
+  }
+})();
+if (papel && papel !== "service_role") {
+  console.error(
+    `A chave informada tem papel "${papel}", nao "service_role". Ela nao enxerga as tabelas.
+` +
+      "Pegue a de servico no painel: Project Settings -> API Keys -> service_role."
+  );
+  process.exit(1);
+}
+
 if (/^\[SENSITIVE\]$/.test(serviceRoleKey)) {
   console.error(
     "SUPABASE_SERVICE_ROLE_KEY veio como [SENSITIVE]: a Vercel nao devolve variavel sensivel.\n" +
