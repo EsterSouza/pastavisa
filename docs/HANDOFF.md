@@ -1640,6 +1640,70 @@ segurança; `extraction.test.ts` cobre o corte fora do escopo e a não repetiç�
 
 ---
 
+#### Vocabulário ampliado com pesquisa de mercado — 19/08/2026
+
+A Ester pediu mais nomes comerciais, apelidos, abreviações, nomes de equipamento e técnicas colhidos na
+internet, para entrar na calibragem. O vocabulário anterior saía do acervo e das três clientes reais; faltava
+o que o mercado inventa e publica.
+
+**O que entrou.** `POPULAR_TERMS` vai de 55 para 88 verbetes:
+
+- **marca que o cliente escreve no lugar da técnica** — toxinas (Dysport, Xeomin, Prosigne, Botulift, Nabota,
+  Letybo, Botulim), preenchedores (Juvederm, Restylane, Belotero, Teosyal, Rennova), bioestimuladores e seus
+  ativos (PLLA, hidroxiapatita de cálcio, policaprolactona), regenerativos (Rejuran, Nucleofill, Sunekos);
+- **técnicas que faltavam** — hidrodermoabrasão, peeling de carbono, microcorrentes, eletrolifting,
+  micropigmentação capilar, avaliação tricológica, bioplastia com PMMA, terapia injetável para controle de
+  peso, reflexologia podal, massagem com pedras, bandagem elástica, argiloterapia;
+- **micropigmentação por técnica** — microblading, nanoblading, shadow, soft shadow, tebori, dermopigmentação,
+  nanopigmentação, BB lips;
+- **salão e cuidados pessoais** — depilação com cera, banho de lua, bronzeamento por pigmentação tópica,
+  laminação de sobrancelhas, lash lifting, manicure e pedicure, alongamento de unhas, alisamento capilar,
+  coloração capilar.
+
+**O falso amigo.** "Botox capilar" e "lash botox" não são toxina botulínica — são tratamento de cabelo e de
+cílios. Sem isso, um salão declarando "botox capilar" ganharia POP e TCLE de injetável, com refrigerador
+clínico e conduta em oclusão vascular na pasta.
+
+**Aparelho, em dois níveis.** O de função única entra como técnica declarada, porque quem escreve
+"Ultraformer" está declarando ultrassom microfocado — o mesmo vale para CoolSculpting, Lavieen, Spectra,
+Soprano, Lightsheer, LPG, HydraFacial, Dermapen. O multifunção e o nome de fabricante ficam em
+`EQUIPMENT_TERMS` e viram pergunta: Heccus, Acrus, Hooke, Artis, Etherea, Fotona, Harmony, e as marcas
+Ibramed, HTM, Tonederm, Medical San, Bioset, KLD.
+
+**Ambiguidade.** `AMBIGUOUS_TERMS` vai de 12 para 18. Entram fio a fio, glow, hidra, clareamento, bronzeamento,
+spa e harmonização. Saiu "preenchimento", que estava nas duas listas ao mesmo tempo — instrução contraditória
+que ninguém tinha percebido.
+
+**O teste que faltava.** `tests/commercial-planner/vocabulary.test.ts` barra a contradição, que é o risco de
+uma lista que só cresce: apelido repetido em duas linhas, termo que uma lista manda nomear e a outra manda
+perguntar, aparelho tratado como técnica e como pergunta ao mesmo tempo, e nome técnico que cai fora do escopo
+da pasta. Foi ele que pegou os conflitos de "preenchimento" e de "harmonização".
+
+**Resultado em produção.**
+
+| caso | escrita da cliente | resultado |
+| --- | --- | --- |
+| marca no lugar da técnica | aplico dysport, sculptra, juvederm e rejuran | 4 de 4, sem nenhum alerta |
+| aparelho de função única | trabalho com ultraformer e coolsculpting | 2 de 2 |
+| aparelho multifunção | tenho heccus, acrus e aparelhos da ibramed | nenhuma técnica; 3 perguntas nomeando cada aparelho |
+| salão de beleza | manicure, pedicure, escova progressiva, botox capilar, design com henna, lash lifting | 5 de 5, nenhuma virou toxina; pergunta se a progressiva usa formol |
+| micropigmentação | microblading, nanoblading, shadow e micro labial | consolidado em Micropigmentação |
+| ambiguidade nova | fio a fio, glow, spa dos pés e clareamento | 3 perguntas, nenhum palpite |
+
+**Vazamento achado pela calibragem.** O caso de micropigmentação devolveu um alerta perguntando se "o TCLE
+MICROPIGMENTACAO FACIAL cobre ambas as regiões" — o nome do arquivo de origem, em caixa alta e sem acento, na
+frente do cliente. O filtro de alerta interno só olhava vocabulário de mecanismo (catálogo, template, score) e
+não pegava um nome copiado da base. Agora `nomeDeOrigem` barra sequência longa de palavras em caixa alta;
+sigla solta continua passando, porque PGRSS, MBP e PRP são o vocabulário normal do comercial. Depois do
+conserto o mesmo caso voltou sem nenhum alerta.
+
+**Ressalvas para a Ester decidir.** Três verbetes foram incluídos por serem comuns no mercado, não por estarem
+no acervo: bioplastia com PMMA, terapia injetável para controle de peso (caneta emagrecedora) e os serviços de
+salão de cabeleireiro. Se algum deles não deve gerar documento nesta pasta, o conserto é tirar a linha — ou
+movê-la para `FORA_DO_ESCOPO`, se for para barrar de vez.
+
+---
+
 ## PV-010 — Redesign interno principal
 
 **Modelo:** gpt-5.6-terra · **Esforço:** alto · **Prioridade:** P2 · **Depende de:** PV-005, PV-008
