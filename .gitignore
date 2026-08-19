@@ -66,3 +66,7 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Manifesto de arquivos orfaos do Storage (PV-026): carrega nome de documento
+# de cliente e nunca entra no repositorio.
+/orfaos-*.txt

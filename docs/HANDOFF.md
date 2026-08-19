@@ -420,7 +420,7 @@ esta seção que diz se o card fechou.
 | PV-023 | Base unificada de legislação | **Concluído** | Entregue em `20c2529`, `e048f48`, `1e124ab`. O seed virou projeção de `@visa/legislacao` (47 → 119 atos). Falta só sincronizar a produção do InspecVISA, que é card de lá. |
 | PV-024 | Link do planner para o comercial | **Concluído** | Campo de cópia no menu interno (`d378356`). Não virou item de navegação: `/planner` é público e sem login. |
 | PV-025 | Rodada autenticada de homologação | Pendente | Resto do PV-012. As specs existem e estão verdes na parte anônima; falta rodar com conta QA. |
-| PV-026 | Documento original nunca sai do Storage | Pendente | Achado no PV-012. Excluir a pasta apaga as saídas e deixa o arquivo enviado pelo cliente. |
+| PV-026 | Limpeza e retenção do Supabase Storage | Pendente | **P1 custo.** 178,4 MB (25% do bucket) sem referência no banco, medidos em 19/08. Auditor escrito; falta rodar com `--apply` e decidir a retenção. |
 | PV-027 | Teto do planner é por IP, não por atendimento | Pendente | Achado no PV-012. Equipe atrás de um mesmo IP divide 10 requisições a cada 5 minutos. |
 
 Contagem, sobre 28 cards: **17 concluídos**, **3 parciais** (PV-012, PV-013 encerrado, PV-017),
@@ -478,7 +478,7 @@ card bloqueado.**
 | 3 | PV-021 | Aceitar pendência de dado faltante | P2 produto | médio | gpt-5.6-terra | — |
 | 4 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
 | 5 | PV-022 | Identificação e concordância no template | P2 produto | alto | gpt-5.6-sol | — (PV-011 satisfeito) |
-| 6 | PV-026 | Documento original nunca sai do Storage | P2 dado pessoal | médio | gpt-5.6-sol | — |
+| 2 | PV-026 | Limpeza e retenção do Supabase Storage | P1 custo | médio | gpt-5.6-sol | — |
 | 7 | PV-027 | Teto do planner é por IP, não por atendimento | P3 | baixo | gpt-5.6-terra | — |
 | 8 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
 | 7 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
@@ -2026,7 +2026,8 @@ Na E2E autenticada a limpeza está no `afterAll` e roda mesmo se um passo do mei
 - **PV-026** — o documento original enviado nunca sai do Storage. `DELETE /api/pastas/[id]` remove
   as saídas, mas o `uploadPath` fica: `deleteGeneratedDocx` só apaga sob `storage/output`. É
   deliberado no código, e mesmo assim significa que documento de cliente sobrevive à exclusão da
-  pasta.
+  pasta. **Medido em seguida, no próprio 19/08: são 178,4 MB, 25% do bucket.** O card virou P1 de
+  custo — ver PV-026.
 - **PV-027** — o limite do firewall é por IP e conta `analisar` e `pdf` juntos. Uma equipe comercial
   atrás de um mesmo IP divide 10 requisições a cada 5 minutos.
 
@@ -2925,46 +2926,81 @@ Este card é rodá-las, ler o que elas acharem e consertar.
 
 ---
 
-## PV-026 — Documento original nunca sai do Storage
+## PV-026 — Limpeza e retenção do Supabase Storage
 
-**Modelo:** gpt-5.6-sol · **Esforço:** médio · **Prioridade:** P2 dado pessoal · **Depende de:** —
-**Resultado:** excluir uma pasta apaga também o que o cliente enviou.
+**Modelo:** gpt-5.6-sol · **Esforço:** médio · **Prioridade:** P1 custo · **Depende de:** —
+**Resultado:** o Storage guarda o que está em uso, e nada além disso.
 
-### Contexto
+> **Prioridade subiu para P1 em 19/08**, a pedido da Ester: o projeto estourou o limite do plano
+> grátis do Supabase e hoje paga o Pro por causa desse acervo. Deixou de ser higiene e virou conta.
 
-Achado no PV-012, ao provar a limpeza de QA. `DELETE /api/pastas/[id]` junta os `outputPath` dos
-documentos e das versões e chama `deleteGeneratedDocx` em cada um — mas o `uploadPath`, que é o
-arquivo original enviado pelo cliente, fica de fora. O mesmo vale para a exclusão em lote de
-`uploads-corrigidos`, que inclusive **documenta** a escolha em comentário: `deleteGeneratedDocx` só
-permite remover sob `storage/output`, e o upload vive sob `storage/uploads`.
+### Contexto — medido em 19/08/2026
 
-É deliberado e tem uma razão defensável — não apagar por engano o original de onde tudo sai. A
-consequência, porém, é que o `.docx` de um cliente sobrevive à exclusão da pasta dele, sem nada na
-interface dizendo isso. Em documento de cliente de vigilância sanitária, isso é retenção de dado.
+O banco de dados **não é o problema**: 20 MB, com 6 pastas. O que consome cota é o **Storage: 713 MB
+em 1.314 objetos**, no bucket `pasta-visa`.
 
-Não é um bug a consertar às pressas: é uma decisão de produto a tomar com a Ester.
+| O que é | Objetos | Tamanho | Pode sair? |
+|---|---:|---:|---|
+| `output/` em uso — documento vivo de pasta existente | 579 | 426,9 MB | só por política de retenção |
+| `uploads/` órfão — **documento excluído, pasta ainda existe** | 184 | 95,4 MB | **sim, lixo** |
+| `uploads/` órfão — **pasta já excluída** | 147 | 82,8 MB | **sim, lixo + retenção de dado** |
+| `templates/` em uso — acervo oficial | 330 | 81,9 MB | nunca |
+| `uploads/` em uso | 66 | 24,9 MB | não |
+| `templates/` órfão | 2 | 0,7 MB | provavelmente envio interrompido |
+| `logos/` em uso | 4 | 0,4 MB | não |
+| `logos/` órfão | 2 | 0,2 MB | sim |
+
+**333 objetos e 178,4 MB — 25% do bucket — não são referenciados por linha nenhuma do banco.** Não
+aparecem em tela, ninguém consegue baixá-los, e mesmo assim ocupam cota e mantêm documento de
+cliente guardado por tempo indeterminado.
+
+As duas fontes de órfão estão nomeadas no código:
+
+1. `DELETE /api/pastas/[id]` junta os `outputPath` e chama `deleteGeneratedDocx` em cada um. O
+   `uploadPath` — o arquivo que o cliente enviou — fica, porque `deleteGeneratedDocx` só remove sob
+   `storage/output`. São os 82,8 MB de pasta já excluída.
+2. A exclusão em lote de `uploads-corrigidos` faz o mesmo, e **documenta a escolha em comentário**.
+   São os 95,4 MB de documento excluído em pasta viva.
+
+Não é bug de descuido: é uma decisão defensável — não apagar por engano o original de onde tudo
+sai — que nunca foi revisitada e cujo custo agora está na fatura.
+
+**Histórico de versões, à parte.** Dentro dos 426,9 MB de `output/`, **176 objetos e 121 MB são
+versões antigas** de documentos que já têm versão atual. São o histórico que alimenta "Restaurar
+original" e a restauração de versão intermediária. Apagá-los é decisão de produto, não faxina, e por
+isso o script **não os toca**.
 
 ### Arquivos e implementação
 
-- Medir primeiro: quantos arquivos em `storage/uploads` (ou no bucket) não têm mais linha
-  correspondente em `DocumentoUpload`. Sem esse número não dá para decidir nada.
-- Levar a decisão à Ester: apagar junto com a pasta, apagar por rotina depois de N dias, ou manter e
-  dizer isso na interface.
-- Implementar o que ela escolher, com a mesma trava de caminho absoluto que `deleteGeneratedDocx` já
-  usa.
+- `scripts/audit-storage-orphans.mjs` — **já escrito** nesta rodada. Lê todas as colunas de caminho
+  do schema, lista o bucket, classifica e relata. Sem `--apply` não remove nada. Três travas:
+  - **guarda de schema:** se alguém acrescentar uma coluna de caminho e esquecer do script, ele
+    **para** em vez de tratar arquivo em uso como órfão;
+  - `templates/` fica de fora por padrão (`--incluir-templates` para incluir);
+  - `--manifesto` grava a lista antes de apagar, em arquivo ignorado pelo git — ele carrega nome de
+    documento de cliente e nunca entra em commit ou handoff (regra 6).
+- Falta rodar com `--apply`. Exige `DATABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`, que são da Ester.
+- Fechar a torneira, para não voltar a acumular: decidir com a Ester o que `DELETE /api/pastas/[id]`
+  e a exclusão em lote fazem com o `uploadPath`, e implementar com a mesma trava de caminho absoluto
+  que `deleteGeneratedDocx` já usa.
+- Decidir a retenção do histórico e do `output/` entregue: quantas versões guardar, e por quanto
+  tempo depois da entrega. Sem isso, os 426,9 MB só crescem — 6 pastas já produziram tudo isso.
 
 ### Testes e aceite
 
 - Teste que exclui uma pasta com upload e afirma o comportamento decidido, seja ele qual for.
 - Se a decisão for apagar: nenhum caminho fora de `storage/` é aceito, provado por teste.
+- Depois do `--apply`, rodar o auditor de novo: zero órfão fora de `templates/`.
+- A medição do bucket entra no handoff antes e depois, para a economia ficar registrada.
 
 ### Fora de escopo
 
-- Backup e retenção do acervo oficial de templates.
+- Backup do acervo oficial de templates.
+- Mudar de provedor ou de plano.
 
 ### Commit
 
-`fix: settle what happens to uploaded originals on delete`
+`fix: stop the Supabase bucket from keeping files nothing points to`
 
 ---
 
