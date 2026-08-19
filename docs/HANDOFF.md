@@ -1,6 +1,6 @@
 # Handoff único — PASTAVISA
 
-**Última atualização:** 19/08/2026 (BRT), após a entrega parcial do PV-012
+**Última atualização:** 19/08/2026 (BRT), após a faxina do Storage no PV-026
 **Repositório:** `EsterSouza/pastavisa`
 **Checkout oficial:** `C:\Saas\PASTAVISA`
 **Branch:** `main`
@@ -420,11 +420,11 @@ esta seção que diz se o card fechou.
 | PV-023 | Base unificada de legislação | **Concluído** | Entregue em `20c2529`, `e048f48`, `1e124ab`. O seed virou projeção de `@visa/legislacao` (47 → 119 atos). Falta só sincronizar a produção do InspecVISA, que é card de lá. |
 | PV-024 | Link do planner para o comercial | **Concluído** | Campo de cópia no menu interno (`d378356`). Não virou item de navegação: `/planner` é público e sem login. |
 | PV-025 | Rodada autenticada de homologação | Pendente | Resto do PV-012. As specs existem e estão verdes na parte anônima; falta rodar com conta QA. |
-| PV-026 | Limpeza e retenção do Supabase Storage | Pendente | **P1 custo.** 178,4 MB (25% do bucket) sem referência no banco, medidos em 19/08. Auditor escrito; falta rodar com `--apply` e decidir a retenção. |
+| PV-026 | Limpeza e retenção do Supabase Storage | **Parcial** | **P1 custo.** Faxina feita em 19/08: bucket de 713,1 MB para 534,7 MB, 333 objetos a menos, e zero órfão fora de `templates/`. Falta fechar as duas torneiras que produzem o órfão e decidir a retenção de `output/` (426,9 MB). |
 | PV-027 | Teto do planner é por IP, não por atendimento | Pendente | Achado no PV-012. Equipe atrás de um mesmo IP divide 10 requisições a cada 5 minutos. |
 
-Contagem, sobre 28 cards: **17 concluídos**, **3 parciais** (PV-012, PV-013 encerrado, PV-017),
-**8 pendentes** (PV-014, PV-015, PV-016, PV-021, PV-022, PV-025, PV-026, PV-027), **0 bloqueados**.
+Contagem, sobre 28 cards: **17 concluídos**, **4 parciais** (PV-012, PV-013 encerrado, PV-017,
+PV-026), **7 pendentes** (PV-014, PV-015, PV-016, PV-021, PV-022, PV-025, PV-027), **0 bloqueados**.
 
 **Correção de uma contagem anterior.** A versão de 17/08 registrava "13 concluídos, 3 parciais, 4
 pendentes e 1 bloqueado". Contando as linhas daquela mesma tabela: 12 concluídos, 3 parciais, 5
@@ -474,17 +474,22 @@ card bloqueado.**
 | # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de |
 |---|---|---|---|---|---|---|
 | 1 | PV-025 | Rodada autenticada de homologação | P1 lançamento | médio | gpt-5.6-sol | conta QA da Ester |
-| 2 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
-| 3 | PV-021 | Aceitar pendência de dado faltante | P2 produto | médio | gpt-5.6-terra | — |
-| 4 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
-| 5 | PV-022 | Identificação e concordância no template | P2 produto | alto | gpt-5.6-sol | — (PV-011 satisfeito) |
-| 2 | PV-026 | Limpeza e retenção do Supabase Storage | P1 custo | médio | gpt-5.6-sol | — |
+| 2 | PV-026 | Fechar as torneiras de órfão e decidir retenção | P1 custo | médio | gpt-5.6-sol | — |
+| 3 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
+| 4 | PV-021 | Aceitar pendência de dado faltante | P2 produto | médio | gpt-5.6-terra | — |
+| 5 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
+| 6 | PV-022 | Identificação e concordância no template | P2 produto | alto | gpt-5.6-sol | — (PV-011 satisfeito) |
 | 7 | PV-027 | Teto do planner é por IP, não por atendimento | P3 | baixo | gpt-5.6-terra | — |
 | 8 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
-| 7 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
+| 9 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
 
-**Por que o PV-012 sobe ao topo.** Era o último card bloqueado, e agora está livre: PV-009, PV-010 e
-PV-011, suas três dependências, estão entregues. É o card de homologação E2E que fecha o lançamento.
+**A numeração desta fila estava quebrada** — havia dois `2` e dois `7`, e o PV-026 aparecia depois de
+cards P2 apesar de ser P1. Corrigido em 19/08, contando as linhas.
+
+**Por que estes dois no topo.** O PV-025 é o resto da homologação do PV-012 e a última coisa entre o
+produto e o aceite de lançamento; só depende da Ester digitar a senha. O PV-026 é conta, não higiene:
+a faxina de 19/08 devolveu 178,4 MB, mas as duas torneiras que produzem o órfão continuam abertas, e
+o `output/` — 426,9 MB gerados por 6 pastas — não tem política de retenção.
 
 **Os dois cards novos vieram da Ester, não de auditoria.** PV-021 e PV-022 nasceram durante a inspeção
 do PV-018 e descrevem trabalho que ela faz hoje na mão. O PV-021 leva junto uma correção de redação
@@ -2999,6 +3004,11 @@ Este card é rodá-las, ler o que elas acharem e consertar.
 **Modelo:** gpt-5.6-sol · **Esforço:** médio · **Prioridade:** P1 custo · **Depende de:** —
 **Resultado:** o Storage guarda o que está em uso, e nada além disso.
 
+> **Estado: PARCIAL.** A faxina foi executada em 19/08: **333 objetos e 178,4 MB removidos**, com a
+> medição antes e depois em `### Resultado`. Falta o que impede o acervo de voltar a crescer —
+> fechar as duas torneiras (`DELETE /api/pastas/[id]` e a exclusão em lote de `uploads-corrigidos`,
+> que deixam o `uploadPath` para trás) e decidir a retenção de `output/`.
+
 > **Prioridade subiu para P1 em 19/08**, a pedido da Ester: o projeto estourou o limite do plano
 > grátis do Supabase e hoje paga o Pro por causa desse acervo. Deixou de ser higiene e virou conta.
 
@@ -3058,11 +3068,12 @@ isso o script **não os toca**.
 - Manifesto de 19/08 gerado e conferido: **333 caminhos, 178,4 MB**, selo
   `md5-caminhos = af30a1d2fcb16de55a8d31bb4d38e59a`. O mesmo md5 foi calculado no banco, com
   `order by name collate "C"`, e bateu — a lista é byte a byte a que o banco aponta.
-- Falta rodar com `--apply`, o que exige só a chave de serviço:
+- Rodado em 19/08 pela Ester, que é quem tem a chave — ensaio primeiro, remoção depois:
 
   ```powershell
   $env:SUPABASE_SERVICE_ROLE_KEY = "..."
   node scripts/audit-storage-orphans.mjs --manifesto orfaos-2026-08-19.txt
+  node scripts/audit-storage-orphans.mjs --manifesto orfaos-2026-08-19.txt --apply
   ```
 
   A chave não precisa tocar o disco. **Não use `>` no PowerShell 5.1** para escrever `.env`: grava em
@@ -3100,6 +3111,47 @@ Precedente: em 19/08 a chave legada foi colada no chat e precisou ser rotacionad
 - Se a decisão for apagar: nenhum caminho fora de `storage/` é aceito, provado por teste.
 - Depois do `--apply`, rodar o auditor de novo: zero órfão fora de `templates/`.
 - A medição do bucket entra no handoff antes e depois, para a economia ficar registrada.
+
+### Resultado — 19/08/2026
+
+**Parcial.** A remoção foi feita; a causa continua aberta.
+
+**Medição do bucket `pasta-visa`, antes e depois** — regra de aceite deste card.
+
+| Área | Antes | Depois | Variação |
+|---|---:|---:|---:|
+| `output/` | 579 obj · 426,9 MB | 579 obj · 426,9 MB | intacto |
+| `templates/` | 332 obj · 82,6 MB | 332 obj · 82,6 MB | intacto |
+| `uploads/` | 397 obj · 203,1 MB | 66 obj · 24,9 MB | **−331 obj · −178,2 MB** |
+| `logos/` | 6 obj · 0,6 MB | 4 obj · 0,4 MB | **−2 obj · −0,2 MB** |
+| **Total** | **1.314 obj · 713,1 MB** | **981 obj · 534,7 MB** | **−333 obj · −178,4 MB** |
+
+O que saiu é exatamente o manifesto selado, sem sobra e sem excesso: as áreas que a allowlist recusa
+— `output/` e `templates/` — não perderam um objeto sequer.
+
+**Aceite conferido depois do `--apply`,** com a mesma consulta privilegiada que gerou o manifesto:
+sobraram **2 órfãos, 0,7 MB, todos em `templates/`**. É o resultado esperado, não uma falha — a
+allowlist do script recusa `templates/` por princípio, e esses dois parecem envio interrompido do
+acervo oficial. **Zero órfão fora de `templates/`.**
+
+O ensaio da Ester devolveu `333 objetos, 178.4 MB` e a remoção devolveu `333 objetos removidos,
+178.4 MB liberados` — os mesmos números que a consulta prevê. Antes de autorizar, o conjunto foi
+reconferido contra produção: 333 órfãos e selo `af30a1d2…` idênticos ao manifesto, gerado 0,8 h
+antes, dentro da validade de 2 h.
+
+`orfaos-2026-08-19.txt` foi apagado depois do uso, como a regra 6 exige: ele carregava nome de
+documento de cliente, linha a linha. Nunca foi versionado — `/orfaos-*.txt` está no `.gitignore`.
+
+### O que falta — o card segue aberto
+
+1. **Fechar as duas torneiras.** Enquanto `DELETE /api/pastas/[id]` e a exclusão em lote de
+   `uploads-corrigidos` deixarem o `uploadPath` no Storage, o acervo volta a acumular no mesmo ritmo.
+   A faxina de hoje é o passivo de 6 pastas; sem essa decisão, ela vira rotina manual.
+2. **Decidir a retenção de `output/`** — 426,9 MB, dos quais 121 MB em 176 versões antigas. Hoje é o
+   maior item do bucket e o único que só cresce. É decisão de produto: quantas versões guardar e por
+   quanto tempo depois da entrega.
+3. **Trocar a chave de serviço.** Ela foi colada no chat em 19/08 e é considerada vazada. A troca
+   exige atualizar `SUPABASE_SERVICE_ROLE_KEY` na Vercel e redeployar, senão a produção para.
 
 ### Fora de escopo
 
@@ -3185,6 +3237,7 @@ Não sabemos ainda se isso já mordeu alguém. O card começa por descobrir isso
 | 18/08/2026 | PV-024 | **Concluído** | `d378356` | Não publicado — mesma branch do PV-023 | Campo de cópia do link do pré-planejamento comercial no menu lateral. **Não** virou item de navegação: a regra global 7 mantém `/planner` público e sem login, e um link no menu interno lhe daria porta de entrada autenticada. Campo somente-leitura em vez de só um botão porque `navigator.clipboard` não existe fora de contexto seguro — aí a URL ainda pode ser selecionada à mão. 5 testes, incluindo o caminho sem clipboard e a trava de que `/planner` não entra no array de navegação. Verificação visual autenticada segue sendo da Ester: o checkout local não tem Supabase configurado. |
 | 18/08/2026 | Flake dos testes de PDF | **Concluído** | `7cd4ea0` | Nenhuma | Os dois testes de PDF do planner estouravam os 5 s de `testTimeout` de forma intermitente quando a suíte inteira disputava CPU. Não era regressão: reproduzia em `49a7358`. Causa medida: carga preguiçosa do pdf-parse e inicialização do fontkit, ~0,9 s ocioso e ~2,7 s sob carga, caindo no orçamento do primeiro `it`. `warm-pdf.ts` aquece o pipeline num `beforeAll`. Suíte cheia com paralelismo: 198/198. |
 | 19/08/2026 | PV-012 | **Parcial** | `01b3de2` | `dpl_FjKvKGFX9a122dEbpSVMvyadUxqR` `READY`, alias `pastavisa.vercel.app` | Playwright com 3 specs em `tests/e2e`, `scripts/check-public-boundary.mjs` e `tests/correction/lifecycle-route.test.ts`. **Comprovado em produção:** 16/16 da fronteira anônima contra o deployment novo, e o caminho completo do planner — formulário, análise real, revisão, formato e PDF com cabeçalho `%PDF-`. **Firewall medido, não presumido:** 429 com `x-vercel-mitigated: deny`. Advisor de segurança do Supabase: 0 erro, 10 `INFO` de RLS sem policy (postura desejada do PV-002) e 1 `WARN` de senha vazada, que é o PV-014. Rollback registrado em 2.1. O teste em Vitest achou um erro que eu teria entregado: as duas specs E2E liam `contagens` onde o `preflight` devolve `totalOcorrencias`. A auditoria de bundle também precisou ficar exata — procurava a palavra `service_role` e acusava um comentário do SDK num bundle de `next dev`; passou a decodificar o JWT e a recusar bundle de desenvolvimento. Suíte 244→250. **Falta a rodada autenticada → PV-025.** Abertos também PV-026 (original enviado nunca sai do Storage) e PV-027 (teto do planner é por IP). |
+| 19/08/2026 | PV-026 | **Parcial** | `534f78b` | Nenhuma — remoção direta no Storage de produção, sem deploy | Bucket `pasta-visa` de **713,1 MB / 1.314 objetos para 534,7 MB / 981**: saíram **333 objetos e 178,4 MB**, 25% do acervo, que linha nenhuma do banco referenciava. `output/` e `templates/` intactos. Aceite conferido depois da remoção: sobram 2 órfãos, 0,7 MB, todos em `templates/` — a área que a allowlist recusa de propósito. **O desenho mudou por um achado de segurança:** as tabelas de `public` dão grant só a `postgres`, então o script não consegue — nem deve — descobrir sozinho o que é órfão; dar `SELECT` a `service_role` abriria por HTTPS todo o acervo de documentos de cliente. Quem classifica é consulta privilegiada fora do script, e o resultado chega como manifesto selado por md5, com validade de 2 h, allowlist de área, reconferência no bucket e piso de idade de 24 h. O selo foi calculado dos dois lados e bateu, então a lista é byte a byte a que o banco aponta. O manifesto foi apagado depois do uso — carregava nome de documento de cliente. **Falta fechar as duas torneiras e decidir a retenção de `output/`.** |
 
 **As linhas de 17/08 estão agrupadas por assunto, não em ordem cronológica estrita** — o dia teve várias
 idas e vindas no mesmo tema. A última linha da tabela é sempre o estado mais recente.
