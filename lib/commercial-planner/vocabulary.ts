@@ -57,11 +57,6 @@ export const POPULAR_TERMS: ReadonlyArray<readonly [string, string]> = [
   ["rino, rinomodelação, nariz sem cirurgia", "Rinomodelação"],
   ["carboxi, carboxiterapia", "Carboxiterapia"],
   ["ozônio, ozonioterapia", "Ozonioterapia"],
-  ["PMMA, bioplastia, metacrilato", "Bioplastia com PMMA"],
-  [
-    "caneta emagrecedora, Ozempic, Mounjaro, Saxenda, semaglutida, tirzepatida, liraglutida",
-    "Terapia Injetável para Controle de Peso",
-  ],
 
   // Pele e face não injetável.
   ["LP, limpeza, limpeza de pele profunda, extração, extração de cravos, higienização facial", "Limpeza de Pele"],

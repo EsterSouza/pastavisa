@@ -1,5 +1,5 @@
 import type { CommercialPlannerInput, PlannerCatalogItem } from "./types";
-import { outOfScopeBlock } from "./scope";
+import { forbiddenBlock, outOfScopeBlock } from "./scope";
 import { ambiguousTermsBlock, equipmentTermsBlock, popularTermsBlock } from "./vocabulary";
 
 export function buildPlannerPrompts(input: CommercialPlannerInput, catalog: PlannerCatalogItem[]) {
@@ -33,6 +33,11 @@ FORA DO ESCOPO DESTA PASTA
 Esta pasta atende estética, embelezamento e atendimento ambulatorial de baixo risco. Atividade das linhas abaixo tem outro regime sanitário e não gera documento aqui: não crie POP nem TCLE para ela, e devolva um alerta dizendo que o ponto precisa ser tratado separadamente.
 ${outOfScopeBlock()}
 Atenção ao “não”: blefaroplastia sem corte, otomodelação não cirúrgica, lipo sem corte, laserterapia pós-cirúrgica e taping pós-operatório são estética e estão dentro do escopo. PRP, PRF e plasma gel preparados na própria clínica para uso estético também estão dentro.
+
+PROIBIDO POR LEI
+As práticas abaixo a legislação sanitária brasileira não permite para fins estéticos. Nunca crie POP nem TCLE para elas, nunca as trate como técnica declarada, e devolva um alerta dizendo que o ponto precisa ser tratado com a equipe técnica antes de qualquer proposta:
+${forbiddenBlock()}
+Aponte a proibição pelo que ela é, sem citar número de norma — a equipe técnica é quem cita a base legal ao cliente.
 
 DOCUMENTOS
 Use somente IDs do catálogo fornecido. Não invente documentos. Um TCLE de família só pode cobrir técnicas múltiplas quando execução, risco e consentimento forem materialmente equivalentes.

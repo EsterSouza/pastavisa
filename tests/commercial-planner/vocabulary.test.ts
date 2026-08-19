@@ -7,7 +7,7 @@ import {
   equipmentTermsBlock,
   popularTermsBlock,
 } from "@/lib/commercial-planner/vocabulary";
-import { outOfScopeReason } from "@/lib/commercial-planner/scope";
+import { forbiddenReason, outOfScopeReason } from "@/lib/commercial-planner/scope";
 
 /**
  * O vocabulário cresce toda vez que aparece um jeito novo de a cliente escrever. O
@@ -29,9 +29,10 @@ function apelidos(pares: ReadonlyArray<readonly [string, string]>): string[] {
 }
 
 describe("vocabulário comercial", () => {
-  it("só nomeia técnica que cabe nesta pasta", () => {
+  it("só nomeia técnica que cabe nesta pasta e que a lei permite", () => {
     for (const [, nomeTecnico] of POPULAR_TERMS) {
       expect(outOfScopeReason(nomeTecnico), nomeTecnico).toBeNull();
+      expect(forbiddenReason(nomeTecnico), nomeTecnico).toBeNull();
     }
   });
 

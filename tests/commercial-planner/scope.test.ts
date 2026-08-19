@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { outOfScopeAlerts, outOfScopeReason } from "@/lib/commercial-planner/scope";
+import {
+  forbiddenAlerts,
+  forbiddenReason,
+  outOfScopeAlerts,
+  outOfScopeReason,
+} from "@/lib/commercial-planner/scope";
 
 /**
  * A fronteira do escopo derruba atividade de outro regime sanitário. O risco real
@@ -120,5 +125,71 @@ describe("aviso de escopo como rede de segurança", () => {
 
     expect(avisos).toHaveLength(1);
     expect(avisos[0]).toMatch(/cirúrgico/);
+  });
+});
+
+/**
+ * Proibido é diferente de fora do escopo: não é atividade de outro regime, que
+ * alguém pode atender com o licenciamento certo — é o que a legislação sanitária não
+ * permite para fins estéticos. Aqui também o risco é o falso positivo, porque
+ * "sem formol" e "bronzeamento a jato" são exatamente o oposto do que se barra.
+ */
+describe("proibido por lei", () => {
+  const PROIBIDO: Array<[string, RegExp]> = [
+    ["Bioplastia com PMMA", /PMMA/],
+    ["Preenchimento com polimetilmetacrilato", /PMMA/],
+    ["Aplicação de silicone industrial nos glúteos", /silicone/],
+    ["Silicone líquido injetável", /silicone/],
+    ["Câmara de bronzeamento artificial", /bronzeamento/],
+    ["Bronzeamento artificial em cabine", /bronzeamento/],
+    ["Escova progressiva com formol", /formol/],
+    ["Alisamento com formaldeído", /formol/],
+    ["Preenchedor manipulado em farmácia", /manipula/],
+    ["Preenchimento labial com hyaluron pen", /caneta pressurizada/],
+    ["Preenchimento sem agulha", /caneta pressurizada/],
+  ];
+
+  const PERMITIDO = [
+    "Preenchimento Dérmico com Ácido Hialurônico",
+    "Bioestimuladores de Colágeno",
+    "Bronzeamento por Pigmentação Tópica",
+    "Bronzeamento a jato com autobronzeador",
+    "Progressiva sem formol",
+    "Alisamento capilar livre de formol",
+    "Hidratação capilar com silicone",
+    "Toxina Botulínica",
+    "Plasma Rico em Plaquetas (PRP)",
+  ];
+
+  it("barra o que a legislação não permite, dizendo o quê", () => {
+    for (const [tecnica, esperado] of PROIBIDO) {
+      const motivo = forbiddenReason(tecnica);
+      expect(motivo, tecnica).not.toBeNull();
+      expect(motivo!, tecnica).toMatch(esperado);
+    }
+  });
+
+  it("não confunde o permitido com o proibido", () => {
+    for (const tecnica of PERMITIDO) {
+      expect(forbiddenReason(tecnica), tecnica).toBeNull();
+    }
+  });
+
+  it("não cita número de norma no texto que vai ao cliente", () => {
+    const avisos = forbiddenAlerts("aplico pmma e tenho camara de bronzeamento artificial");
+
+    expect(avisos).toHaveLength(2);
+    for (const aviso of avisos) {
+      expect(aviso).toMatch(/legislação sanitária/);
+      expect(aviso).toMatch(/não gera documento nesta pasta/);
+      expect(aviso).not.toMatch(/RDC|RE \d|resolução|lei n/i);
+    }
+  });
+
+  it("fica calado quando a análise já explicou o termo", () => {
+    const jaExplicado = ["O PMMA não tem indicação estética aprovada e não entra na pasta."];
+
+    expect(forbiddenAlerts("limpeza de pele e pmma", jaExplicado)).toEqual([]);
+    expect(forbiddenAlerts("limpeza de pele e peeling quimico")).toEqual([]);
   });
 });

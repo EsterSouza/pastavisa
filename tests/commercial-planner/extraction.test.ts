@@ -175,6 +175,34 @@ describe("extração das técnicas declaradas", () => {
     expect(resultado.alerts.filter((alerta) => /Detox Turbo/.test(alerta))).toHaveLength(1);
   });
 
+  it("não deixa prática proibida por lei virar técnica, mesmo se a análise insistir", async () => {
+    const resultado = await extractExplicitTechniques(
+      pedido("preenchimento labial e bioplastia com pmma"),
+      [],
+      analisador({
+        mentions: [
+          mencao("preenchimento labial", "procedure", "Preenchimento Dérmico com Ácido Hialurônico"),
+          mencao("bioplastia com pmma", "procedure", "Bioplastia com PMMA"),
+        ],
+      })
+    );
+
+    expect(resultado.techniques.map((item) => item.name)).toEqual([
+      "Preenchimento Dérmico com Ácido Hialurônico",
+    ]);
+    expect(resultado.alerts.some((alerta) => /legislação sanitária/.test(alerta))).toBe(true);
+  });
+
+  it("não pede confirmação de prática proibida", async () => {
+    const resultado = await extractExplicitTechniques(
+      pedido("escova progressiva com formol"),
+      [],
+      analisador({ mentions: [mencao("escova progressiva com formol", "uncertain")] })
+    );
+
+    expect(resultado.alerts.some((alerta) => /Confirme se/.test(alerta))).toBe(false);
+  });
+
   it("pede confirmação quando a análise deixou o termo em silêncio", async () => {
     const resultado = await extractExplicitTechniques(
       pedido("micro"),

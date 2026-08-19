@@ -1,6 +1,6 @@
 import { runCommercialPlannerAnalysis } from "@/lib/ai";
 import { buildPlannerPrompts } from "./prompts";
-import { outOfScopeAlerts, outOfScopeReason } from "./scope";
+import { forbiddenAlerts, forbiddenReason, outOfScopeAlerts, outOfScopeReason } from "./scope";
 import type {
   CommercialPlannerInput,
   ExtractionResult,
@@ -67,20 +67,27 @@ export async function extractExplicitTechniques(
     }
   }
 
-  // A fronteira do escopo é barrada aqui, não confiada ao prompt: técnica de outro
-  // regime sanitário — cirurgia, odontologia, imagem, laboratório — não pode virar
-  // POP nem TCLE, ainda que a análise a devolva como procedimento.
-  const alerts = [...analysis.alerts, ...outOfScopeAlerts(input.procedimentos, analysis.alerts)];
+  // Duas barreiras, ambas no código e não confiadas ao prompt. Técnica de outro
+  // regime sanitário — cirurgia, odontologia, imagem, laboratório — e produto ou
+  // prática que a legislação não permite para fins estéticos não podem virar POP nem
+  // TCLE, ainda que a análise os devolva como procedimento.
+  const alerts = [
+    ...analysis.alerts,
+    ...forbiddenAlerts(input.procedimentos, analysis.alerts),
+    ...outOfScopeAlerts(input.procedimentos, analysis.alerts),
+  ];
   for (const key of Array.from(techniques.keys())) {
     const technique = techniques.get(key);
-    if (technique && outOfScopeReason(technique.name)) techniques.delete(key);
+    if (!technique) continue;
+    if (outOfScopeReason(technique.name) || forbiddenReason(technique.name)) techniques.delete(key);
   }
 
   for (const mention of analysis.mentions) {
     if (mention.kind !== "uncertain") continue;
-    // Item fora do escopo já tem aviso próprio: pedir confirmação dele confundiria,
-    // porque a resposta não é “sim, faço”, e sim “isso não entra nesta pasta”.
-    if (outOfScopeReason(mention.name)) continue;
+    // Item fora do escopo ou proibido já tem aviso próprio: pedir confirmação dele
+    // confundiria, porque a resposta não é “sim, faço”, e sim “isso não entra nesta
+    // pasta”.
+    if (outOfScopeReason(mention.name) || forbiddenReason(mention.name)) continue;
     // E quando a dúvida sobre aquele termo já foi escrita, repetir em outras
     // palavras só aumenta a lista que o comercial precisa ler.
     if (jaComentado(alerts, mention.name)) continue;
