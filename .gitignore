@@ -60,3 +60,9 @@ yarn-error.log*
 next-env.d.ts
 .vercel
 .env*
+
+# Playwright (PV-012): relatorio, tracos e capturas de cada rodada de E2E.
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

@@ -19,7 +19,10 @@
         "sync:templates": "node scripts/sync-local-templates-to-supabase.js",
         "test": "vitest",
         "test:run": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "check:public-boundary": "node scripts/check-public-boundary.mjs",
+        "test:e2e": "playwright test --config tests/e2e/playwright.config.ts",
+        "test:e2e:report": "playwright show-report playwright-report"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.91.0",
@@ -48,6 +51,7 @@
         "sharp": "^0.34.5"
     },
     "devDependencies": {
+        "@playwright/test": "^1.62.1",
         "@testing-library/jest-dom": "^7.0.0",
         "@testing-library/react": "^16.3.2",
         "@types/node": "^20",
