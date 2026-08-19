@@ -65,6 +65,26 @@ test.describe("papéis", () => {
     const recusa = await operador.delete("/api/pastas/pasta-inexistente-qa");
     expect(recusa.status()).toBe(403);
   });
+
+  // Pendência que o PV-019 deixou: `app/api/pastas/teste/route.ts` criava uma
+  // Pasta inteira de mentira no banco, e foi removida em `a12064d`. Só faz
+  // sentido medir isso autenticado — anônimo pararia no 401 do middleware e não
+  // diria nada sobre a rota existir ou não.
+  //
+  // **Não é 404, e o card do PV-019 errou ao prever 404.** `/api/pastas/teste`
+  // continua casando com o segmento dinâmico `[id]`, que tem GET, PATCH e
+  // DELETE mas nenhum POST — então a resposta é 405. O que importa é o que vem
+  // junto: nenhuma pasta é criada. Medir 404 aqui reprovaria um comportamento
+  // correto e mandaria alguém "consertar" a rota dinâmica.
+  test("a rota de pasta de teste não cria mais nada", async () => {
+    const antes = await (await admin.get("/api/pastas")).json();
+
+    const resposta = await admin.post("/api/pastas/teste");
+    expect(resposta.status(), "POST casa com [id], que não tem handler de POST").toBe(405);
+
+    const depois = await (await admin.get("/api/pastas")).json();
+    expect(depois.length, "a rota removida não pode criar pasta").toBe(antes.length);
+  });
 });
 
 test.describe("ciclo de vida de uma pasta QA", () => {
