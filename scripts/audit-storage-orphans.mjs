@@ -14,11 +14,18 @@
  *      documentada em comentário na própria rota.
  *
  * Uso:
- *   node scripts/audit-storage-orphans.mjs              # só relatório
- *   node scripts/audit-storage-orphans.mjs --manifesto  # grava a lista em disco
- *   node scripts/audit-storage-orphans.mjs --apply      # apaga os órfãos
+ *   node scripts/audit-storage-orphans.mjs --env .env.producao              # só relatório
+ *   node scripts/audit-storage-orphans.mjs --env .env.producao --manifesto  # grava a lista
+ *   node scripts/audit-storage-orphans.mjs --env .env.producao --apply      # apaga
  *
- * Precisa de DATABASE_URL e SUPABASE_SERVICE_ROLE_KEY no `.env` ou `.env.local`.
+ * Precisa de DATABASE_URL e SUPABASE_SERVICE_ROLE_KEY. O jeito curto de obtê-los
+ * é `npx vercel env pull .env.producao --environment=production`, que traz os
+ * dois sem ninguém copiar segredo à mão.
+ *
+ * **Use um arquivo separado, não o `.env.local`.** Com `DATABASE_URL` de produção
+ * no `.env.local`, o `next dev` desta máquina deixa de usar o SQLite e passa a
+ * escrever no banco de produção — inclusive a suíte E2E.
+ *
  * Sem `--apply` nada é removido: o padrão é sempre a leitura.
  */
 
@@ -33,11 +40,38 @@ const root = process.cwd();
 dotenv.config({ path: path.join(root, ".env") });
 dotenv.config({ path: path.join(root, ".env.local"), override: true });
 
+// Arquivo de ambiente extra, para manter o segredo de produção fora do
+// `.env.local` que o servidor de desenvolvimento lê.
+const envIndex = process.argv.indexOf("--env");
+if (envIndex !== -1) {
+  const arquivo = process.argv[envIndex + 1];
+  if (!arquivo) {
+    console.error("--env exige o caminho do arquivo, por exemplo: --env .env.producao");
+    process.exit(1);
+  }
+  const caminho = path.resolve(root, arquivo);
+  if (!fs.existsSync(caminho)) {
+    console.error(`Arquivo de ambiente nao encontrado: ${arquivo}`);
+    process.exit(1);
+  }
+  dotenv.config({ path: caminho, override: true });
+}
+
 const APPLY = process.argv.includes("--apply");
 const MANIFESTO = process.argv.includes("--manifesto") || APPLY;
 // O acervo de templates é o insumo de toda pasta gerada. Um órfão ali é quase
 // sempre upload em andamento, não lixo, então ele fica de fora por padrão.
 const INCLUIR_TEMPLATES = process.argv.includes("--incluir-templates");
+
+// Um upload em andamento existe no Storage antes de a linha do banco ser
+// gravada. Sem este piso, uma corrida de segundos faria o arquivo recém-enviado
+// de um cliente parecer órfão — e ser apagado.
+const idadeIndex = process.argv.indexOf("--idade-minima-horas");
+const IDADE_MINIMA_HORAS = idadeIndex === -1 ? 24 : Number(process.argv[idadeIndex + 1]);
+if (!Number.isFinite(IDADE_MINIMA_HORAS) || IDADE_MINIMA_HORAS < 0) {
+  console.error("--idade-minima-horas exige um número de horas.");
+  process.exit(1);
+}
 
 const databaseUrl = process.env.DATABASE_URL;
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -151,7 +185,10 @@ async function main() {
             : "uploads: órfão, pasta já excluída"
           : `${area}: órfão`;
 
-      acumular(grupos, rotulo, bytes);
+      const horas = (Date.now() - new Date(objeto.created_at).getTime()) / 3_600_000;
+      const recente = horas < IDADE_MINIMA_HORAS;
+      acumular(grupos, recente ? `${rotulo} (recente, preservado)` : rotulo, bytes);
+      if (recente) continue;
       if (area !== "templates" || INCLUIR_TEMPLATES) orfaos.push({ ...objeto, bytes });
     }
 
@@ -167,6 +204,7 @@ async function main() {
         `(${((Number(bytesOrfaos) / Number(totalBytes || 1n)) * 100).toFixed(0)}% do bucket)`
     );
     if (!INCLUIR_TEMPLATES) console.log("  Órfãos em templates/ ficaram de fora; use --incluir-templates.");
+    console.log(`  Órfão com menos de ${IDADE_MINIMA_HORAS}h fica de fora: pode ser envio em andamento.`);
 
     if (MANIFESTO && orfaos.length) {
       // O manifesto tem nome de arquivo de cliente. Vai para caminho ignorado
