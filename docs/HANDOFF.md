@@ -1,6 +1,6 @@
 # Handoff único — PASTAVISA
 
-**Última atualização:** 17/08/2026 (BRT), após a entrega do PV-009
+**Última atualização:** 19/08/2026 (BRT), após a entrega parcial do PV-012
 **Repositório:** `EsterSouza/pastavisa`
 **Checkout oficial:** `C:\Saas\PASTAVISA`
 **Branch:** `main`
@@ -78,15 +78,18 @@ foram medidos nesta data, contra o checkout, o Supabase de produção e a Vercel
 
 ### 2.1 Checkout, Git e produção
 
-Medido em 18/08/2026, **após** a entrega do PV-018.
+Medido em 19/08/2026, **após** a entrega parcial do PV-012.
 
 - Checkout fora do OneDrive em `C:\Saas\PASTAVISA`; worktree **limpo**.
-- `HEAD = main = origin/main = 80b3bf4dd3f0c8d7f6e034c76f3d38c374c7a20d`.
+- `HEAD = main = origin/main = 01b3de266ac95d4585cb3f56d14ac0ae498e1ff8`.
 - Remoto: `https://github.com/EsterSouza/pastavisa.git` (repositório **público**).
 - Vercel: projeto `pasta-visa` (`prj_3hksb7xOH6gQbc2lnOsKpFOsHYUa`, team `estersouzas-projects`).
-  Deployment de produção do PV-018: `dpl_JD5JPcXneJ3Rayw5ZfshGR5EzmCb`, commit `80b3bf4`,
-  alias `pastavisa.vercel.app`. **Repositório, `origin` e produção estão no mesmo SHA.** Um commit
-  empurrado junto com outro não ganha deployment próprio — só o `HEAD` do push deploya.
+  Deployment de produção do PV-012: `dpl_FjKvKGFX9a122dEbpSVMvyadUxqR`, commit `01b3de2`,
+  `READY`, alias `pastavisa.vercel.app`. **Repositório, `origin` e produção estão no mesmo SHA.**
+  Um commit empurrado junto com outro não ganha deployment próprio — só o `HEAD` do push deploya.
+- **Rollback:** o `READY` de produção imediatamente anterior é `dpl_jfUYckDGE7J3oy8mA2vD2cLRuUjg`,
+  commit `35041fa`. Painel da Vercel → `pasta-visa` → **Deployments** → **Instant Rollback**, que
+  reaponta o alias sem novo build. Não desfaz migration nem dado.
 - `TreinaVISA - Manual de Marca 2.0.pdf` continua na raiz, local e ignorado por `/*.pdf`.
 - O projeto declara Node `22.x` em `engines`; a máquina usa Node `v25.8.0`, o que faz o `npm` emitir
   `EBADENGINE` em qualquer instalação. É divergência **só do ambiente local**. Continue usando o build
@@ -110,7 +113,7 @@ neste projeto. Consequência prática: todo registro no handoff redeploya a prod
 
 ### 2.2 Código e qualidade
 
-| Item | Estado em 18/08/2026 |
+| Item | Estado em 19/08/2026 |
 |---|---:|
 | Páginas `page.tsx` | 9 (`(internal)` 8, `(public)` 1) |
 | Rotas API `route.ts` | **38** (ver nota abaixo) |
@@ -118,6 +121,8 @@ neste projeto. Consequência prática: todo registro no handoff redeploya a prod
 | Migrations Prisma | 13 |
 | Migrations Supabase versionadas | 7 |
 | Stack | Next.js 14.2.35, React 18, Tailwind 3.4.1, Prisma 7.8 |
+| Testes Vitest | **35 arquivos, 250 testes** |
+| Specs E2E (Playwright) | 3 arquivos, 26 testes (17 rodam sem conta QA) |
 | Testes | Vitest, **27 arquivos / 169 testes, todos aprovados** |
 | `npx tsc --noEmit` | aprovado, sem erros |
 | `npm run lint` | aprovado, 0 erros e 0 avisos |
@@ -398,7 +403,7 @@ esta seção que diz se o card fechou.
 | PV-009 | Planner público e PDF | **Concluído** | Entregue em `8a0aa23`, publicado em `5f9b3ac`, deployment READY e smoke ponta a ponta em produção. Registrada uma ressalva de processo, não de escopo: o MCP DesignMD recusou as duas tentativas com 429 (cap diário do plano grátis), então o design saiu de `docs/DESIGN.md` e do manual. |
 | PV-010 | Redesign interno principal | **Concluído** | Entregue em `b7789c1`. As seis páginas usam o kit `components/ui`. Sem ressalva de escopo; a inspeção visual autenticada continua sendo da Ester, porque o checkout local não tem Supabase configurado. |
 | PV-011 | Redesign de templates e legislações | **Concluído** | Entregue em `6b2c0dc`, deployment `dpl_GtXkWCseKsP6dTVdo9Mg6oYwo3Ew` READY em `pastavisa.vercel.app`. Reaproveitou o kit `components/ui` do PV-010. |
-| PV-012 | E2E, segurança e homologação | Pendente | PV-009, PV-010 e PV-011 caíram. Nada mais bloqueia este card. |
+| PV-012 | E2E, segurança e homologação | **Parcial** | Entregue em `01b3de2`: Playwright, auditoria de fronteira, smoke anônimo e caminho completo do planner comprovados em produção. Falta a rodada autenticada — operador, admin e ciclo da pasta QA —, que exige conta QA. Virou **PV-025**. |
 | PV-013 | Rota de teste e dependência crítica | **Parcial, encerrado** | Módulo de imagem removido (`5e446e8`, crítica 1→0). O achado da rota de teste foi entregue pelo **PV-019**. Não volta à fila. |
 | PV-014 | Senha vazada e vulnerabilidades | Pendente | **Desbloqueado hoje**: a dependência era o PV-013, e a parte de dependências dele foi entregue. |
 | PV-015 | Superfície de `/api/health` | Pendente | Independente; cabe em qualquer janela. |
@@ -411,9 +416,12 @@ esta seção que diz se o card fechou.
 | PV-020 | `[skip ci]` não impede deploy | **Concluído** | `ignoreCommand` por diff de caminho em `2826545`. `[skip ci]` sai das convenções. |
 | PV-023 | Base unificada de legislação | **Concluído** | Entregue em `20c2529`, `e048f48`, `1e124ab`. O seed virou projeção de `@visa/legislacao` (47 → 119 atos). Falta só sincronizar a produção do InspecVISA, que é card de lá. |
 | PV-024 | Link do planner para o comercial | **Concluído** | Campo de cópia no menu interno (`d378356`). Não virou item de navegação: `/planner` é público e sem login. |
+| PV-025 | Rodada autenticada de homologação | Pendente | Resto do PV-012. As specs existem e estão verdes na parte anônima; falta rodar com conta QA. |
+| PV-026 | Documento original nunca sai do Storage | Pendente | Achado no PV-012. Excluir a pasta apaga as saídas e deixa o arquivo enviado pelo cliente. |
+| PV-027 | Teto do planner é por IP, não por atendimento | Pendente | Achado no PV-012. Equipe atrás de um mesmo IP divide 10 requisições a cada 5 minutos. |
 
-Contagem, sobre 25 cards: **17 concluídos**, **2 parciais** (PV-013 encerrado, PV-017),
-**6 pendentes** (PV-012, PV-014, PV-015, PV-016, PV-021, PV-022), **0 bloqueados**.
+Contagem, sobre 28 cards: **17 concluídos**, **3 parciais** (PV-012, PV-013 encerrado, PV-017),
+**8 pendentes** (PV-014, PV-015, PV-016, PV-021, PV-022, PV-025, PV-026, PV-027), **0 bloqueados**.
 
 **Correção de uma contagem anterior.** A versão de 17/08 registrava "13 concluídos, 3 parciais, 4
 pendentes e 1 bloqueado". Contando as linhas daquela mesma tabela: 12 concluídos, 3 parciais, 5
@@ -462,12 +470,14 @@ card bloqueado.**
 
 | # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de |
 |---|---|---|---|---|---|---|
-| 1 | PV-012 | E2E, segurança e homologação | P1 lançamento | alto | gpt-5.6-sol | — (PV-011 satisfeito) |
+| 1 | PV-025 | Rodada autenticada de homologação | P1 lançamento | médio | gpt-5.6-sol | conta QA da Ester |
 | 2 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
 | 3 | PV-021 | Aceitar pendência de dado faltante | P2 produto | médio | gpt-5.6-terra | — |
 | 4 | PV-015 | Superfície de `/api/health` | P2 segurança | baixo | gpt-5.6-terra | — |
 | 5 | PV-022 | Identificação e concordância no template | P2 produto | alto | gpt-5.6-sol | — (PV-011 satisfeito) |
-| 6 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
+| 6 | PV-026 | Documento original nunca sai do Storage | P2 dado pessoal | médio | gpt-5.6-sol | — |
+| 7 | PV-027 | Teto do planner é por IP, não por atendimento | P3 | baixo | gpt-5.6-terra | — |
+| 8 | PV-017 | Terminar limpeza de artefatos locais | P3 | baixo | gpt-5.6-terra | — |
 | 7 | PV-016 | Modelo do motor sanitário | P3 | médio | gpt-5.6-sol | PV-006 |
 
 **Por que o PV-012 sobe ao topo.** Era o último card bloqueado, e agora está livre: PV-009, PV-010 e
@@ -1824,6 +1834,11 @@ em cada ação) — pendente dela, não é um defeito encontrado.
 **Modelo:** gpt-5.6-sol · **Esforço:** alto · **Prioridade:** P1 lançamento · **Depende de:** PV-009, PV-010, PV-011
 **Resultado:** versão publicada e comprovada ponta a ponta.
 
+> **Estado: PARCIAL.** Entregue tudo que não depende de conta: Playwright instalado, a auditoria
+> de fronteira pública, o smoke anônimo rodando contra produção e o caminho completo do planner
+> até o PDF baixado. **Falta a rodada autenticada** — operador, admin e o ciclo da pasta QA. As
+> specs estão escritas e se anunciam como puladas sem credencial; a execução é do **PV-025**.
+
 ### Arquivos e implementação
 
 - Adicionar Playwright, config/specs em `tests/e2e/` e `scripts/check-public-boundary.mjs`.
@@ -1844,6 +1859,114 @@ em cada ação) — pendente dela, não é um defeito encontrado.
 ### Commit
 
 `chore: harden PastaVISA production release`
+
+### Resultado — 19/08/2026
+
+**Estado: PARCIAL.** Ver o bloco no topo do card e o PV-025.
+
+#### O que entrou
+
+| Arquivo | Papel |
+|---|---|
+| `tests/e2e/playwright.config.ts` | Sobe o `next dev` em `127.0.0.1:3100` quando não há alvo remoto; `PV_E2E_BASE_URL` aponta para um ambiente publicado. |
+| `tests/e2e/environment.ts` | Contrato de ambiente: conta QA, alvo e liberação da análise paga. Nenhum valor no repositório. |
+| `tests/e2e/public-boundary.spec.ts` | 15 testes: anônimo, forma da `/api/health`, recusas do planner, scripts servidos ao navegador. |
+| `tests/e2e/planner-flow.spec.ts` | Caminho completo até o PDF e o rascunho que só existe no navegador. |
+| `tests/e2e/authenticated-flow.spec.ts` | Papéis e ciclo pasta → correção → prévia → download → restauração → limpeza. |
+| `tests/e2e/README.md` | Como rodar, o que cada variável libera e o custo de rodar contra produção. |
+| `scripts/check-public-boundary.mjs` | Auditoria estática da fronteira, sem servidor e sem segredo. |
+| `tests/correction/lifecycle-route.test.ts` | O mesmo contrato da correção, em Vitest, contra o banco e o storage locais. |
+
+O `vitest.config.ts` passou a excluir `tests/e2e/**`: as specs terminam em `.spec.ts` e cairiam no
+include padrão do Vitest, que tentaria rodá-las sem navegador.
+
+#### Por que a homologação virou dois arquivos, e não um
+
+`authenticated-flow.spec.ts` só roda com conta QA — que não existe em máquina de desenvolvimento.
+Deixar o contrato da correção só ali significaria que ele **nunca** é exercido no dia a dia, e a
+primeira notícia de uma quebra viria na véspera da homologação. `lifecycle-route.test.ts` chama os
+mesmos handlers direto, contra o SQLite e o `storage/` locais, e roda em todo `npm run test:run`.
+
+Não é redundância teórica: **ele já pagou por si.** As duas specs liam a resposta do `preflight`
+como `contagens`, e o campo é `totalOcorrencias`. A E2E, que eu não consigo executar, teria ido
+para a mão da Ester com essa asserção errada.
+
+#### Auditoria de fronteira
+
+`npm run check:public-boundary` roda 7 verificações. A primeira é a que justifica o script: a lista
+de caminhos públicos fica escrita **no próprio auditor**, então acrescentar uma rota ao
+`isPublicPath` quebra o check até que a decisão seja registrada junto. Provado com um caso negativo
+— `/api/pastas` acrescentado à mão fez o script falhar nomeando o caminho, e o arquivo foi
+revertido em seguida.
+
+As outras seis: prefixos de admin inalterados; nenhuma escrita no banco em 23 arquivos do planner
+(regra 9); nenhum `console.*` nas rotas públicas fora do `logPlannerRequest`; vocabulário da regra 8
+limpo em 8 arquivos da interface pública; nenhuma variável `NEXT_PUBLIC_` com nome de segredo; e o
+bundle do cliente — 30 arquivos do build — sem chave da Anthropic, connection string, chave secreta
+do Supabase nem chave privada.
+
+**A auditoria de bundle teve de ficar mais exata no meio do caminho.** A primeira versão procurava a
+palavra `service_role` e acusou `app/(public)/login/page.js`. Não era vazamento: era comentário de
+documentação do próprio SDK do Supabase, presente porque `next dev` sobrescreve `.next` com bundles
+não minificados. Duas correções: a chave service role passou a ser procurada pelo que ela é — um JWT
+cujo payload diz `"role":"service_role"`, decodificado e conferido —, e o script agora reconhece
+bundle de desenvolvimento e diz que é preciso `npm run build` antes, em vez de auditar o artefato
+errado.
+
+#### Testes e verificações desta rodada
+
+| O quê | Resultado |
+|---|---|
+| Vitest | **35 arquivos, 250 testes**, todos passando (244 → 250) |
+| `npx tsc --noEmit` | sem erro |
+| `npm run lint` | sem aviso |
+| `npm run check:deploy` | sem falhas |
+| `npm run check:public-boundary` | 7 OK, contra build recém-gerado |
+| `npm run build` | aprovado |
+| E2E local | **17 passaram, 9 puladas** (as 9 são as que exigem conta QA ou análise paga) |
+| E2E em produção, anônimo | **17/17** contra `pastavisa.vercel.app` (fronteira + rascunho do planner) |
+| E2E em produção, caminho completo | **2/2** — formulário, análise real, revisão, formato e PDF baixado com cabeçalho `%PDF-` |
+| E2E em produção, **depois do deploy deste card** | **16/16** de `public-boundary` contra `dpl_FjKvKGFX9a…` |
+
+#### Firewall, Advisor e produção
+
+- **Firewall vivo, medido.** POSTs repetidos em `/api/planejamento-comercial/analisar` passaram a
+  responder **429 com `x-vercel-mitigated: deny`** dentro da janela de 5 minutos. A regra de
+  `scripts/planner-firewall-rules.json` não é só especificação: está aplicada.
+- **Advisor de segurança do Supabase (`imywcumdngkzkeszvyxv`): 0 erro.** Dez avisos `INFO` de
+  "RLS enabled, no policy", que são a **postura desejada** desde o PV-002 — tabela trancada, acesso
+  só pelo servidor com service role. Um `WARN`: proteção contra senha vazada desligada, que é
+  exatamente o **PV-014** e fica lá, não aqui.
+- **Rollback registrado.** O último deployment de produção `READY` antes deste card é
+  `dpl_jfUYckDGE7J3oy8mA2vD2cLRuUjg`, commit `35041fa`. Para voltar: painel da Vercel → projeto
+  `pasta-visa` → aba **Deployments** → esse deployment → **Instant Rollback**. Ele reaponta o alias
+  `pastavisa.vercel.app` sem novo build. Rollback **não desfaz migration nem dado**; nesta rodada
+  não houve nenhuma das duas, então voltar o deployment devolve o estado anterior por inteiro.
+
+#### Limpeza de QA
+
+`lifecycle-route.test.ts` cria uma pasta `QA-VITEST`, um documento e as versões de correção, e
+apaga tudo no `afterAll` — banco e `storage/`. Conferido depois da execução: **0 pastas, 0 uploads,
+0 arquivos** em `storage/`. A primeira versão do teste deixava dois `.DOCX` para trás, porque
+restaurar cria uma versão cujo caminho o teste não conhecia; a limpeza passou a remover a pasta de
+saída inteira, sempre com o caminho absoluto resolvido dentro de `storage/`.
+
+Na E2E autenticada a limpeza está no `afterAll` e roda mesmo se um passo do meio falhar.
+
+#### Escopo descoberto, registrado como card
+
+- **PV-025** — a rodada autenticada, que é o resto deste card.
+- **PV-026** — o documento original enviado nunca sai do Storage. `DELETE /api/pastas/[id]` remove
+  as saídas, mas o `uploadPath` fica: `deleteGeneratedDocx` só apaga sob `storage/output`. É
+  deliberado no código, e mesmo assim significa que documento de cliente sobrevive à exclusão da
+  pasta.
+- **PV-027** — o limite do firewall é por IP e conta `analisar` e `pdf` juntos. Uma equipe comercial
+  atrás de um mesmo IP divide 10 requisições a cada 5 minutos.
+
+#### Fora de escopo, como o card previa
+
+CRM, cobrança, envio, histórico e pasta definitiva automática. Também não foi feito: rotação de
+senha das contas QA — é manuseio de credencial, e quem faz é a Ester, no painel do Supabase.
 
 ---
 
@@ -2691,6 +2814,133 @@ problema. Uma substituição cega produz documento sanitário com erro de portug
 
 ---
 
+## PV-025 — Rodada autenticada de homologação
+
+**Modelo:** gpt-5.6-sol · **Esforço:** médio · **Prioridade:** P1 lançamento · **Depende de:** conta QA
+**Resultado:** os papéis e o ciclo completo de uma pasta comprovados contra a aplicação de verdade.
+
+### Contexto
+
+É o resto do PV-012. Tudo que não dependia de conta foi entregue e está verde, inclusive em
+produção. O que ficou exige credencial de conta QA, e credencial é manuseio de segredo: quem digita
+é a Ester. A premissa que falhou não foi do card, foi de quem podia executá-lo.
+
+As specs já existem, em `tests/e2e/authenticated-flow.spec.ts`, e hoje se anunciam como puladas.
+Este card é rodá-las, ler o que elas acharem e consertar.
+
+### Arquivos e implementação
+
+- Rotacionar a senha das duas contas QA no painel do Supabase, antes e depois da rodada.
+- Exportar `PV_E2E_OPERADOR_EMAIL`, `PV_E2E_OPERADOR_PASSWORD`, `PV_E2E_ADMIN_EMAIL` e
+  `PV_E2E_ADMIN_PASSWORD` **na sessão do terminal** — nunca em arquivo (regra 6).
+- Rodar `npm run test:e2e` local e depois com `PV_E2E_BASE_URL` apontando para produção.
+- Corrigir o que a rodada achar. Se um seletor ou contrato estiver errado na spec, o conserto é
+  aqui.
+- Fechar o smoke autenticado de 404 da rota removida no PV-019, que ficou pendente por depender de
+  login.
+
+### Testes e aceite
+
+- As 8 asserções autenticadas passam: operador 200 em `/api/pastas` e 403 em `/api/templates` e
+  `/api/legislacoes`; admin 200 nas três; exclusão de pasta recusada ao operador; e o ciclo pasta →
+  documento → análise → aplicação → prévia → download → restauração → limpeza.
+- Depois da rodada, **zero** linhas com prefixo `QA-E2E` no banco e nenhum arquivo de QA no Storage.
+- Senha das contas QA rotacionada ao final.
+
+### Fora de escopo
+
+- Inspeção visual das telas internas, que é outra coisa e continua sendo da Ester.
+- Qualquer conserto de produto que a rodada revele: vira card, não entra aqui.
+
+### Commit
+
+`test: run the authenticated PastaVISA homologation`
+
+---
+
+## PV-026 — Documento original nunca sai do Storage
+
+**Modelo:** gpt-5.6-sol · **Esforço:** médio · **Prioridade:** P2 dado pessoal · **Depende de:** —
+**Resultado:** excluir uma pasta apaga também o que o cliente enviou.
+
+### Contexto
+
+Achado no PV-012, ao provar a limpeza de QA. `DELETE /api/pastas/[id]` junta os `outputPath` dos
+documentos e das versões e chama `deleteGeneratedDocx` em cada um — mas o `uploadPath`, que é o
+arquivo original enviado pelo cliente, fica de fora. O mesmo vale para a exclusão em lote de
+`uploads-corrigidos`, que inclusive **documenta** a escolha em comentário: `deleteGeneratedDocx` só
+permite remover sob `storage/output`, e o upload vive sob `storage/uploads`.
+
+É deliberado e tem uma razão defensável — não apagar por engano o original de onde tudo sai. A
+consequência, porém, é que o `.docx` de um cliente sobrevive à exclusão da pasta dele, sem nada na
+interface dizendo isso. Em documento de cliente de vigilância sanitária, isso é retenção de dado.
+
+Não é um bug a consertar às pressas: é uma decisão de produto a tomar com a Ester.
+
+### Arquivos e implementação
+
+- Medir primeiro: quantos arquivos em `storage/uploads` (ou no bucket) não têm mais linha
+  correspondente em `DocumentoUpload`. Sem esse número não dá para decidir nada.
+- Levar a decisão à Ester: apagar junto com a pasta, apagar por rotina depois de N dias, ou manter e
+  dizer isso na interface.
+- Implementar o que ela escolher, com a mesma trava de caminho absoluto que `deleteGeneratedDocx` já
+  usa.
+
+### Testes e aceite
+
+- Teste que exclui uma pasta com upload e afirma o comportamento decidido, seja ele qual for.
+- Se a decisão for apagar: nenhum caminho fora de `storage/` é aceito, provado por teste.
+
+### Fora de escopo
+
+- Backup e retenção do acervo oficial de templates.
+
+### Commit
+
+`fix: settle what happens to uploaded originals on delete`
+
+---
+
+## PV-027 — Teto do planner é por IP, não por atendimento
+
+**Modelo:** gpt-5.6-terra · **Esforço:** baixo · **Prioridade:** P3 · **Depende de:** —
+**Resultado:** o comercial sabe qual é o teto, e ele não é atingido em uso normal.
+
+### Contexto
+
+Medido no PV-012: a regra do firewall responde 429 com `x-vercel-mitigated: deny` e conta
+`analisar` e `pdf` **juntos**, por IP, 10 a cada 5 minutos.
+
+Numa equipe comercial atendendo do mesmo escritório — ou seja, atrás do mesmo IP —, esse teto é
+compartilhado. Duas pessoas fazendo pré-planejamento ao mesmo tempo, cada uma refazendo a análise
+uma ou duas vezes, chegam perto. A pessoa do outro lado vê "Não foi possível analisar agora", que
+não diz o que aconteceu nem o que fazer.
+
+Não sabemos ainda se isso já mordeu alguém. O card começa por descobrir isso.
+
+### Arquivos e implementação
+
+- Olhar o que a Vercel registra de 429 nessas duas rotas nos últimos 30 dias.
+- Se houver bloqueio real: rever a janela e a contagem, lembrando que o plano Hobby permite uma
+  regra só (ver PV-007).
+- Independente disso, tratar o 429 na interface: hoje ele cai no texto genérico de falha. A pessoa
+  precisa saber que é limite temporário e que basta esperar.
+
+### Testes e aceite
+
+- Teste de que a resposta 429 rende mensagem própria, e não a genérica.
+- Se a regra mudar, `scripts/planner-firewall-rules.json` e o teste de especificação mudam junto.
+
+### Fora de escopo
+
+- Autenticar o planner. Ele é público por decisão de produto (regra global 7).
+
+### Commit
+
+`fix: tell the salesperson when the planner hits its limit`
+
+---
+
 | Data | Card | Estado | Commit | Produção | Observação |
 |---|---|---|---|---|---|
 | 08/08/2026 | PV-000 | Concluído | `146b73c` | Vercel `success`; sem ação funcional | Handoff único publicado; temporários removidos. |
@@ -2723,6 +2973,7 @@ problema. Uma substituição cega produz documento sanitário com erro de portug
 | 18/08/2026 | PV-023 | **Concluído** | `20c2529`, `995a1ea`, `e048f48`, `1e124ab` | Não publicado — branch ainda não mergeada quando esta linha foi escrita | Base de legislação unificada com a do InspecVISA no pacote `@visa/legislacao` (repo público, tag `v1.0.3`). O `seed/legislacoes.ts` deixou de ser lista à mão e virou projeção da biblioteca: **47 → 119 atos**, ganhando PR, SC, AM, PA, GO, MG e as resoluções COFEN de estética. Campo `municipio` fecha um vazamento real: sem ele, o Decreto Rio nº 23.915/2004 (capital) era associado a cliente de Niterói. **Dois bugs achados no caminho:** (1) `criarChaveReferencia` lia título e ementa juntos com prioridade fixa, então o Decreto Rio 45.585/2018 herdava a chave da Lei Complementar 197/2018 que ele cita na própria ementa, e os dois viravam a mesma linha na tabela; (2) mudar esse algoritmo invalidou as chaves já gravadas e o seed reinseriu a base inteira em duplicata (117 → 191 linhas no banco local) — o seed agora casa por título mesmo com chave gravada e colapsa as irmãs, poupando as que alguma pasta já referencia. Suíte 186 → 198. Os 31 atos herdados entraram como `nao_verificado`: são normas reais, mas ninguém apurou a vigência, e o teste falha se alguém carimbar `vigente` sem data. |
 | 18/08/2026 | PV-024 | **Concluído** | `d378356` | Não publicado — mesma branch do PV-023 | Campo de cópia do link do pré-planejamento comercial no menu lateral. **Não** virou item de navegação: a regra global 7 mantém `/planner` público e sem login, e um link no menu interno lhe daria porta de entrada autenticada. Campo somente-leitura em vez de só um botão porque `navigator.clipboard` não existe fora de contexto seguro — aí a URL ainda pode ser selecionada à mão. 5 testes, incluindo o caminho sem clipboard e a trava de que `/planner` não entra no array de navegação. Verificação visual autenticada segue sendo da Ester: o checkout local não tem Supabase configurado. |
 | 18/08/2026 | Flake dos testes de PDF | **Concluído** | `7cd4ea0` | Nenhuma | Os dois testes de PDF do planner estouravam os 5 s de `testTimeout` de forma intermitente quando a suíte inteira disputava CPU. Não era regressão: reproduzia em `49a7358`. Causa medida: carga preguiçosa do pdf-parse e inicialização do fontkit, ~0,9 s ocioso e ~2,7 s sob carga, caindo no orçamento do primeiro `it`. `warm-pdf.ts` aquece o pipeline num `beforeAll`. Suíte cheia com paralelismo: 198/198. |
+| 19/08/2026 | PV-012 | **Parcial** | `01b3de2` | `dpl_FjKvKGFX9a122dEbpSVMvyadUxqR` `READY`, alias `pastavisa.vercel.app` | Playwright com 3 specs em `tests/e2e`, `scripts/check-public-boundary.mjs` e `tests/correction/lifecycle-route.test.ts`. **Comprovado em produção:** 16/16 da fronteira anônima contra o deployment novo, e o caminho completo do planner — formulário, análise real, revisão, formato e PDF com cabeçalho `%PDF-`. **Firewall medido, não presumido:** 429 com `x-vercel-mitigated: deny`. Advisor de segurança do Supabase: 0 erro, 10 `INFO` de RLS sem policy (postura desejada do PV-002) e 1 `WARN` de senha vazada, que é o PV-014. Rollback registrado em 2.1. O teste em Vitest achou um erro que eu teria entregado: as duas specs E2E liam `contagens` onde o `preflight` devolve `totalOcorrencias`. A auditoria de bundle também precisou ficar exata — procurava a palavra `service_role` e acusava um comentário do SDK num bundle de `next dev`; passou a decodificar o JWT e a recusar bundle de desenvolvimento. Suíte 244→250. **Falta a rodada autenticada → PV-025.** Abertos também PV-026 (original enviado nunca sai do Storage) e PV-027 (teto do planner é por IP). |
 
 **As linhas de 17/08 estão agrupadas por assunto, não em ordem cronológica estrita** — o dia teve várias
 idas e vindas no mesmo tema. A última linha da tabela é sempre o estado mais recente.
