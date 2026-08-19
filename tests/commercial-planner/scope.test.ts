@@ -145,8 +145,6 @@ describe("proibido por lei", () => {
     ["Escova progressiva com formol", /formol/],
     ["Alisamento com formaldeído", /formol/],
     ["Preenchedor manipulado em farmácia", /manipula/],
-    ["Preenchimento labial com hyaluron pen", /caneta pressurizada/],
-    ["Preenchimento sem agulha", /caneta pressurizada/],
   ];
 
   const PERMITIDO = [
@@ -175,7 +173,7 @@ describe("proibido por lei", () => {
     }
   });
 
-  it("não cita número de norma no texto que vai ao cliente", () => {
+  it("não cita número de norma no aviso — quem cita a base legal é a equipe técnica", () => {
     const avisos = forbiddenAlerts("aplico pmma e tenho camara de bronzeamento artificial");
 
     expect(avisos).toHaveLength(2);

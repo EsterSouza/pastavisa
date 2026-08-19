@@ -155,6 +155,24 @@ describe("PDF do planejamento comercial", () => {
     expect(familias).not.toMatch(/Helvetica/);
   });
 
+  it("imprime a confirmação técnica e cala a ressalva de legislação", async () => {
+    // Decisão da Ester: dizer por escrito, num documento que fica com o cliente, que
+    // ele usa produto proibido é conversa do comercial na hora, não papel que o
+    // cliente leva embora. Na tela o alerta continua inteiro.
+    const { conteudo } = await text({
+      alertas: [
+        "Confirme se “Jato de plasma” é uma técnica realizada no estabelecimento.",
+        "Atenção à legislação sanitária: preenchimento com PMMA não tem indicação estética aprovada.",
+        "Câmara de bronzeamento artificial tem uso estético proibido no Brasil.",
+      ],
+    });
+    const plano = conteudo.replace(/\s+/g, " ");
+
+    expect(plano).toContain("Jato de plasma");
+    expect(plano).not.toContain("PMMA");
+    expect(plano).not.toMatch(/proibid/i);
+  });
+
   it("encontra a logo e as duas famílias em disco", async () => {
     const assets = await loadBrandAssets();
     expect(Object.keys(assets).sort()).toEqual(["body", "bodyStrong", "display", "displayStrong", "logo"]);

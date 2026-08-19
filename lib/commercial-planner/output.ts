@@ -65,6 +65,20 @@ function alertaInterno(value: string): boolean {
 }
 
 /**
+ * Ressalva de legislação: o comercial vê na tela, o cliente não vê no PDF.
+ *
+ * Decisão da Ester. Dizer por escrito, num documento que fica com o cliente, que ele
+ * usa produto proibido é conversa que o comercial faz na hora — não papel que ele
+ * leva embora. Na tela continua inteira, porque é justamente o que o comercial
+ * precisa saber antes de fechar proposta.
+ */
+export function alertaSomenteComercial(value: string): boolean {
+  return /proibid|vedad[oa]|n[ãa]o [ée] permitid|n[ãa]o [ée] autorizad|sem registro|n[ãa]o tem registro|n[ãa]o existe .{0,40}registrad|indica[çc][ãa]o est[ée]tica aprovada|legisla[çc][ãa]o (sanit[áa]ria|desfavor[áa]vel)|adultera[çc][ãa]o/i.test(
+    value
+  );
+}
+
+/**
  * Nome de documento copiado da origem, em caixa alta e sem acento — o formato em que
  * os arquivos internos são nomeados. A calibragem pegou um alerta perguntando se "o
  * TCLE MICROPIGMENTACAO FACIAL cobre ambas as regiões": nome interno na frente do

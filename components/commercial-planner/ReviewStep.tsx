@@ -1,5 +1,6 @@
 "use client";
 
+import { alertaSomenteComercial } from "@/lib/commercial-planner/output";
 import { AUTHORSHIP_NOTE, OUT_OF_FOLDER_NOTE } from "@/lib/commercial-planner/references";
 import type { PublicCommercialPlan } from "@/lib/commercial-planner/types";
 import type { WithdrawalResult } from "@/lib/commercial-planner/withdrawal";
@@ -96,7 +97,16 @@ export function ReviewStep({ plano, retirada, retirados, onToggle }: ReviewStepP
           </h3>
           <ul className="mt-3 list-disc space-y-1.5 pl-5 text-base leading-6 text-ink">
             {plano.alertas.map((alerta) => (
-              <li key={alerta}>{alerta}</li>
+              <li key={alerta}>
+                {alerta}
+                {/* Sem esta marca o comercial não tem como saber que o cliente não
+                    leu isso no PDF, e trata como assunto já dito. */}
+                {alertaSomenteComercial(alerta) && (
+                  <span className="ml-2 whitespace-nowrap rounded bg-status-warning-soft px-1.5 py-0.5 text-xs text-status-warning">
+                    não sai no PDF
+                  </span>
+                )}
+              </li>
             ))}
           </ul>
         </section>

@@ -9,6 +9,7 @@ import {
   OUT_OF_FOLDER_NOTE,
   TECHNICAL_CRITERIA_NOTE,
 } from "./references";
+import { alertaSomenteComercial } from "./output";
 import type { PlannerFormat, PlannerPrice } from "./pricing";
 import type { PublicPlannerDocument } from "./types";
 
@@ -409,7 +410,9 @@ export async function renderPlannerPdf(data: PlannerPdfData, assets?: BrandAsset
   heading("Ressalva oficial", 56);
   paragraph(OFFICIAL_CAVEAT, { size: 9.5, color: INK_MUTED, gap: 2 });
   paragraph(TECHNICAL_CRITERIA_NOTE, { size: 9.5, color: INK_MUTED, gap: 8 });
-  if (data.alertas.length > 0) bullets(data.alertas, AMBER);
+  // Ressalva de legislação fica na tela do comercial e não neste documento.
+  const impressos = data.alertas.filter((alerta) => !alertaSomenteComercial(alerta));
+  if (impressos.length > 0) bullets(impressos, AMBER);
 
   // A numeração só pode ser escrita depois do fluxo, porque o total de páginas
   // só existe quando o conteúdo termina.

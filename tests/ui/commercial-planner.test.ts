@@ -137,6 +137,29 @@ describe("planner comercial público", () => {
     expect(screen.queryByRole("heading", { name: /revise o que entra/i })).not.toBeInTheDocument();
   });
 
+  it("marca na tela a ressalva de legislação que não sai no PDF", async () => {
+    // O comercial precisa saber que o cliente não leu aquilo no documento; sem a
+    // marca ele trata o assunto como já dito.
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...plano,
+        alertas: [
+          "A documentação de Microagulhamento precisa de validação técnica antes da produção final.",
+          "Atenção à legislação sanitária: câmara de bronzeamento artificial tem uso estético proibido no Brasil.",
+        ],
+      }),
+    });
+
+    await chegarNaRevisao();
+
+    const legislacao = screen.getByText(/câmara de bronzeamento artificial/i).closest("li");
+    expect(legislacao).toHaveTextContent("não sai no PDF");
+
+    const tecnico = screen.getByText(/validação técnica antes da produção final/i).closest("li");
+    expect(tecnico).not.toHaveTextContent("não sai no PDF");
+  });
+
   it("só toca o armazenamento do navegador pelo módulo de rascunho", () => {
     const componentes = [
       "components/commercial-planner/CommercialPlanner.tsx",

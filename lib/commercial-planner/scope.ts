@@ -93,9 +93,6 @@ const FORA_DO_ESCOPO: ScopeGroup[] = [
  *   (5%); como alisante é adulteração. RDC 36/2009 restringe a venda.
  * - preenchedor manipulado: RE 4.424/2023 proíbe manipulação, venda e uso por
  *   farmácia de manipulação.
- * - caneta pressurizada sem agulha: a ANVISA já proibiu os produtos vendidos para
- *   essa aplicação (RE 2.603/2022 e RE 3.274/2022); não há preenchedor registrado
- *   para uso sem agulha.
  *
  * O número da norma fica aqui e no handoff, não no texto que vai ao cliente: norma
  * muda, e número errado na frente do cliente é pior que nenhum.
@@ -125,10 +122,6 @@ const PROIBIDOS: ScopeGroup[] = [
   {
     label: "preenchedor intradérmico manipulado em farmácia de manipulação é proibido",
     pattern: /\bpreenched\w* manipulad\w*|\bpreenchimento manipulad\w*|\bacido hialuronico manipulad\w*/,
-  },
-  {
-    label: "não existe preenchedor registrado para aplicação por caneta pressurizada, sem agulha",
-    pattern: /\bhyaluron pen\b|\bcaneta pressurizada\b|\bpreenchimento sem agulha\b|\bpressurizad\w* sem agulha\b/,
   },
 ];
 

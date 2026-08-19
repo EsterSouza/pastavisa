@@ -1724,7 +1724,9 @@ código e escrevem frases diferentes: uma manda tratar separadamente, a outra av
 | câmara ou cabine de bronzeamento artificial | RDC 56/2009 proíbe uso, importação, doação, locação e comercialização para fins estéticos | notícia e alerta ANVISA |
 | formol como alisante capilar | em cosmético só é permitido como conservante (0,2%) e endurecedor de unha (5%); como alisante é adulteração. A RDC 36/2009 restringe a venda | página ANVISA sobre alisantes |
 | preenchedor manipulado em farmácia de manipulação | RE 4.424/2023 proíbe manipulação, venda e uso | notícia ANVISA de 2025 |
-| caneta pressurizada sem agulha | a ANVISA já proibiu os produtos vendidos para essa aplicação (RE 2.603/2022, RE 3.274/2022); não há preenchedor registrado para uso sem agulha | resoluções e interdição de 2023 |
+
+A caneta pressurizada sem agulha chegou a entrar como sétima linha e **a Ester mandou tirar**. Fica o
+registro para ninguém reincluir por conta: a decisão é dela, não da norma.
 
 **O número da norma não vai ao cliente.** Ele fica no comentário do código e nesta tabela. Norma muda, e número
 errado na frente do cliente é pior que número nenhum — quem cita a base legal é a equipe técnica.
@@ -1751,6 +1753,16 @@ olhar também o texto declarado, e não só o nome da técnica.
 **Ruído consertado no caminho.** Esse mesmo caso rendeu duas ressalvas para a mesma técnica, as duas
 começando com a frase idêntica, porque a análise devolveu duas restrições sobre o preenchimento. Agora é uma
 ressalva por técnica.
+
+**A ressalva de legislação não vai ao PDF.** Decisão da Ester: dizer por escrito, num documento que fica com
+o cliente, que ele usa produto proibido é conversa que o comercial faz na hora — não papel que o cliente leva
+embora. `alertaSomenteComercial` em `output.ts` classifica pelo texto (proibido, vedado, não é permitido, sem
+registro, sem indicação estética aprovada, legislação sanitária ou desfavorável, adulteração); `render-pdf.ts`
+filtra por ela e a tela continua mostrando o alerta inteiro.
+
+Na tela o alerta filtrado ganha a marca **"não sai no PDF"**. Sem ela o comercial não tem como saber que o
+cliente não leu aquilo, e trata o assunto como já dito — que é justamente o erro que essa decisão poderia
+criar.
 
 ---
 
