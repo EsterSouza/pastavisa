@@ -415,16 +415,16 @@ esta seção que diz se o card fechou.
 | PV-018 | Aceite de acessibilidade do PV-008 | **Concluído** | Entregue em `80b3bf4`. Fechou três defeitos anteriores ao PV-010: contraste do anel de foco no tema escuro, token sem espaço estourando a página e alvo de checkbox. |
 | PV-021 | Aceitar pendência de dado faltante | Pendente | Pedido da Ester em 18/08. Leva junto a correção do rótulo "Bloqueia", que anuncia impedimento inexistente. |
 | PV-022 | Identificação e concordância no template | Pendente | Pedido da Ester em 18/08. CPF no lugar de CNPJ, gênero e categoria profissional. Dependência (PV-011) satisfeita em 18/08. |
-| PV-019 | Remover fluxo de pasta de teste | **Concluído** | Rota e UI removidas em `a12064d`. Zero pastas de teste no banco. Falta só o smoke autenticado de 404, que depende de login da Ester. |
+| PV-019 | Remover fluxo de pasta de teste | **Concluído** | Rota e UI removidas em `a12064d`. Zero pastas de teste no banco. Smoke autenticado fechado em 19/08 pelo PV-025, e ele corrigiu a previsão do card: a resposta é **405**, não 404, porque `/api/pastas/teste` casa com o segmento dinâmico `[id]`. Nenhuma pasta é criada, que era o que importava. |
 | PV-020 | `[skip ci]` não impede deploy | **Concluído** | `ignoreCommand` por diff de caminho em `2826545`. `[skip ci]` sai das convenções. |
 | PV-023 | Base unificada de legislação | **Concluído** | Entregue em `20c2529`, `e048f48`, `1e124ab`. O seed virou projeção de `@visa/legislacao` (47 → 119 atos). Falta só sincronizar a produção do InspecVISA, que é card de lá. |
 | PV-024 | Link do planner para o comercial | **Concluído** | Campo de cópia no menu interno (`d378356`). Não virou item de navegação: `/planner` é público e sem login. |
-| PV-025 | Rodada autenticada de homologação | Pendente | Resto do PV-012. As specs existem e estão verdes na parte anônima; falta rodar com conta QA. |
+| PV-025 | Rodada autenticada de homologação | **Parcial** | Rodada local passou inteira em 19/08 (25/25), papéis e ciclo da pasta verdes, limpeza conferida. Achado: a conta QA do PV-003 nunca teve senha utilizável e foi substituída. O smoke do PV-019 entrou, medindo 405 — o card previa 404 e estava errado. Falta a rodada contra produção e apagar a conta QA nova. |
 | PV-026 | Limpeza e retenção do Supabase Storage | **Parcial** | **P1 custo.** Em 19/08: faxina (bucket de 713,1 MB para 534,7 MB) **e** as duas torneiras fechadas — o arquivo passa a sair junto com a linha. Falta decidir a retenção de `output/` (426,9 MB), a terceira torneira (`DELETE /api/templates/[id]`) e a varredura do que nasce órfão em `/api/extrair`. |
 | PV-027 | Teto do planner é por IP, não por atendimento | Pendente | Achado no PV-012. Equipe atrás de um mesmo IP divide 10 requisições a cada 5 minutos. |
 
-Contagem, sobre 28 cards: **17 concluídos**, **4 parciais** (PV-012, PV-013 encerrado, PV-017,
-PV-026), **7 pendentes** (PV-014, PV-015, PV-016, PV-021, PV-022, PV-025, PV-027), **0 bloqueados**.
+Contagem, sobre 28 cards: **17 concluídos**, **5 parciais** (PV-012, PV-013 encerrado, PV-017,
+PV-025, PV-026), **6 pendentes** (PV-014, PV-015, PV-016, PV-021, PV-022, PV-027), **0 bloqueados**.
 
 **Correção de uma contagem anterior.** A versão de 17/08 registrava "13 concluídos, 3 parciais, 4
 pendentes e 1 bloqueado". Contando as linhas daquela mesma tabela: 12 concluídos, 3 parciais, 5
@@ -473,7 +473,7 @@ card bloqueado.**
 
 | # | Card | Entrega | Prioridade | Esforço | Modelo | Depende de |
 |---|---|---|---|---|---|---|
-| 1 | PV-025 | Rodada autenticada de homologação | P1 lançamento | médio | gpt-5.6-sol | conta QA da Ester |
+| 1 | PV-025 | Rodada de homologação contra produção | P1 lançamento | baixo | gpt-5.6-sol | conta QA nova, senha fora do chat |
 | 2 | PV-026 | Retenção de `output/` e as duas torneiras restantes | P1 custo | médio | gpt-5.6-sol | decisão da Ester sobre retenção |
 | 3 | PV-014 | Senha vazada e vulnerabilidades | P1 segurança | médio | gpt-5.6-sol | — (livre) |
 | 4 | PV-021 | Aceitar pendência de dado faltante | P2 produto | médio | gpt-5.6-terra | — |
@@ -2997,6 +2997,10 @@ problema. Uma substituição cega produz documento sanitário com erro de portug
 **Modelo:** gpt-5.6-sol · **Esforço:** médio · **Prioridade:** P1 lançamento · **Depende de:** conta QA
 **Resultado:** os papéis e o ciclo completo de uma pasta comprovados contra a aplicação de verdade.
 
+> **Estado: PARCIAL.** A rodada local passou inteira em 19/08 — **25 de 25**, com os 8 critérios
+> autenticados verdes e a limpeza conferida. Falta a rodada contra produção e a rotação da conta QA.
+> A premissa do card sobre "as contas QA" estava errada, e o achado está em `### Resultado`.
+
 ### Contexto
 
 É o resto do PV-012. Tudo que não dependia de conta foi entregue e está verde, inclusive em
@@ -3024,6 +3028,58 @@ Este card é rodá-las, ler o que elas acharem e consertar.
   documento → análise → aplicação → prévia → download → restauração → limpeza.
 - Depois da rodada, **zero** linhas com prefixo `QA-E2E` no banco e nenhum arquivo de QA no Storage.
 - Senha das contas QA rotacionada ao final.
+
+### Resultado — 19/08/2026 (rodada local)
+
+**25 de 25 passaram, 27,7 s.** O único não executado é a análise real do planner, atrás de
+`PV_E2E_LIVE_ANALYSIS=1` porque é chamada paga.
+
+**A premissa do card estava errada, e isso custou três tentativas.** O card falava em "as duas contas
+QA" como se existissem e alguém soubesse a senha. Conferido em `auth.users`, o projeto tinha **duas
+contas no total**:
+
+- `esterposte@hotmail.com`, papel `admin` — **não é conta QA, é a conta real da Ester**;
+- `pv003-operador-…@qa.pastavisa.invalid`, papel `operador`, criada pelo PV-003 em 08/08 e que
+  **nunca fez login uma vez sequer**. A senha foi gerada na criação e, pela regra 6, nunca escrita em
+  lugar nenhum. Ninguém tinha como usá-la — nem a Ester, nem o handoff.
+
+Ou seja: a conta existia no banco, contava como "pronta" no PV-003, e era inutilizável. Foi excluída
+e substituída por uma conta QA nova, com papel `operador` aplicado por `raw_app_meta_data`.
+
+**Como os papéis passaram.** Operador: 200 em `/api/pastas`, 403 em `/api/templates` e
+`/api/legislacoes`, 403 ao tentar excluir pasta — a recusa vem do papel, antes da busca. Admin: 200
+nos três. Ciclo completo: cria a pasta, recebe o documento, analisa sem alterar o arquivo, aplica,
+prevê, baixa, restaura o original e limpa. **Limpeza conferida depois da rodada: zero pastas no
+banco e zero arquivos em `storage/`.**
+
+De quebra, essa rodada provou a torneira do PV-026 pela rede: a limpeza no fim do teste levou junto o
+arquivo enviado, contra o servidor de verdade e não contra mock.
+
+### O smoke do PV-019 é 405, não 404 — o card previa errado
+
+A pendência que o PV-019 deixou era "`POST /api/pastas/teste` autenticado retorna 404". Medido:
+**retorna 405.** `app/api/pastas/teste/route.ts` foi removido em `a12064d`, mas o caminho continua
+casando com o segmento dinâmico `[id]`, que tem `GET`, `PATCH` e `DELETE` e nenhum `POST`. Por isso a
+resposta é *método não permitido*, não *não encontrado*.
+
+O que importa foi medido junto e está de pé: **nenhuma pasta é criada.** `GET` e `DELETE` em
+`/api/pastas/teste` devolvem 404 normalmente, porque não existe pasta com esse id.
+
+A asserção entrou em `authenticated-flow.spec.ts` medindo as duas coisas — o 405 e a contagem de
+pastas antes e depois. Escrever 404 ali reprovaria um comportamento correto e mandaria alguém
+"consertar" a rota dinâmica, que é o pior desfecho possível para um teste de homologação.
+
+### O que falta
+
+1. **Rodar contra produção**, com `PV_E2E_BASE_URL=https://pastavisa.vercel.app`. A rodada local usa
+   o SQLite local; o contrato de papéis já vale, porque a autenticação é a mesma do Supabase de
+   produção, mas o ciclo da pasta ainda não foi exercido contra o banco e o Storage de verdade.
+2. **Apagar a conta QA `operadorqa@teste.com`.** A senha dela apareceu em conversa, e operador em
+   produção enxerga `/api/pastas` inteiro — todas as pastas e documentos de cliente. Na rodada local
+   não houve exposição, porque o alvo era o `localhost`. Para a rodada de produção, conta nova com
+   senha que não passa por chat nenhum.
+3. **Trocar a senha do admin.** Ela foi colada em conversa em 19/08. Trocar não derruba produção,
+   diferente da chave de serviço.
 
 ### Fora de escopo
 
