@@ -1,6 +1,13 @@
 import sharp from "sharp";
 import PizZip from "pizzip";
-import { relsPathFor, ensureContentTypeDefault, normalizeHexColor, setCellShading } from "./logo-replacer";
+import {
+  relsPathFor,
+  ensureContentTypeDefault,
+  normalizeHexColor,
+  setCellShading,
+  injectLogoVariableFromBuffer,
+  applyLogoCellBackground,
+} from "./logo-replacer";
 import { assertValidDocxBuffer } from "./docx-validator";
 import {
   aplicarSubstituicoes,
@@ -331,13 +338,26 @@ export async function applyBatchChanges(
 
   let logoSubstituida = false;
   if (opts.logoBuffer) {
-    const result = await replaceLogoInHeadersAndFooters(zip, opts.logoBuffer);
-    logoSubstituida = result.substituida;
+    // Dois estados possíveis, e o lote precisa cobrir os dois. O normal é o
+    // documento já ter a logo como imagem, e aí a troca é dos bytes da mídia. Mas
+    // documento cuja geração não injetou a logo saiu com o `{cliente_logo}` escrito
+    // ali no cabeçalho, em texto: não existe imagem para trocar, é preciso injetar
+    // no lugar do marcador. Trocar primeiro e injetar depois mantém as duas
+    // operações longe uma da outra — a imagem recém-injetada não entra na disputa
+    // da troca, que já terminou.
+    const { substituida } = await replaceLogoInHeadersAndFooters(zip, opts.logoBuffer);
+    const injetada = await injectLogoVariableFromBuffer(zip, opts.logoBuffer);
+    logoSubstituida = substituida || injetada;
   }
 
-  // Depois da troca da imagem, e não antes: a troca reescreve o XML da parte para
-  // redimensionar o desenho, e pintar primeiro perderia o `<w:shd>` recém-inserido.
-  const logoFundoAplicado = applyLogoCellBackgroundInParts(zip, opts.logoBgHex);
+  // Depois da logo, e não antes: tanto a troca quanto a injeção reescrevem o XML da
+  // parte, e pintar primeiro perderia o `<w:shd>` recém-inserido. São duas varreduras
+  // porque são dois jeitos de achar a célula — pela imagem, e pelo marcador/nome que
+  // a injeção deixa. `setCellShading` limpa o shading anterior, então a célula que
+  // as duas alcançam é pintada uma vez só.
+  const fundoPelaImagem = applyLogoCellBackgroundInParts(zip, opts.logoBgHex);
+  const fundoPeloMarcador = applyLogoCellBackground(zip, opts.logoBgHex);
+  const logoFundoAplicado = fundoPelaImagem || fundoPeloMarcador;
 
   let contagens: SubstituicaoPlanejada[] = [];
   if (opts.substituicoes && opts.substituicoes.length > 0) {

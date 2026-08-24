@@ -94,16 +94,28 @@ export function ensureContentTypeDefault(zip: PizZip, ext: string): void {
 export async function injectLogoVariable(
   zip: PizZip,
   logoPath: string
-): Promise<void> {
-  if (!fs.existsSync(logoPath)) return;
+): Promise<boolean> {
+  if (!fs.existsSync(logoPath)) return false;
+  const ext = /\.(jpg|jpeg)$/i.test(logoPath) ? "jpeg" : "png";
+  return injectLogoVariableFromBuffer(zip, fs.readFileSync(logoPath), ext);
+}
 
+/**
+ * Same injection, from bytes already in memory — o caminho da correção em lote,
+ * onde a logo chega no corpo da requisição e nunca toca o disco.
+ *
+ * Devolve `true` quando algum `{cliente_logo}` virou imagem, para que o chamador
+ * saiba que o documento estava com o marcador cru em vez da logo.
+ */
+export async function injectLogoVariableFromBuffer(
+  zip: PizZip,
+  logoBuffer: Buffer,
+  ext: "png" | "jpeg" = "png"
+): Promise<boolean> {
   const xmlFiles = findXmlFilesWithLogoVar(zip);
-  if (xmlFiles.length === 0) return;
+  if (xmlFiles.length === 0) return false;
 
-  // ── Prepare image ──────────────────────────────────────────────────────────
-  const logoBuffer = fs.readFileSync(logoPath);
-  const isJpeg = /\.(jpg|jpeg)$/i.test(logoPath);
-  const ext = isJpeg ? "jpeg" : "png";
+  const isJpeg = ext === "jpeg";
 
   let convertedBuffer: Buffer;
   let imgWidth: number;
@@ -117,7 +129,7 @@ export async function injectLogoVariable(
       ? await sharp(logoBuffer).jpeg({ quality: 95 }).toBuffer()
       : await sharp(logoBuffer).png().toBuffer();
   } catch {
-    return; // If sharp fails, skip — variaveis fallback will clear the tag
+    return false; // If sharp fails, skip — variaveis fallback will clear the tag
   }
 
   // Add image to zip media (one shared copy for all XML files)
@@ -228,6 +240,8 @@ export async function injectLogoVariable(
 
     zip.file(xmlFile, xml);
   }
+
+  return true;
 }
 
 const HEADER_RELS = [
@@ -478,9 +492,11 @@ export function setCellShading(cell: string, fill: string): string {
  *
  * No-op when the color is empty/invalid.
  */
-export function applyLogoCellBackground(zip: PizZip, logoBgHex?: string | null): void {
+export function applyLogoCellBackground(zip: PizZip, logoBgHex?: string | null): boolean {
   const fill = normalizeHexColor(logoBgHex);
-  if (!fill) return;
+  if (!fill) return false;
+
+  let aplicado = false;
 
   const xmlFiles = Object.keys(zip.files).filter(
     (name) => name.startsWith("word/") && name.endsWith(".xml")
@@ -500,6 +516,11 @@ export function applyLogoCellBackground(zip: PizZip, logoBgHex?: string | null):
       return isLogoCell ? setCellShading(cell, fill) : cell;
     });
 
-    if (updated !== xml) zip.file(name, updated);
+    if (updated !== xml) {
+      zip.file(name, updated);
+      aplicado = true;
+    }
   }
+
+  return aplicado;
 }
