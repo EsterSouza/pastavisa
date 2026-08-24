@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import PizZip from "pizzip";
-import { relsPathFor, ensureContentTypeDefault } from "./logo-replacer";
+import { relsPathFor, ensureContentTypeDefault, normalizeHexColor, setCellShading } from "./logo-replacer";
 import { assertValidDocxBuffer } from "./docx-validator";
 import {
   aplicarSubstituicoes,
@@ -19,6 +19,8 @@ export interface AplicarBatchResult {
   aplicadas: string[];
   naoEncontradas: string[];
   logoSubstituida: boolean;
+  /** Alguma célula de logo teve o fundo pintado nesta rodada. */
+  logoFundoAplicado: boolean;
   /** Contagem por par e por escopo do que foi efetivamente aplicado. */
   contagens: SubstituicaoPlanejada[];
 }
@@ -273,6 +275,47 @@ export async function replaceLogoInHeadersAndFooters(
 }
 
 /**
+ * Pinta o fundo (`<w:shd>`) da célula que contém a logo em cada cabeçalho/rodapé
+ * vigente, com o mesmo hex que a geração aplica via `applyLogoCellBackground`.
+ *
+ * A geração acha a célula pelo texto do marcador (`{cliente_logo}` / `logo_cliente`),
+ * que só existe enquanto o documento ainda é template. Aqui os arquivos já saíram
+ * prontos: o marcador sumiu e sobrou a imagem. Por isso a célula é achada pelo mesmo
+ * caminho que a troca de logo usa — a imagem que `findPartImageReference` elege como
+ * logo da parte —, o que garante que fundo e imagem trocada falem sempre da mesma
+ * célula.
+ *
+ * No-op quando a cor é vazia ou inválida.
+ */
+export function applyLogoCellBackgroundInParts(zip: PizZip, logoBgHex?: string | null): boolean {
+  const fill = normalizeHexColor(logoBgHex);
+  if (!fill) return false;
+
+  let aplicado = false;
+  const partes = listActiveHeaderFooterParts(zip) ?? listHeaderFooterParts(zip);
+
+  for (const partName of partes) {
+    if (!zip.files[partName]) continue;
+    const relsPath = relsPathFor(partName);
+    if (!zip.files[relsPath]) continue;
+
+    const partXml = zip.files[partName].asText();
+    const ref = findPartImageReference(zip.files[relsPath].asText(), partXml);
+    if (!ref) continue;
+
+    const updated = partXml.replace(/<w:tc(?:\s[^>]*)?>[\s\S]*?<\/w:tc>/g, (cell) =>
+      cell.includes(`r:embed="${ref.rId}"`) ? setCellShading(cell, fill) : cell
+    );
+    if (updated !== partXml) {
+      zip.file(partName, updated);
+      aplicado = true;
+    }
+  }
+
+  return aplicado;
+}
+
+/**
  * Orquestra uma rodada de correção sobre um .docx já finalizado: troca a logo se
  * houver, aplica as substituições de texto em cabeçalhos, rodapés e corpo, valida
  * o resultado e devolve o novo buffer com o relatório por par.
@@ -282,7 +325,7 @@ export async function replaceLogoInHeadersAndFooters(
  */
 export async function applyBatchChanges(
   buffer: Buffer,
-  opts: { logoBuffer?: Buffer; substituicoes?: Substituicao[] }
+  opts: { logoBuffer?: Buffer; substituicoes?: Substituicao[]; logoBgHex?: string | null }
 ): Promise<AplicarBatchResult> {
   const zip = new PizZip(buffer);
 
@@ -291,6 +334,10 @@ export async function applyBatchChanges(
     const result = await replaceLogoInHeadersAndFooters(zip, opts.logoBuffer);
     logoSubstituida = result.substituida;
   }
+
+  // Depois da troca da imagem, e não antes: a troca reescreve o XML da parte para
+  // redimensionar o desenho, e pintar primeiro perderia o `<w:shd>` recém-inserido.
+  const logoFundoAplicado = applyLogoCellBackgroundInParts(zip, opts.logoBgHex);
 
   let contagens: SubstituicaoPlanejada[] = [];
   if (opts.substituicoes && opts.substituicoes.length > 0) {
@@ -305,6 +352,7 @@ export async function applyBatchChanges(
     aplicadas: contagens.filter((s) => s.total > 0).map((s) => s.de),
     naoEncontradas: contagens.filter((s) => s.total === 0).map((s) => s.de),
     logoSubstituida,
+    logoFundoAplicado,
     contagens,
   };
 }

@@ -55,6 +55,7 @@ interface ResultadoRodada {
   aplicadas?: string[];
   naoEncontradas?: string[];
   logoSubstituida?: boolean;
+  logoFundoAplicado?: boolean;
   contagens?: ContagemPorPar[];
   erro?: string;
 }
@@ -148,6 +149,7 @@ export default function CorrigirLotePasta() {
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const [pares, setPares] = useState<Par[]>([{ de: "", para: "" }]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoBgHex, setLogoBgHex] = useState("");
 
   const [analises, setAnalises] = useState<Record<string, AnaliseEntrada>>({});
   const [analiseAssinatura, setAnaliseAssinatura] = useState<string | null>(null);
@@ -186,6 +188,18 @@ export default function CorrigirLotePasta() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Pré-carrega a cor que a geração já usa nesta pasta, para que corrigir em lote
+  // parta do mesmo fundo em vez de exigir que o operador lembre o hex de cabeça.
+  // Falha de leitura fica silenciosa: a cor é opcional e o campo aceita digitação.
+  useEffect(() => {
+    fetch(`/api/pastas/${id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((pasta: { clienteLogoBgHex?: string | null } | null) => {
+        if (pasta?.clienteLogoBgHex) setLogoBgHex(pasta.clienteLogoBgHex);
+      })
+      .catch(() => {});
+  }, [id]);
+
   const normalizedSearch = normalizeForMatch(search.trim());
   const docsFiltrados = useMemo(() => {
     if (!normalizedSearch) return docs;
@@ -193,6 +207,10 @@ export default function CorrigirLotePasta() {
   }, [docs, normalizedSearch]);
 
   const paresValidos = useMemo(() => pares.filter((p) => p.de.trim().length > 0), [pares]);
+
+  const hexBruto = logoBgHex.trim();
+  const hexValido = /^#?[0-9a-fA-F]{6}$/.test(hexBruto);
+  const hexNormalizado = hexBruto.startsWith("#") ? hexBruto : `#${hexBruto}`;
   const docsSelecionados = useMemo(
     () => docs.filter((doc) => selectedDocs.has(doc.id)),
     [docs, selectedDocs]
@@ -268,7 +286,9 @@ export default function CorrigirLotePasta() {
 
   const bloqueioAplicar = (() => {
     if (selectedDocs.size === 0) return "Selecione ao menos um documento na etapa 2.";
-    if (!rodadaTemTexto && !logoFile) return "Informe uma logo nova e/ou ao menos um par de substituição.";
+    if (hexBruto && !hexValido) return "A cor de fundo da logo precisa ser um hex de 6 dígitos, como #1B4332.";
+    if (!rodadaTemTexto && !logoFile && !hexValido)
+      return "Informe uma logo nova, uma cor de fundo e/ou ao menos um par de substituição.";
     if (rodadaTemTexto && !analiseValida) {
       return analiseVencida
         ? "Os pares mudaram depois da análise. Analise novamente na etapa 4."
@@ -491,6 +511,17 @@ export default function CorrigirLotePasta() {
         await readApiResponse(logoResponse, "Não foi possível salvar a nova logo como logo principal da pasta.");
       }
 
+      // Mesma lógica da logo: a cor escolhida aqui passa a valer também para o que
+      // for gerado depois, senão a próxima geração devolveria o fundo antigo.
+      if (hexValido) {
+        const corResponse = await fetch(`/api/pastas/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clienteLogoBgHex: hexNormalizado }),
+        });
+        await readApiResponse(corResponse, "Não foi possível salvar a cor de fundo da logo na pasta.");
+      }
+
       for (const docId of docIds) {
         const doc = docs.find((d) => d.id === docId);
         setCurrentDocName(doc?.nomeArquivo || "");
@@ -504,6 +535,7 @@ export default function CorrigirLotePasta() {
           formData.append("docId", docId);
           formData.append("substituicoes", JSON.stringify(paresValidos));
           if (logoFile) formData.append("logo", logoFile);
+          if (hexValido) formData.append("logoBgHex", hexNormalizado);
           // O hash da análise é o que torna a trava de base divergente efetiva:
           // se o arquivo mudou entre revisar e aplicar, o servidor recusa com 409
           // em vez de aplicar sobre números que o operador nunca viu.
@@ -550,6 +582,7 @@ export default function CorrigirLotePasta() {
             aplicadas: resultado.aplicadas,
             naoEncontradas: resultado.naoEncontradas,
             logoSubstituida: resultado.logoSubstituida,
+            logoFundoAplicado: resultado.logoFundoAplicado,
             contagens: resultado.contagens,
             erro: resultado.erro,
           };
@@ -919,6 +952,9 @@ export default function CorrigirLotePasta() {
                 {resultado && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {resultado.logoSubstituida && <StatusBadge tone="sucesso">Logo trocada</StatusBadge>}
+                    {resultado.logoFundoAplicado && (
+                      <StatusBadge tone="sucesso">Fundo da logo pintado</StatusBadge>
+                    )}
                     {resultado.aplicadas?.map((valor) => {
                       const contagem = resultado.contagens?.find((c) => c.de === valor);
                       return (
@@ -1045,6 +1081,45 @@ export default function CorrigirLotePasta() {
               <p className="mt-1 text-sm text-ink-muted">
                 Logo selecionada: <span className="font-semibold text-ink">{logoFile.name}</span>
               </p>
+            )}
+          </div>
+
+          <div className="mt-4 border-t border-gray-200 pt-4">
+            <label className="mb-1 block text-sm font-semibold text-ink" htmlFor="logo-bg-hex-lote">
+              Cor de fundo da logo (opcional)
+            </label>
+            <p id="logo-bg-hex-lote-hint" className="mb-2 text-sm text-ink-muted">
+              Pinta o quadrado atrás da logo no cabeçalho dos documentos selecionados, igual à
+              geração. Vem preenchida com a cor da pasta; alterar aqui também passa a valer para o
+              que for gerado depois. Deixe em branco para manter o fundo atual dos arquivos.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                type="color"
+                value={hexValido ? hexNormalizado : "#1b4332"}
+                onChange={(e) => setLogoBgHex(e.target.value)}
+                className="h-11 w-14 cursor-pointer rounded-md border border-gray-300 bg-surface-card p-1"
+                aria-label="Seletor de cor de fundo da logo"
+              />
+              <input
+                id="logo-bg-hex-lote"
+                type="text"
+                value={logoBgHex}
+                aria-describedby="logo-bg-hex-lote-hint"
+                onChange={(e) => setLogoBgHex(e.target.value)}
+                placeholder="#1B4332"
+                className={`${fieldClass} w-44`}
+              />
+              {logoBgHex.trim() && (
+                <Button variant="quiet" onClick={() => setLogoBgHex("")}>
+                  Limpar cor
+                </Button>
+              )}
+            </div>
+            {hexBruto && !hexValido && (
+              <Feedback tone="erro" className="mt-2">
+                Cor inválida. Use um hex de 6 dígitos, como #1B4332.
+              </Feedback>
             )}
           </div>
 

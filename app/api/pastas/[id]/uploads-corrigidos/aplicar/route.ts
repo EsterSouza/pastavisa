@@ -4,6 +4,7 @@ import path from "path";
 import { prisma } from "@/lib/prisma";
 import { readStorageBuffer, saveGeneratedDocx } from "@/lib/file-storage";
 import { applyBatchChanges, hashDocx, Substituicao } from "@/lib/header-footer-replace";
+import { normalizeHexColor } from "@/lib/logo-replacer";
 import { createOutputDocxFileName } from "@/lib/generator";
 
 export const runtime = "nodejs";
@@ -16,6 +17,7 @@ interface ItemResultado {
   aplicadas?: string[];
   naoEncontradas?: string[];
   logoSubstituida?: boolean;
+  logoFundoAplicado?: boolean;
   contagens?: Array<{ de: string; total: number; corpo: number; cabecalho: number; rodape: number }>;
   hashOrigem?: string;
   erro?: string;
@@ -32,6 +34,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   let substituicoes: Substituicao[] = [];
   let logoBuffer: Buffer | undefined;
   let hashOrigem = "";
+  let logoBgHexBruto = "";
 
   try {
     if (contentType.includes("multipart/form-data")) {
@@ -39,6 +42,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       docId = String(formData.get("docId") || "");
       substituicoes = JSON.parse(String(formData.get("substituicoes") || "[]"));
       hashOrigem = String(formData.get("hashOrigem") || "");
+      logoBgHexBruto = String(formData.get("logoBgHex") || "");
       const logo = formData.get("logo") as File | null;
       if (logo && logo.size > 0) logoBuffer = Buffer.from(await logo.arrayBuffer());
     } else {
@@ -46,6 +50,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       docId = String(body.docId || "");
       substituicoes = Array.isArray(body.substituicoes) ? body.substituicoes : [];
       hashOrigem = String(body.hashOrigem || "");
+      logoBgHexBruto = String(body.logoBgHex || "");
     }
   } catch {
     return NextResponse.json({ error: "Corpo da requisicao invalido" }, { status: 400 });
@@ -55,9 +60,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "Documento obrigatorio" }, { status: 400 });
   }
   const substituicoesValidas = substituicoes.filter((s) => s.de && s.de.trim().length > 0);
-  if (!logoBuffer && substituicoesValidas.length === 0) {
+
+  // Hex inválido é recusado em vez de ignorado: `normalizeHexColor` devolve null e a
+  // pintura viraria um no-op silencioso, relatando "processado" sobre um documento
+  // que não mudou de cor nenhuma.
+  const logoBgHex = normalizeHexColor(logoBgHexBruto);
+  if (logoBgHexBruto.trim() && !logoBgHex) {
     return NextResponse.json(
-      { error: "Informe uma logo nova e/ou ao menos um par de substituicao" },
+      { error: `Cor de fundo da logo invalida: ${logoBgHexBruto}. Use um hex como #1B4332.` },
+      { status: 400 }
+    );
+  }
+
+  if (!logoBuffer && !logoBgHex && substituicoesValidas.length === 0) {
+    return NextResponse.json(
+      { error: "Informe uma logo nova, uma cor de fundo e/ou ao menos um par de substituicao" },
       { status: 400 }
     );
   }
@@ -107,10 +124,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   try {
     await prisma.documentoUpload.update({ where: { id: doc.id }, data: { status: "processando" } });
 
-    const { buffer, aplicadas, naoEncontradas, logoSubstituida, contagens } = await applyBatchChanges(
-      inputBuffer,
-      { logoBuffer, substituicoes: substituicoesValidas }
-    );
+    const { buffer, aplicadas, naoEncontradas, logoSubstituida, logoFundoAplicado, contagens } =
+      await applyBatchChanges(inputBuffer, {
+        logoBuffer,
+        substituicoes: substituicoesValidas,
+        logoBgHex,
+      });
 
     const versionId = `v${doc.versoes.length + 1}_${randomUUID()}`;
     const fileName = createOutputDocxFileName(`CORRIGIDO_${doc.nomeArquivo}`);
@@ -121,7 +140,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         data: {
           documentoUploadId: doc.id,
           outputPath,
-          substituicoes: JSON.stringify({ substituicoes: substituicoesValidas, logoAplicada: logoSubstituida }),
+          substituicoes: JSON.stringify({
+            substituicoes: substituicoesValidas,
+            logoAplicada: logoSubstituida,
+            logoFundoHex: logoFundoAplicado ? `#${logoBgHex}` : null,
+          }),
         },
       }),
       prisma.documentoUpload.update({
@@ -136,6 +159,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       aplicadas,
       naoEncontradas,
       logoSubstituida,
+      logoFundoAplicado,
       contagens: contagens.map(({ de, total, corpo, cabecalho, rodape }) => ({
         de,
         total,

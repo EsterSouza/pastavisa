@@ -428,7 +428,7 @@ export async function replaceLogo(zip: PizZip, logoPath: string): Promise<boolea
  * Normalizes a user-supplied color to a 6-digit uppercase hex (no leading #).
  * Accepts "#abc", "abc", "#AABBCC", "aabbcc". Returns null when invalid.
  */
-function normalizeHexColor(value?: string | null): string | null {
+export function normalizeHexColor(value?: string | null): string | null {
   if (!value) return null;
   let v = value.trim().replace(/^#/, "");
   if (/^[0-9a-fA-F]{3}$/.test(v)) {
@@ -443,7 +443,7 @@ function normalizeHexColor(value?: string | null): string | null {
  * schema (shd must come right after tcBorders / vMerge / tcW). Word rejects
  * out-of-order children as "conteúdo ilegível", so the anchor matters.
  */
-function setCellShading(cell: string, fill: string): string {
+export function setCellShading(cell: string, fill: string): string {
   const shd = `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`;
 
   // Drop any existing shading first (both self-closing and paired forms).

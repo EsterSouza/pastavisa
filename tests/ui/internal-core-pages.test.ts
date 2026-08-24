@@ -412,6 +412,19 @@ describe("correção em lote", () => {
     expect(aplicar).toBeDisabled();
     expect(screen.getByText("Selecione ao menos um documento na etapa 2.")).toBeInTheDocument();
   });
+
+  // A cor vem preenchida da pasta para que a rodada de correcao parta do mesmo
+  // fundo que a geracao aplica, em vez de exigir o hex de cabeca.
+  it("traz a cor de fundo da logo ja preenchida com a da pasta", async () => {
+    rotearFetch([
+      ["/uploads-corrigidos", []],
+      ["/api/pastas/p1", { ...PASTA_COMPLETA, clienteLogoBgHex: "#1B4332" }],
+    ]);
+    render(createElement(CorrigirLotePasta));
+
+    const campo = await screen.findByLabelText("Cor de fundo da logo (opcional)");
+    await waitFor(() => expect(campo).toHaveValue("#1B4332"));
+  });
 });
 
 describe("nova pasta", () => {
