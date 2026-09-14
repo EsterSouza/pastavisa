@@ -186,9 +186,10 @@ pendente:
 
 - `information_schema.role_table_grants` para `anon` e `authenticated` no schema `public` retorna
   **zero linhas** — nenhuma tabela é alcançável pelo navegador.
-- Todas as tabelas de negócio, além de `hotmart_vendas` e `manychat_leads`, estão com **RLS ativa e
-  zero policies** (negação total; apenas a service role passa). O Advisor classifica isso como
-  `INFO`, não como risco — é o desenho pretendido.
+- Todas as tabelas de negócio estão com **RLS ativa e zero policies** (negação total; apenas a
+  service role passa). O Advisor classifica isso como `INFO`, não como risco — é o desenho pretendido.
+- `hotmart_vendas` e `manychat_leads` foram apagadas em 14/09/2026: o ERP recebe Hotmart e ManyChat,
+  as Edge Functions que gravavam nelas foram removidas e os dados ficaram em planilha de backup.
 - Existem exatamente 2 contas, ambas com papel válido em `app_metadata.role`.
 
 **Único achado de segurança aberto no Supabase:** o Advisor reporta `WARN
