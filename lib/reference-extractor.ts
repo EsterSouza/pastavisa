@@ -18,7 +18,7 @@ export interface ReferenceScopeOptions {
 function normalize(value: string): string {
   return value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/[º°]/g, "o")
     .replace(/\s+/g, " ")
     .trim()
@@ -36,6 +36,10 @@ function isUrlLine(line: string): boolean {
   return /^https?:\/\//i.test(line.trim());
 }
 
+function hasUrl(line: string): boolean {
+  return /https?:\/\//i.test(line);
+}
+
 function looksLikeReference(line: string): boolean {
   const text = normalize(line);
   return [
@@ -45,17 +49,38 @@ function looksLikeReference(line: string): boolean {
   ].some((pattern) => pattern.test(text));
 }
 
+/**
+ * A entrada ABNT abre com a autoria em caixa alta seguida de ponto: "PARÁ.",
+ * "COFEN.", "RIO GRANDE DO SUL. Secretaria da Saúde.". Sem isto, uma estadual
+ * ou municipal que não começa por BRASIL/ANVISA virava continuação da entrada
+ * de cima e sumia dentro dela.
+ */
+function startsWithAbntAuthor(line: string): boolean {
+  return /^[A-ZÀ-Ý][A-ZÀ-Ý0-9 ()\/&'-]{1,80}\.\s/.test(line.trim());
+}
+
 function looksLikeReferenceStart(line: string): boolean {
   const text = normalize(line);
   return (
-    looksLikeReference(line) &&
-    /^(BRASIL|DISTRITO FEDERAL|MUNICIPIO|PREFEITURA|ESTADO|ANVISA|ABNT|ASSOCIACAO|CONSELHO|MINISTERIO|SECRETARIA|RDC|NR|LEI|DECRETO|PORTARIA|RESOLUCAO|INSTRUCAO NORMATIVA|NOTA TECNICA|PARECER)\b/.test(text)
+    startsWithAbntAuthor(line) ||
+    (looksLikeReference(line) &&
+      /^(BRASIL|DISTRITO FEDERAL|MUNICIPIO|PREFEITURA|ESTADO|ANVISA|ABNT|ASSOCIACAO|CONSELHO|MINISTERIO|SECRETARIA|RDC|NR|LEI|DECRETO|PORTARIA|RESOLUCAO|INSTRUCAO NORMATIVA|NOTA TECNICA|PARECER)\b/.test(text))
   );
 }
 
 function isReferenceSubheading(line: string): boolean {
   const text = normalize(line).replace(/^\d+\s*[.)-]?\s*/, "");
-  return /^(LEGISLACAO|REFERENCIAS|BASE LEGAL|NORMAS)\s+(FEDERAL|ESTADUAL|DISTRITAL|MUNICIPAL|TECNICA|SANITARIA|PROFISSIONAL|APLICAVEL|APLICAVEIS)\b/.test(text);
+  return (
+    text.length <= 120 &&
+    !/\d/.test(text) &&
+    !startsWithAbntAuthor(line) &&
+    /^(LEGISLACAO|LEGISLACOES|REFERENCIAS?|BASE LEGAL|NORMAS?|FONTES|AMBITO|ESFERA)\b/.test(text)
+  );
+}
+
+function isUppercaseHeading(line: string): boolean {
+  const letters = line.replace(/[^A-Za-zÀ-ÿ]/g, "");
+  return letters.length >= 4 && line.length <= 100 && line === line.toLocaleUpperCase("pt-BR");
 }
 
 function isContinuationLine(line: string): boolean {
@@ -63,30 +88,27 @@ function isContinuationLine(line: string): boolean {
   return (
     isUrlLine(line) ||
     /^DISPONIVEL\s+EM\b/.test(text) ||
-    /^ACESSO\s+EM\b/.test(text) ||
-    /^(BRASILIA|RIO DE JANEIRO|SAO PAULO|CURITIBA|BELO HORIZONTE|GOIANIA|FLORIANOPOLIS|PORTO ALEGRE|SALVADOR|RECIFE|FORTALEZA),?\s+[A-Z]{2}/.test(text) ||
-    text.length >= 20
+    /^ACESSO\s+(E\s+VALIDACAO\s+)?EM\b/.test(text) ||
+    /^(BRASILIA|RIO DE JANEIRO|SAO PAULO|CURITIBA|BELO HORIZONTE|GOIANIA|FLORIANOPOLIS|PORTO ALEGRE|SALVADOR|RECIFE|FORTALEZA),?\s+[A-Z]{2}/.test(text)
   );
 }
 
 export function extractReferenceSection(documentText: string): string {
   const lines = documentText.split(/\r?\n/).map(cleanLine).filter(Boolean);
-  const start = lines.findIndex((line) => {
-    const text = normalize(line);
-    return /\b(REFERENCIAS|REFERENCIA|BASE LEGAL|LEGISLACAO APLICAVEL|LEGISLACOES APLICAVEIS|NORMAS APLICAVEIS)\b/.test(text);
-  });
+  const start = lines.findIndex(
+    (line) => isReferenceSubheading(line) && !/^NORMAS?\b/.test(normalize(line))
+  );
 
   if (start < 0) return "";
 
   const selected: string[] = [];
   for (let index = start + 1; index < lines.length; index += 1) {
     const line = lines[index];
-    const text = normalize(line);
     const isNextHeading =
       selected.length > 1 &&
       !isReferenceSubheading(line) &&
-      text.length <= 80 &&
-      /^(?:\d+\s*[.)-]?\s*)?[A-Z0-9\s/,-]{6,}$/.test(text) &&
+      isUppercaseHeading(line) &&
+      !startsWithAbntAuthor(line) &&
       !looksLikeReference(line);
 
     if (isNextHeading) break;
@@ -96,9 +118,8 @@ export function extractReferenceSection(documentText: string): string {
   return selected.join("\n");
 }
 
-export function extractReferenceLines(documentText: string): string[] {
-  const section = extractReferenceSection(documentText) || documentText;
-  const lines = section
+function parseReferenceEntries(text: string): string[] {
+  const lines = text
     .split(/\r?\n/)
     .map(cleanLine)
     .filter((line) => line.length >= 3);
@@ -109,7 +130,13 @@ export function extractReferenceLines(documentText: string): string[] {
   const flush = () => {
     if (current.length === 0) return;
     const entry = current.join(" ").replace(/\s+/g, " ").trim();
-    if (entry.length >= 12 && looksLikeReference(entry)) entries.push(entry);
+    // Título de subseção ("NORMAS E ORIENTAÇÕES DA ANVISA") cita órgão mas não
+    // tem número nem endereço; artigo acadêmico tem autoria mas não é ato. A
+    // tela abre com tudo marcado, então o que passar daqui vai para a base.
+    const isAct = /\d/.test(entry) || hasUrl(entry);
+    if (entry.length >= 12 && isAct && looksLikeReference(entry)) {
+      entries.push(entry);
+    }
     current = [];
   };
 
@@ -130,13 +157,11 @@ export function extractReferenceLines(documentText: string): string[] {
       return;
     }
 
-    if (looksLikeReference(line)) {
-      flush();
-      current = [line];
-      return;
-    }
-
     flush();
+
+    if (!isUrlLine(line) && looksLikeReference(line)) {
+      current = [line];
+    }
   });
 
   flush();
@@ -148,6 +173,12 @@ export function extractReferenceLines(documentText: string): string[] {
     seen.add(key);
     return true;
   });
+}
+
+export function extractReferenceLines(documentText: string): string[] {
+  const section = extractReferenceSection(documentText);
+  const fromSection = section ? parseReferenceEntries(section) : [];
+  return fromSection.length > 0 ? fromSection : parseReferenceEntries(documentText);
 }
 
 function inferTipo(line: string): string {

@@ -59,19 +59,19 @@ function paraBusca(value: string): string {
 }
 
 const INSTRUMENTOS: Array<[string, RegExp]> = [
-  ["rdc", /rdc\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-  ["instrucao-normativa", /instrucao normativa\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-  ["lei-complementar", /lei complementar\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-  ["lei", /lei(?! complementar)\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-  ["decreto-lei", /decreto\s*lei\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-  ["decreto", /decreto(?: municipal| rio)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-  ["resolucao-cofen", /resolucao cofen\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-  ["resolucao-sms", /resolucao sms\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-  ["resolucao", /resolucao\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-  ["portaria", /portaria(?: gm\/ms)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-  ["nr", /nr\s*[- ]?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-  ["nota-tecnica", /nota tecnica\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
-  ["parecer", /parecer(?: normativo)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["rdc", /\brdc\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["instrucao-normativa", /\binstrucao normativa\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["lei-complementar", /\blei complementar\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["lei", /\blei(?! complementar)\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["decreto-lei", /\bdecreto\s*lei\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["decreto", /\bdecreto(?: municipal| rio)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["resolucao-cofen", /\bresolucao cofen\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["resolucao-sms", /\bresolucao sms\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["resolucao", /\bresolucao\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["portaria", /\bportaria(?: gm\/ms)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["nr", /\bnr\s*[- ]?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["nota-tecnica", /\bnota tecnica\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
+  ["parecer", /\bparecer(?: normativo)?\s*(?:n\s*[o.]?\s*)?([\d.]+)/],
 ];
 
 /** Primeiro instrumento normativo nomeado no texto, na ordem de precedência. */

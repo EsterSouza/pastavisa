@@ -48,10 +48,21 @@ const EXCLUDED_LINE_PATTERNS = [
   /\bCPF\b/i,
 ];
 
+// O "Documentos em Elaboração" também tem seções que não listam documento: os
+// procedimentos informados, as tabelas de equipamento e insumo, a legislação.
+// Lá dentro "Procedimento" é cabeçalho de coluna e "Controle da Glicemia" é o
+// nome de um procedimento, e nenhum dos dois é documento a gerar.
+const SECOES_SEM_DOCUMENTO =
+  /^(RELACAO GERAL DE PROCEDIMENTOS|RELACAO DE EQUIPAMENTO|TABELA\b|MATRIZ\b|LEGISLACAO|LEGISLACOES|REFERENCIA|BASE LEGAL|IDENTIDADE VISUAL|ESTRUTURA FISICA|INFRAESTRUTURA)/;
+
+// Nomes que só existem como título de seção ou cabeçalho de tabela.
+const NOMES_GENERICOS =
+  /^(PROCEDIMENTOS?( INFORMADOS?| VINCULADOS?| REALIZADOS?)?|RELACAO GERAL DE PROCEDIMENTOS\b.*|RELACAO DE EQUIPAMENTOS?( INFORMADOS?)?)$/;
+
 function stripListMarker(line: string): string {
   return line
     .replace(/^[\s•·▪◦*-]+/, "")
-    .replace(/^\s*\d+[\.)-]\s+/, "")
+    .replace(/^\s*\d+[\.)-]?\s+/, "")
     .replace(/^\s*[a-zA-Z][\.)-]\s+/, "")
     .trim();
 }
@@ -59,7 +70,7 @@ function stripListMarker(line: string): string {
 function normalizeForComparison(value: string): string {
   return value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, " ")
     .trim();
@@ -74,10 +85,28 @@ function normalizeTitle(value: string): string {
     .trim();
 }
 
+function sectionKey(line: string): string {
+  return normalizeForComparison(stripListMarker(line)).replace(/^[IVXLC]+ /, "");
+}
+
+function isCaixaAlta(line: string): boolean {
+  const letters = line.replace(/[^A-Za-zÀ-ÿ]/g, "");
+  return letters.length >= 4 && line === line.toLocaleUpperCase("pt-BR");
+}
+
+function abreItemDeLista(line: string): boolean {
+  return /^(\d+[.)]?\s+\S|[•·▪◦*-]\s*\S)/.test(line.trim());
+}
+
+function isNomeGenerico(nome: string): boolean {
+  return NOMES_GENERICOS.test(normalizeForComparison(nome));
+}
+
 function looksLikeDocumentTitle(line: string): boolean {
   const title = normalizeTitle(stripListMarker(line));
   if (title.length < 4 || title.length > 180) return false;
   if (EXCLUDED_LINE_PATTERNS.some((pattern) => pattern.test(title))) return false;
+  if (isNomeGenerico(title)) return false;
 
   const normalized = normalizeForComparison(title);
   const startsWithKnownPrefix = DOCUMENT_PREFIXES.some((prefix) => {
@@ -112,20 +141,43 @@ export function inferirTipoDocumento(nome: string): string {
 export function extrairDocumentosDoTextoElaboracao(text: string): DocumentoExtraido[] {
   const encontrados = new Map<string, DocumentoExtraido>();
 
-  const candidates = text.replace(/[•▪◦]/g, "\n").split(/\r?\n|\t/);
+  const lines = text
+    .replace(/[•▪◦]/g, "\n")
+    .split(/\r?\n|\t/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 
-  for (const rawLine of candidates) {
+  let dentroDeSecaoSemDocumento = false;
+
+  lines.forEach((rawLine, index) => {
+    if (isCaixaAlta(rawLine)) {
+      const key = sectionKey(rawLine);
+      // Título em caixa alta seguido de lista numerada é título de seção, não
+      // documento ("FICHA DE AVALIAÇÃO" em cima de "1. Ficha de Anamnese...").
+      const tituloDeSecao = abreItemDeLista(lines[index + 1] || "");
+      if (SECOES_SEM_DOCUMENTO.test(key)) {
+        dentroDeSecaoSemDocumento = true;
+        return;
+      }
+      if (tituloDeSecao || (dentroDeSecaoSemDocumento && key.includes(" "))) {
+        dentroDeSecaoSemDocumento = false;
+        return;
+      }
+    }
+
+    if (dentroDeSecaoSemDocumento) return;
+
     const nome = normalizeTitle(stripListMarker(rawLine));
-    if (!looksLikeDocumentTitle(nome)) continue;
+    if (!looksLikeDocumentTitle(nome)) return;
 
     const key = normalizeForComparison(nome);
-    if (!key || encontrados.has(key)) continue;
+    if (!key || encontrados.has(key)) return;
 
     encontrados.set(key, {
       nome,
       tipo: inferirTipoDocumento(nome),
     });
-  }
+  });
 
   return Array.from(encontrados.values());
 }
@@ -138,7 +190,7 @@ export function mesclarDocumentosExtraidos(
 
   for (const doc of [...(aiDocs || []), ...fallbackDocs]) {
     const nome = normalizeTitle(doc.nome || "");
-    if (!nome) continue;
+    if (!nome || isNomeGenerico(nome)) continue;
     const key = normalizeForComparison(nome);
     if (!key || merged.has(key)) continue;
     merged.set(key, { nome, tipo: doc.tipo || inferirTipoDocumento(nome) });
