@@ -11,6 +11,7 @@ model Pasta {
   id                       String   @id @default(cuid())
   status                   String   @default("rascunho")
   criadaEm                 DateTime @default(now())
+  concluidaEm              DateTime?
 
   clienteNomeFantasia      String?
   clienteRazaoSocial       String?

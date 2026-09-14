@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "ignoreCommand": "node scripts/vercel-ignore-build.js"
+  "ignoreCommand": "node scripts/vercel-ignore-build.js",
+  "crons": [{ "path": "/api/cron/retencao-pastas", "schedule": "0 9 * * *" }]
 }

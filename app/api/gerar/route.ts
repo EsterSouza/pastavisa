@@ -238,7 +238,12 @@ export async function POST(req: NextRequest) {
   const allDone = await prisma.documentoGerado.findMany({ where: { pastaId } });
   const allGerado = allDone.every((d: { status: string }) => d.status === "gerado" || d.status === "erro");
   if (allGerado) {
-    await prisma.pasta.update({ where: { id: pastaId }, data: { status: "concluida" } });
+    // Só a passagem para concluída marca a data: regerar um documento de pasta
+    // já concluída não adia a exclusão dos 30 dias.
+    await prisma.pasta.updateMany({
+      where: { id: pastaId, status: { not: "concluida" } },
+      data: { status: "concluida", concluidaEm: new Date() },
+    });
   }
 
   return NextResponse.json({ results });

@@ -30,6 +30,8 @@ describe("authorization", () => {
     expect(isPublicPath("/api/planner/analisar")).toBe(false);
     expect(isPublicPath("/api/auth/login")).toBe(true);
     expect(isPublicPath("/api/pastas")).toBe(false);
+    expect(isPublicPath("/api/cron/retencao-pastas")).toBe(true);
+    expect(isPublicPath("/api/cronometro")).toBe(false);
     expect(isAdminOnlyPath("/api/templates/123")).toBe(true);
     expect(isAdminOnlyPath("/legislacoes")).toBe(true);
     expect(isAdminOnlyPath("/api/pastas")).toBe(false);

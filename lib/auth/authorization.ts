@@ -25,6 +25,8 @@ export function isPublicPath(pathname: string): boolean {
     pathname === "/login" ||
     matchesPrefix(pathname, "/api/auth") ||
     pathname === "/api/health" ||
+    // O cron da Vercel chama sem sessão; a rota confere o CRON_SECRET sozinha.
+    matchesPrefix(pathname, "/api/cron") ||
     matchesPrefix(pathname, "/planner") ||
     pathname === "/api/planejamento-comercial/analisar" ||
     pathname === "/api/planejamento-comercial/pdf"
