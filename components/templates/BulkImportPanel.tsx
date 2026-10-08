@@ -1,6 +1,6 @@
 "use client";
 
-import { buttonClass } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import type { BulkImportResult } from "@/components/templates/constants";
 
 interface BulkImportPanelProps {
@@ -11,71 +11,69 @@ interface BulkImportPanelProps {
   importResults: BulkImportResult[];
 }
 
+const RESULTADO_COR: Record<string, string> = {
+  erro: "text-status-danger",
+  atualizado: "text-brand-accent",
+  importado: "text-status-success",
+};
+
+/** Importação em lote, mostrada dentro do painel "Importar templates". */
 export function BulkImportPanel({ bulkFiles, onFilesChange, onImport, importing, importResults }: BulkImportPanelProps) {
   return (
-    <section className="mb-6 rounded-lg border border-status-success bg-surface-card p-5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="font-display text-base text-ink">Importar ou atualizar templates em lote</h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            Selecione os DOCX novos ou substituídos. Se o nome já existir, o app atualiza o template ativo.
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 md:min-w-[360px]">
-          <input
-            type="file"
-            accept=".docx"
-            multiple
-            onChange={(e) => onFilesChange(Array.from(e.target.files || []))}
-            disabled={importing}
-            aria-label="Selecionar arquivos DOCX para importação em lote"
-            className="block w-full text-sm text-ink-muted file:mr-2 file:rounded file:border-0 file:bg-status-success-soft file:px-3 file:py-1.5 file:text-status-success hover:file:opacity-90 disabled:opacity-50"
-          />
-          <button
-            type="button"
-            onClick={onImport}
-            disabled={importing || bulkFiles.length === 0}
-            className={buttonClass("primary")}
-          >
-            {importing
-              ? "Importando..."
-              : bulkFiles.length > 0
-              ? `Importar/atualizar ${bulkFiles.length} template${bulkFiles.length > 1 ? "s" : ""}`
-              : "Selecionar DOCX para importar"}
-          </button>
-        </div>
-      </div>
+    <div className="space-y-3">
+      <label
+        htmlFor="importar-docx"
+        className={`flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border-2 border-dashed border-gray-400 px-4 py-6 text-center focus-within:ring-2 focus-within:ring-brand-focus hover:bg-surface-subtle ${
+          importing ? "pointer-events-none opacity-60" : ""
+        }`}
+      >
+        <span className="font-semibold text-ink">Escolher arquivos .docx</span>
+        <span className="text-sm text-ink-muted">
+          Pode selecionar vários. Se o nome já existir, o template ativo é atualizado e a versão anterior fica no
+          histórico.
+        </span>
+        <input
+          id="importar-docx"
+          type="file"
+          accept=".docx"
+          multiple
+          onChange={(e) => onFilesChange(Array.from(e.target.files || []))}
+          disabled={importing}
+          className="sr-only"
+        />
+      </label>
+
       {bulkFiles.length > 0 && (
-        <p className="mt-3 text-sm text-ink-muted">
-          Selecionados: {bulkFiles.map((selectedFile) => selectedFile.name).join(", ")}
+        <p className="text-sm text-ink-muted">
+          <span className="font-semibold text-ink">{bulkFiles.length} selecionado(s):</span>{" "}
+          {bulkFiles.map((selectedFile) => selectedFile.name).join(", ")}
         </p>
       )}
+
+      <Button type="button" onClick={onImport} disabled={importing || bulkFiles.length === 0} className="w-full">
+        {importing
+          ? "Importando..."
+          : bulkFiles.length > 0
+          ? `Importar ou atualizar ${bulkFiles.length} template${bulkFiles.length > 1 ? "s" : ""}`
+          : "Escolha os arquivos primeiro"}
+      </Button>
+
       {importResults.length > 0 && (
-        <div className="mt-4 overflow-hidden rounded-lg border border-gray-200">
-          <div className="grid grid-cols-[1fr_auto_auto] gap-3 bg-surface-subtle px-3 py-2 text-xs font-medium text-ink-muted">
+        <div className="overflow-hidden rounded-md border border-gray-200">
+          <div className="grid grid-cols-[1fr_auto_auto] gap-3 bg-surface-subtle px-3 py-2 text-xs font-bold uppercase tracking-wide text-ink-muted">
             <span>Template</span>
-            <span>Status</span>
+            <span>Resultado</span>
             <span>Validação</span>
           </div>
           {importResults.map((result, index) => (
             <div
               key={`${result.nome}-${index}`}
-              className="grid grid-cols-[1fr_auto_auto] gap-3 border-t border-gray-100 px-3 py-2 text-xs"
+              className="grid grid-cols-[1fr_auto_auto] gap-3 border-t border-gray-200 px-3 py-2 text-sm"
             >
               <span className="truncate text-ink" title={result.nome}>
                 {result.nome}
               </span>
-              <span
-                className={
-                  result.status === "erro"
-                    ? "text-status-danger"
-                    : result.status === "atualizado"
-                    ? "text-brand-accent"
-                    : "text-status-success"
-                }
-              >
-                {result.status}
-              </span>
+              <span className={`font-semibold ${RESULTADO_COR[result.status] || "text-ink-muted"}`}>{result.status}</span>
               <span className={result.status === "erro" || (result.errosValidacao || 0) > 0 ? "text-status-danger" : "text-ink-muted"}>
                 {result.status === "erro" ? result.error : `${result.variaveis ?? 0} variáveis, ${result.errosValidacao ?? 0} erro(s)`}
               </span>
@@ -83,6 +81,6 @@ export function BulkImportPanel({ bulkFiles, onFilesChange, onImport, importing,
           ))}
         </div>
       )}
-    </section>
+    </div>
   );
 }

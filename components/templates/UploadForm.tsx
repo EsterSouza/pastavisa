@@ -24,8 +24,7 @@ interface UploadFormProps {
 
 export function UploadForm({ form, onFormChange, onFileChange, onSubmit, uploading, error }: UploadFormProps) {
   return (
-    <form onSubmit={onSubmit} className="mb-6 rounded-lg border border-gray-200 bg-surface-card p-5">
-      <h2 className="font-display text-base text-ink mb-4">Adicionar template manualmente</h2>
+    <form onSubmit={onSubmit}>
       <div className="mb-4 grid grid-cols-2 gap-4">
         <div className="col-span-2">
           <label htmlFor="template-nome" className="mb-1 block text-sm font-semibold text-ink">
@@ -89,7 +88,7 @@ export function UploadForm({ form, onFormChange, onFileChange, onSubmit, uploadi
             ))}
           </select>
         </div>
-        <div>
+        <div className="col-span-2">
           <label htmlFor="template-arquivo" className="mb-1 block text-sm font-semibold text-ink">
             Arquivo .docx
           </label>
@@ -98,7 +97,7 @@ export function UploadForm({ form, onFormChange, onFileChange, onSubmit, uploadi
             type="file"
             accept=".docx"
             onChange={(e) => onFileChange(e.target.files?.[0] || null)}
-            className="block w-full text-sm text-ink-muted file:mr-2 file:rounded file:border-0 file:bg-surface-subtle file:px-3 file:py-1.5 file:text-ink"
+            className="block w-full text-sm text-ink-muted file:mr-2 file:min-h-10 file:rounded-md file:border file:border-gray-300 file:bg-surface-card file:px-3 file:font-semibold file:text-ink"
           />
         </div>
       </div>

@@ -17,6 +17,8 @@ interface VariableLibraryProps {
   onCategoryChange: (value: string) => void;
   copiedTag: string;
   onCopyTag: (tag: string) => void;
+  /** Dentro de um painel: sem o cabeçalho próprio nem o botão de abrir/ocultar. */
+  embedded?: boolean;
 }
 
 export function VariableCard({
@@ -57,12 +59,66 @@ export function VariableLibrary({
   onCategoryChange,
   copiedTag,
   onCopyTag,
+  embedded = false,
 }: VariableLibraryProps) {
   const catalogVariables = TEMPLATE_VARIABLES.filter((variable) => {
     const q = search.trim().toLowerCase();
     const text = `${variable.key} ${variable.description} ${variable.use}`.toLowerCase();
     return (!q || text.includes(q)) && (!category || variable.category === category);
   });
+
+  const corpo = (
+    <div className={embedded ? "space-y-4" : "space-y-4 border-t border-gray-100 p-5"}>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="min-w-0 flex-1">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Buscar variável ou finalidade..."
+            aria-label="Buscar variável ou finalidade"
+            className={fieldClass}
+          />
+        </div>
+        <div className="sm:w-60">
+          <select value={category} onChange={(e) => onCategoryChange(e.target.value)} className={fieldClass} aria-label="Categoria da variável">
+            <option value="">Todas as categorias</option>
+            {TEMPLATE_VARIABLE_CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {catalogVariables.map((variable) => (
+          <VariableCard key={variable.key} variable={variable} copiedTag={copiedTag} onCopyTag={onCopyTag} />
+        ))}
+      </div>
+      {catalogVariables.length === 0 && <p className="text-sm text-ink-muted">Nenhuma variável encontrada com estes filtros.</p>}
+      <div className="rounded-lg border border-gray-200 bg-surface-subtle p-4">
+        <h3 className="mb-3 text-sm font-semibold text-ink">Recursos de preenchimento avançado</h3>
+        <div className="space-y-3">
+          {TEMPLATE_SPECIAL_SYNTAX.map((syntax) => (
+            <div key={syntax.label}>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium text-ink">{syntax.label}</span>
+                <code className="rounded border border-gray-200 bg-surface-card px-2 py-1 text-xs text-ink">{syntax.syntax}</code>
+                <button type="button" onClick={() => onCopyTag(syntax.syntax)} className="text-xs text-brand-accent hover:underline">
+                  {copiedTag === syntax.syntax ? "Copiado" : "Copiar"}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-ink-muted">{syntax.description}</p>
+              <p className="mt-1 text-[11px] text-ink-subtle">Exemplo: {syntax.example}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (embedded) return corpo;
 
   return (
     <section className="mb-6 rounded-lg border border-gray-200 bg-surface-card">
@@ -77,52 +133,7 @@ export function VariableLibrary({
           {open ? "Ocultar" : "Abrir biblioteca"}
         </button>
       </div>
-      {open && (
-        <div className="space-y-4 border-t border-gray-100 p-5">
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Buscar variável ou finalidade..."
-              aria-label="Buscar variável ou finalidade"
-              className={`flex-1 ${fieldClass}`}
-            />
-            <select value={category} onChange={(e) => onCategoryChange(e.target.value)} className={fieldClass} aria-label="Categoria da variável">
-              <option value="">Todas as categorias</option>
-              {TEMPLATE_VARIABLE_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            {catalogVariables.map((variable) => (
-              <VariableCard key={variable.key} variable={variable} copiedTag={copiedTag} onCopyTag={onCopyTag} />
-            ))}
-          </div>
-          {catalogVariables.length === 0 && <p className="text-sm text-ink-muted">Nenhuma variável encontrada com estes filtros.</p>}
-          <div className="rounded-lg border border-gray-200 bg-surface-subtle p-4">
-            <h3 className="mb-3 text-sm font-semibold text-ink">Recursos de preenchimento avançado</h3>
-            <div className="space-y-3">
-              {TEMPLATE_SPECIAL_SYNTAX.map((syntax) => (
-                <div key={syntax.label}>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-medium text-ink">{syntax.label}</span>
-                    <code className="rounded border border-gray-200 bg-surface-card px-2 py-1 text-xs text-ink">{syntax.syntax}</code>
-                    <button type="button" onClick={() => onCopyTag(syntax.syntax)} className="text-xs text-brand-accent hover:underline">
-                      {copiedTag === syntax.syntax ? "Copiado" : "Copiar"}
-                    </button>
-                  </div>
-                  <p className="mt-1 text-xs text-ink-muted">{syntax.description}</p>
-                  <p className="mt-1 text-[11px] text-ink-subtle">Exemplo: {syntax.example}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {open && corpo}
     </section>
   );
 }

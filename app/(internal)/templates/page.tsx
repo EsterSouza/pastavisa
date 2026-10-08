@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { buttonClass } from "@/components/ui/Button";
+import { ActionMenu } from "@/components/ui/ActionMenu";
+import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Drawer } from "@/components/ui/Drawer";
 import { Feedback } from "@/components/ui/Status";
 import { PageHeader } from "@/components/ui/Surface";
 import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
@@ -63,7 +65,8 @@ export default function Templates() {
   const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
   const [loadingVersions, setLoadingVersions] = useState<string | null>(null);
   const [restoringVersion, setRestoringVersion] = useState<string | null>(null);
-  const [catalogOpen, setCatalogOpen] = useState(true);
+  const [importAberto, setImportAberto] = useState(false);
+  const [bibliotecaAberta, setBibliotecaAberta] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState("");
   const [catalogCategory, setCatalogCategory] = useState("");
   const [copiedTag, setCopiedTag] = useState("");
@@ -178,29 +181,48 @@ export default function Templates() {
     }
   }
 
-  async function toggleAtivo(id: string, ativo: boolean) {
-    await atualizarTemplate(id, { ativo: !ativo });
-    await load();
+  // Gravações da lista: a tela muda na hora e volta atrás, com aviso, se o
+  // banco recusar. Antes a falha passava calada.
+  async function gravarNaLista(id: string, campos: Partial<Template>, rotulo: string) {
+    const anteriores = templates;
+    setError("");
+    setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, ...campos } : t)));
+    try {
+      await atualizarTemplate(id, campos);
+    } catch (err) {
+      setTemplates(anteriores);
+      setError(err instanceof Error ? err.message : `Não foi possível gravar ${rotulo}.`);
+    }
   }
 
-  async function updateProcessingType(id: string, processingType: string) {
-    await atualizarTemplate(id, { processingType });
-    await load();
+  function toggleAtivo(id: string, ativo: boolean) {
+    void gravarNaLista(id, { ativo: !ativo }, "a ativação do template");
+  }
+
+  function updateProcessingType(id: string, processingType: string) {
+    void gravarNaLista(id, { processingType }, "o tipo de IA");
   }
 
   async function handleEditSave(e: FormEvent) {
     e.preventDefault();
     if (!editando) return;
     setSaving(true);
-    await atualizarTemplate(editando.id, {
-      nome: editando.nome,
-      tipo: editando.tipo,
-      padraoHeader: editando.padraoHeader,
-      processingType: editando.processingType,
-    });
-    setEditando(null);
-    setSaving(false);
-    await load();
+    setError("");
+    try {
+      await atualizarTemplate(editando.id, {
+        nome: editando.nome,
+        tipo: editando.tipo,
+        padraoHeader: editando.padraoHeader,
+        processingType: editando.processingType,
+      });
+      setEditando(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível salvar o template.");
+      setEditando(null);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function confirmarExclusao() {
@@ -246,8 +268,13 @@ export default function Templates() {
 
   async function handleBulkToggleAtivo(ativar: boolean) {
     if (selected.size === 0) return;
-    await Promise.all(Array.from(selected).map((id) => atualizarTemplate(id, { ativo: ativar })));
-    setSelected(new Set());
+    setError("");
+    try {
+      await Promise.all(Array.from(selected).map((id) => atualizarTemplate(id, { ativo: ativar })));
+      setSelected(new Set());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível gravar a ativação em lote.");
+    }
     await load();
   }
 
@@ -317,64 +344,48 @@ export default function Templates() {
     }
   }
 
+  const ativos = templates.filter((t) => t.ativo).length;
+
   return (
-    <div>
+    <div className="mx-auto max-w-[80rem]">
       <PageHeader
         title="Templates"
+        description={`${templates.length} no acervo · ${ativos} ativos. Só os ativos aparecem na hora de gerar.`}
         actions={
-          <button
-            type="button"
-            onClick={() => {
-              void handleRecalcularTipo();
-            }}
-            disabled={recalculando}
-            title="Verifica todos os templates e corrige para 'Sem IA' aqueles que não têm nenhum bloco de IA, mesmo que o nome sugira um documento complexo."
-            className={buttonClass("secondary", "text-xs")}
-          >
-            {recalculando ? "Verificando..." : "Recalcular tipo de IA"}
-          </button>
+          <>
+            <Button variant="quiet" onClick={() => setBibliotecaAberta(true)}>
+              Biblioteca de variáveis
+            </Button>
+            <ActionMenu
+              label="Mais ações de templates"
+              variant="secondary"
+              items={[
+                {
+                  label: recalculando ? "Verificando..." : "Recalcular tipo de IA",
+                  disabled: recalculando,
+                  onSelect: () => {
+                    void handleRecalcularTipo();
+                  },
+                },
+              ]}
+            />
+            <Button onClick={() => setImportAberto(true)}>+ Importar templates</Button>
+          </>
         }
       />
 
-      {importMsg && (
-        <Feedback tone="sucesso" live className="mb-4">
-          {importMsg}
-        </Feedback>
-      )}
-
-      <BulkImportPanel
-        bulkFiles={bulkFiles}
-        onFilesChange={setBulkFiles}
-        onImport={() => {
-          void handleBulkImport();
-        }}
-        importing={importing}
-        importResults={importResults}
-      />
-
-      <UploadForm
-        form={form}
-        onFormChange={setForm}
-        onFileChange={handleFileChange}
-        onSubmit={(e) => {
-          void handleUpload(e);
-        }}
-        uploading={uploading}
-        error={error}
-      />
-
-      <VariableLibrary
-        open={catalogOpen}
-        onToggle={() => setCatalogOpen((open) => !open)}
-        search={catalogSearch}
-        onSearchChange={setCatalogSearch}
-        category={catalogCategory}
-        onCategoryChange={setCatalogCategory}
-        copiedTag={copiedTag}
-        onCopyTag={(tag) => {
-          void copyTag(tag);
-        }}
-      />
+      <div aria-live="polite">
+        {importMsg && !importAberto && (
+          <Feedback tone="sucesso" className="mb-4">
+            {importMsg}
+          </Feedback>
+        )}
+        {error && !importAberto && (
+          <Feedback tone="erro" className="mb-4">
+            {error}
+          </Feedback>
+        )}
+      </div>
 
       <TemplateList
         templates={templates}
@@ -424,6 +435,69 @@ export default function Templates() {
         loadingVersions={loadingVersions}
         duplicando={duplicando}
       />
+
+      <Drawer
+        aberto={importAberto}
+        titulo="Importar templates"
+        descricao="O nome do template vem do nome do arquivo."
+        onClose={() => setImportAberto(false)}
+      >
+        <div aria-live="polite">
+          {importMsg && (
+            <Feedback tone={importing ? "info" : "sucesso"} className="mb-4">
+              {importMsg}
+            </Feedback>
+          )}
+        </div>
+        <BulkImportPanel
+          bulkFiles={bulkFiles}
+          onFilesChange={setBulkFiles}
+          onImport={() => {
+            void handleBulkImport();
+          }}
+          importing={importing}
+          importResults={importResults}
+        />
+        <details className="mt-6 rounded-md border border-gray-200">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink">
+            Adicionar um template escolhendo tipo e cabeçalho
+          </summary>
+          <div className="border-t border-gray-200 px-4 py-4">
+            <UploadForm
+              form={form}
+              onFormChange={setForm}
+              onFileChange={handleFileChange}
+              onSubmit={(e) => {
+                void handleUpload(e);
+              }}
+              uploading={uploading}
+              error={error}
+            />
+          </div>
+        </details>
+      </Drawer>
+
+      <Drawer
+        aberto={bibliotecaAberta}
+        titulo="Biblioteca de variáveis"
+        descricao="Tags disponíveis para qualquer template. Copie e cole no DOCX onde o preenchimento deve aparecer."
+        largura="lg"
+        onClose={() => setBibliotecaAberta(false)}
+      >
+        <VariableLibrary
+          embedded
+          open
+          onToggle={() => setBibliotecaAberta(false)}
+          search={catalogSearch}
+          onSearchChange={setCatalogSearch}
+          category={catalogCategory}
+          onCategoryChange={setCatalogCategory}
+          copiedTag={copiedTag}
+          onCopyTag={(tag) => {
+            void copyTag(tag);
+          }}
+        />
+      </Drawer>
 
       {editando && (
         <EditTemplateModal
