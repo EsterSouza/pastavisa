@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
+import { PastaHeader, usePastaCabecalho } from "@/components/pasta/PastaHeader";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { fieldClass } from "@/components/ui/Field";
-import { Card, CardHeader, PageHeader } from "@/components/ui/Surface";
+import { Card, CardHeader } from "@/components/ui/Surface";
 import {
   describeErrorOrigin,
   Feedback,
@@ -175,6 +175,7 @@ export default function CorrigirLotePasta() {
   const [restauracaoMensagem, setRestauracaoMensagem] = useState("");
   const [restauracaoErro, setRestauracaoErro] = useState(false);
   const [confirmacao, setConfirmacao] = useState<Confirmacao | null>(null);
+  const cabecalho = usePastaCabecalho(id);
 
   function carregarDocs() {
     return fetch(`/api/pastas/${id}/uploads-corrigidos`)
@@ -755,640 +756,639 @@ export default function CorrigirLotePasta() {
   const aplicaPercent = batchTotal > 0 ? Math.round((batchDone / batchTotal) * 100) : 0;
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-[80rem]">
       <ScrollToTopButton />
 
-      <PageHeader
-        title="Corrigir documentos em lote"
-        description="Envie os .docx já finalizados, com suas edições manuais preservadas, e troque logo e dados comerciais em vários de uma vez, sem abrir um por um no Word."
-        actions={
-          <Link href={`/pasta/${id}`} className={buttonClass("secondary")}>
-            Voltar para a pasta
-          </Link>
-        }
-      />
+      <PastaHeader id={id} nome={cabecalho ? cabecalho.nome : undefined} status={cabecalho?.status} meta={cabecalho?.local || undefined} />
 
-      {/* 1. Upload */}
-      <Card className="mb-6">
-        <CardHeader
-          title="1. Enviar documentos finalizados"
-          description="Suba quantos .docx quiser de uma vez — são os arquivos reais, com logo e texto já preenchidos."
-        />
-        <div className="px-4 py-4 sm:px-5">
-          <label htmlFor="upload-docx" className="sr-only">
-            Arquivos .docx finalizados
-          </label>
-          <input
-            id="upload-docx"
-            type="file"
-            accept=".docx"
-            multiple
-            disabled={uploading}
-            onChange={(e) => { void handleUpload(e.target.files); e.target.value = ""; }}
-            className="block w-full rounded-md border border-gray-300 bg-surface-card p-1 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface-subtle file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-accent"
+      <div className="max-w-5xl">
+        <p className="mb-6 text-sm text-ink-muted">
+          Envie os .docx já finalizados, com suas edições manuais preservadas, e troque logo e dados comerciais em vários
+          de uma vez, sem abrir um por um no Word.
+        </p>
+
+        {/* 1. Upload */}
+        <Card className="mb-6">
+          <CardHeader
+            title="1. Enviar documentos finalizados"
+            description="Suba quantos .docx quiser de uma vez — são os arquivos reais, com logo e texto já preenchidos."
           />
-          <div aria-live="polite">
-            {uploadMessage && (
-              <Feedback
-                tone={uploadErro ? "erro" : "info"}
-                title={uploadErro ? describeErrorOrigin(uploadMessage).rotulo : undefined}
-                className="mt-3"
-              >
-                {uploadMessage}
-              </Feedback>
-            )}
-          </div>
-        </div>
-      </Card>
-
-      {/* 2. Seleção */}
-      <Card className="mb-6">
-        <CardHeader
-          title="2. Selecionar documentos"
-          meta={`${selectedDocs.size} de ${docs.length} selecionado(s)`}
-          actions={
-            docs.length > 0 ? (
-              <a href={zipDownloadHref} className={buttonClass("secondary")}>
-                {zipDownloadLabel}
-              </a>
-            ) : undefined
-          }
-        />
-
-        <div className="flex flex-col gap-2 border-b border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <div className="w-full sm:max-w-md">
-            <label htmlFor="filtro-documentos" className="sr-only">
-              Filtrar documentos por nome
+          <div className="px-4 py-4 sm:px-5">
+            <label htmlFor="upload-docx" className="sr-only">
+              Arquivos .docx finalizados
             </label>
             <input
-              id="filtro-documentos"
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Filtrar por nome (POP, TCLE, MANUAL...)"
-              className={fieldClass}
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="quiet" disabled={removingBatch} onClick={selecionarFiltrados}>
-              Selecionar {normalizedSearch ? "filtrados" : "todos"}
-            </Button>
-            <Button variant="quiet" disabled={removingBatch} onClick={desselecionarTodos}>
-              Nenhum
-            </Button>
-            {docsComErro.length > 0 && (
-              <Button
-                variant="quiet"
-                disabled={removingBatch || applying || analisando}
-                onClick={selecionarComErro}
-              >
-                Só os {docsComErro.length} com erro
-              </Button>
-            )}
-            <Button
-              variant="danger"
-              disabled={selectedDocs.size === 0 || removingBatch || applying}
-              onClick={() =>
-                setConfirmacao({
-                  title: "Excluir do lote?",
-                  description: `${selectedDocs.size} documento(s) selecionado(s) saem deste lote de correção. Os arquivos gerados pela pasta não são afetados.`,
-                  confirmLabel: "Excluir do lote",
-                  destrutiva: true,
-                  onConfirm: () => {
-                    setConfirmacao(null);
-                    void removerSelecionados();
-                  },
-                })
-              }
-            >
-              {removingBatch ? "Excluindo..." : `Excluir selecionados (${selectedDocs.size})`}
-            </Button>
-          </div>
-        </div>
-
-        {loading && <p className="px-4 py-6 text-sm text-ink-muted sm:px-5">Carregando documentos...</p>}
-        {!loading && docs.length === 0 && (
-          <p className="px-4 py-6 text-sm text-ink-muted sm:px-5">Nenhum documento enviado ainda.</p>
-        )}
-        {!loading && docs.length > 0 && docsFiltrados.length === 0 && (
-          <p className="px-4 py-6 text-sm text-ink-muted sm:px-5">
-            Nenhum documento encontrado para esse filtro.
-          </p>
-        )}
-
-        <ul className="divide-y divide-gray-200">
-          {docsFiltrados.map((doc) => {
-            const resultado = resultados[doc.id];
-            const versoesAnteriores = doc.versoes.filter((v) => v.outputPath !== doc.outputPath);
-            const docStatus = UPLOAD_STATUS[doc.status];
-            const restaurando = restaurandoId === doc.id;
-            return (
-              <li key={doc.id} className="px-4 py-3 sm:px-5">
-                <div className="flex flex-wrap items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedDocs.has(doc.id)}
-                    onChange={() => toggleDoc(doc.id)}
-                    aria-label={`Selecionar ${doc.nomeArquivo}`}
-                    disabled={removingBatch}
-                    className="h-4 w-4 shrink-0 rounded border-gray-300"
-                  />
-                  <span className="min-w-[16rem] flex-[1_1_24rem] break-words text-sm text-ink">
-                    {doc.nomeArquivo}
-                  </span>
-                  {docStatus && <StatusBadge tone={docStatus.tone}>{docStatus.label}</StatusBadge>}
-                  <Button
-                    variant="quiet"
-                    aria-label={`Visualizar ${doc.nomeArquivo}`}
-                    onClick={() => {
-                      void visualizarDocumento(doc);
-                    }}
-                  >
-                    Visualizar
-                  </Button>
-                  <a
-                    href={`/api/pastas/${id}/uploads-corrigidos/${doc.id}/download`}
-                    aria-label={`Baixar ${doc.nomeArquivo}`}
-                    className={buttonClass("quiet")}
-                  >
-                    Baixar
-                  </a>
-                  {doc.outputPath && (
-                    <Button
-                      variant="quiet"
-                      disabled={restaurando || applying || analisando || removingBatch}
-                      onClick={() => pedirRestauracao(doc, "original")}
-                    >
-                      {restaurando ? "Restaurando..." : "Restaurar original"}
-                    </Button>
-                  )}
-                  <Button
-                    variant="quiet"
-                    disabled={removingId === doc.id || removingBatch || applying}
-                    aria-label={`Remover ${doc.nomeArquivo} do lote`}
-                    onClick={() =>
-                      setConfirmacao({
-                        title: "Remover do lote?",
-                        description: `"${doc.nomeArquivo}" sai deste lote de correção. O arquivo gerado pela pasta não é afetado.`,
-                        confirmLabel: "Remover",
-                        destrutiva: true,
-                        onConfirm: () => {
-                          setConfirmacao(null);
-                          void removerDocumento(doc);
-                        },
-                      })
-                    }
-                  >
-                    Remover
-                  </Button>
-                </div>
-
-                {doc.status === "erro" && doc.mensagemErro && (
-                  <Feedback tone="erro" title={describeErrorOrigin(doc.mensagemErro).rotulo} className="mt-2">
-                    {doc.mensagemErro}
-                  </Feedback>
-                )}
-
-                {resultado && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {resultado.logoSubstituida && <StatusBadge tone="sucesso">Logo trocada</StatusBadge>}
-                    {resultado.logoFundoAplicado && (
-                      <StatusBadge tone="sucesso">Fundo da logo pintado</StatusBadge>
-                    )}
-                    {resultado.aplicadas?.map((valor) => {
-                      const contagem = resultado.contagens?.find((c) => c.de === valor);
-                      return (
-                        <StatusBadge key={`ok-${valor}`} tone="sucesso">
-                          {`"${valor}" aplicado${contagem ? ` (${contagem.total}x)` : ""}`}
-                        </StatusBadge>
-                      );
-                    })}
-                    {resultado.naoEncontradas?.map((valor) => (
-                      <StatusBadge key={`miss-${valor}`} tone="atencao">
-                        {`"${valor}" não encontrado`}
-                      </StatusBadge>
-                    ))}
-                  </div>
-                )}
-
-                {versoesAnteriores.length > 0 && (
-                  <details className="mt-2 text-sm text-ink-muted">
-                    <summary className="cursor-pointer text-brand-accent">
-                      Versões anteriores ({versoesAnteriores.length})
-                    </summary>
-                    <ul className="mt-2 flex flex-col gap-2">
-                      {versoesAnteriores.map((versao) => (
-                        <li
-                          key={versao.id}
-                          className="flex flex-wrap items-center gap-2 rounded-md border border-gray-200 bg-surface-subtle px-3 py-1"
-                        >
-                          <span>{new Date(versao.criadaEm).toLocaleString("pt-BR")}</span>
-                          <Button
-                            variant="quiet"
-                            onClick={() => {
-                              void visualizarDocumento(doc, versao.id);
-                            }}
-                          >
-                            Visualizar
-                          </Button>
-                          <a
-                            href={`/api/pastas/${id}/uploads-corrigidos/${doc.id}/download?versaoId=${versao.id}`}
-                            className={buttonClass("quiet")}
-                          >
-                            Baixar
-                          </a>
-                          <Button
-                            variant="quiet"
-                            disabled={restaurando || applying || analisando || removingBatch}
-                            onClick={() => pedirRestauracao(doc, "versao", versao.id)}
-                          >
-                            Restaurar esta
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </Card>
-
-      <div aria-live="polite">
-        {restauracaoMensagem && (
-          <Feedback
-            tone={restauracaoErro ? "erro" : "atencao"}
-            title={restauracaoErro ? describeErrorOrigin(restauracaoMensagem).rotulo : undefined}
-            className="mb-6"
-          >
-            {restauracaoMensagem}
-          </Feedback>
-        )}
-      </div>
-
-      {/* 3. Rodada */}
-      <Card className="mb-6">
-        <CardHeader
-          title="3. Definir a rodada"
-          description="Informe o valor antigo e o novo de cada dado que muda (razão social, CNPJ, nome do RT, endereço, telefone, e-mail). Só troca o que você indicar; o resto do documento fica intacto."
-        />
-        <div className="px-4 py-4 sm:px-5">
-          <div className="mb-3 flex flex-col gap-2">
-            {pares.map((par, index) => (
-              <div key={index} className="flex flex-col gap-2 sm:flex-row">
-                <input
-                  type="text"
-                  value={par.de}
-                  onChange={(e) => updatePar(index, "de", e.target.value)}
-                  aria-label={`Valor antigo do par ${index + 1}`}
-                  placeholder="Valor antigo (ex: Razão Social Ltda)"
-                  className={fieldClass}
-                />
-                <input
-                  type="text"
-                  value={par.para}
-                  onChange={(e) => updatePar(index, "para", e.target.value)}
-                  aria-label={`Valor novo do par ${index + 1}`}
-                  placeholder="Valor novo"
-                  className={fieldClass}
-                />
-                {pares.length > 1 && (
-                  <Button variant="danger" onClick={() => removePar(index)}>
-                    Remover
-                    <span className="sr-only">{` par ${index + 1}`}</span>
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-          <Button variant="secondary" onClick={addPar}>
-            Adicionar par
-          </Button>
-
-          <div className="mt-4 border-t border-gray-200 pt-4">
-            <label className="mb-1 block text-sm font-semibold text-ink" htmlFor="logo-nova">
-              Trocar logo (opcional)
-            </label>
-            <input
-              id="logo-nova"
+              id="upload-docx"
               type="file"
-              accept="image/png,image/jpeg"
-              onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+              accept=".docx"
+              multiple
+              disabled={uploading}
+              onChange={(e) => { void handleUpload(e.target.files); e.target.value = ""; }}
               className="block w-full rounded-md border border-gray-300 bg-surface-card p-1 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface-subtle file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-accent"
             />
-            {logoFile && (
-              <p className="mt-1 text-sm text-ink-muted">
-                Logo selecionada: <span className="font-semibold text-ink">{logoFile.name}</span>
-              </p>
-            )}
-          </div>
-
-          <div className="mt-4 border-t border-gray-200 pt-4">
-            <label className="mb-1 block text-sm font-semibold text-ink" htmlFor="logo-bg-hex-lote">
-              Cor de fundo da logo (opcional)
-            </label>
-            <p id="logo-bg-hex-lote-hint" className="mb-2 text-sm text-ink-muted">
-              Pinta o quadrado atrás da logo no cabeçalho dos documentos selecionados, igual à
-              geração. Vem preenchida com a cor da pasta; alterar aqui também passa a valer para o
-              que for gerado depois. Deixe em branco para manter o fundo atual dos arquivos.
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <input
-                type="color"
-                value={hexValido ? hexNormalizado : "#1b4332"}
-                onChange={(e) => setLogoBgHex(e.target.value)}
-                className="h-11 w-14 cursor-pointer rounded-md border border-gray-300 bg-surface-card p-1"
-                aria-label="Seletor de cor de fundo da logo"
-              />
-              <input
-                id="logo-bg-hex-lote"
-                type="text"
-                value={logoBgHex}
-                aria-describedby="logo-bg-hex-lote-hint"
-                onChange={(e) => setLogoBgHex(e.target.value)}
-                placeholder="#1B4332"
-                className={`${fieldClass} w-44`}
-              />
-              {logoBgHex.trim() && (
-                <Button variant="quiet" onClick={() => setLogoBgHex("")}>
-                  Limpar cor
-                </Button>
-              )}
-            </div>
-            {hexBruto && !hexValido && (
-              <Feedback tone="erro" className="mt-2">
-                Cor inválida. Use um hex de 6 dígitos, como #1B4332.
-              </Feedback>
-            )}
-          </div>
-
-          <p className="mt-3 text-sm text-ink-muted">
-            Se um valor não for encontrado em algum documento, ele aparece marcado como
-            &quot;não encontrado&quot;, sem alterar o arquivo.
-          </p>
-        </div>
-      </Card>
-
-      {/* 4. Revisão */}
-      <Card className="mb-6">
-        <CardHeader
-          title="4. Revisar o que vai mudar"
-          description="A análise abre cada documento selecionado e conta as ocorrências sem alterar nada. Aplicar usa exatamente estes números — se algum arquivo mudar nesse meio-tempo, a aplicação é recusada."
-        />
-        <div className="px-4 py-4 sm:px-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              disabled={analisando || applying}
-              onClick={() => {
-                void analisar();
-              }}
-            >
-              {analisando
-                ? `Analisando ${analiseDone}/${analiseTotal}...`
-                : `Analisar ${selectedDocs.size} selecionado(s)`}
-            </Button>
-            {analiseValida && !analisando && (
-              <StatusBadge tone="info">
-                {revisao.totalOcorrencias} ocorrência(s) em{" "}
-                {docsSelecionados.length - revisao.naoAnalisados.length} documento(s)
-              </StatusBadge>
-            )}
-          </div>
-
-          <div aria-live="polite">
-            {analiseError && (
-              <Feedback tone="erro" title={describeErrorOrigin(analiseError).rotulo} className="mt-3">
-                {analiseError}
-              </Feedback>
-            )}
-            {analiseVencida && !analisando && (
-              <Feedback tone="atencao" title="Análise vencida" className="mt-3">
-                Os pares mudaram depois da última análise. Analise novamente — os números anteriores
-                descrevem outra rodada.
-              </Feedback>
-            )}
-          </div>
-
-          {analisando && (
-            <div className="mt-3">
-              <ProgressBar value={analisePercent} label="Progresso da análise" />
-            </div>
-          )}
-
-          {analiseValida && !analisando && (
-            <div className="mt-4 flex flex-col gap-4">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <caption className="sr-only">Contagem de ocorrências por par de substituição</caption>
-                  <thead>
-                    <tr className="text-left text-ink-muted">
-                      <th scope="col" className="py-2 pr-3 font-semibold">Valor antigo</th>
-                      <th scope="col" className="py-2 pr-3 font-semibold">Valor novo</th>
-                      <th scope="col" className="py-2 pr-3 text-right font-semibold">Ocorrências</th>
-                      <th scope="col" className="py-2 text-right font-semibold">Documentos</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {resumoPorPar.map((par, indice) => (
-                      <tr key={`${par.de}-${indice}`} className="text-ink">
-                        <th scope="row" className="break-words py-2 pr-3 text-left font-normal">
-                          {par.de}
-                        </th>
-                        <td className="break-words py-2 pr-3">
-                          {par.para || <span className="text-ink-subtle">(vazio — remove o texto)</span>}
-                        </td>
-                        <td className="py-2 pr-3 text-right tabular-nums">
-                          {par.total === 0 ? (
-                            <span className="font-semibold text-status-warning">0</span>
-                          ) : (
-                            par.total
-                          )}
-                        </td>
-                        <td className="py-2 text-right tabular-nums">{par.documentosAfetados}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <ul className="divide-y divide-gray-200 border-t border-gray-200">
-                {docsSelecionados.map((doc) => {
-                  const entrada = analises[doc.id];
-                  const aberto = detalhesAbertos.has(doc.id);
-                  return (
-                    <li key={doc.id} className="py-2">
-                      <div className="flex flex-wrap items-center gap-2 text-sm">
-                        <Button variant="quiet" aria-expanded={aberto} onClick={() => toggleDetalhes(doc.id)}>
-                          <span aria-hidden="true">{aberto ? "▾" : "▸"}</span>
-                          {doc.nomeArquivo}
-                        </Button>
-                        {!entrada && <StatusBadge tone="neutro">Não analisado</StatusBadge>}
-                        {entrada && !entrada.ok && (
-                          <StatusBadge tone="erro">Falha na análise: {entrada.erro}</StatusBadge>
-                        )}
-                        {entrada?.ok && (
-                          <>
-                            <StatusBadge tone={entrada.plano.totalOcorrencias === 0 ? "atencao" : "info"}>
-                              {entrada.plano.totalOcorrencias} ocorrência(s)
-                            </StatusBadge>
-                            {entrada.plano.baseCorrigida && (
-                              <StatusBadge tone="neutro">Sobre correção anterior</StatusBadge>
-                            )}
-                          </>
-                        )}
-                      </div>
-
-                      {aberto && entrada?.ok && (
-                        <div className="ml-4 mt-2 flex flex-col gap-2">
-                          {entrada.plano.substituicoes.map((sub, indice) => (
-                            <div key={`${doc.id}-${indice}`} className="text-sm">
-                              <p className={sub.total === 0 ? "text-status-warning" : "text-ink"}>
-                                <span className="font-semibold">{sub.de}</span> → {sub.para || "(vazio)"} ·{" "}
-                                {sub.total} ocorrência(s)
-                                {sub.total > 0 && (
-                                  <> ({sub.corpo} no corpo, {sub.cabecalho} no cabeçalho, {sub.rodape} no rodapé)</>
-                                )}
-                              </p>
-                              {sub.ocorrencias.slice(0, 3).map((ocorrencia, i) => (
-                                <p key={i} className="mt-0.5 break-words text-ink-muted">
-                                  {ESCOPO_LABEL[ocorrencia.escopo]}: {ocorrencia.contexto}
-                                </p>
-                              ))}
-                              {sub.ocorrencias.length > 3 && (
-                                <p className="mt-0.5 text-ink-subtle">
-                                  e outras {sub.ocorrencias.length - 3} ocorrência(s)
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-
-              {temRessalva && (
-                <Feedback tone="atencao" title="Revise antes de aplicar">
-                  <ul className="mt-1 flex list-disc flex-col gap-1 pl-5">
-                    {revisao.semOcorrencia.length > 0 && (
-                      <li>
-                        {revisao.semOcorrencia.length} documento(s) sem nenhuma ocorrência — aplicar não
-                        muda nada neles: {revisao.semOcorrencia.slice(0, 5).join(", ")}
-                        {revisao.semOcorrencia.length > 5 && ` e outros ${revisao.semOcorrencia.length - 5}`}.
-                      </li>
-                    )}
-                    {revisao.excessivas.map((item, i) => (
-                      <li key={`exc-${i}`}>
-                        &quot;{item.de}&quot; casa {item.total} vezes em {item.nome} — mais que o esperado
-                        para um dado comercial. Confira se o trecho não é genérico.
-                      </li>
-                    ))}
-                    {revisao.falharam.map((item, i) => (
-                      <li key={`fail-${i}`}>
-                        {item.nome} não pôde ser analisado ({item.erro}) e será pulado.
-                      </li>
-                    ))}
-                  </ul>
-                  <label className="mt-3 flex items-start gap-2 font-semibold">
-                    <input
-                      type="checkbox"
-                      checked={confirmouRessalvas}
-                      onChange={(e) => setConfirmouRessalvas(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 rounded border-gray-300"
-                    />
-                    Revisei as ressalvas acima e quero aplicar assim mesmo.
-                  </label>
+            <div aria-live="polite">
+              {uploadMessage && (
+                <Feedback
+                  tone={uploadErro ? "erro" : "info"}
+                  title={uploadErro ? describeErrorOrigin(uploadMessage).rotulo : undefined}
+                  className="mt-3"
+                >
+                  {uploadMessage}
                 </Feedback>
               )}
+            </div>
+          </div>
+        </Card>
 
-              {revisao.sobreCorrecao.length > 0 && (
-                <p className="text-sm text-ink-muted">
-                  {revisao.sobreCorrecao.length} documento(s) já tinham correção anterior, então esta
-                  rodada é cumulativa sobre ela. Para partir do arquivo original, use
-                  &quot;Restaurar original&quot; na etapa 2 antes de aplicar.
+        {/* 2. Seleção */}
+        <Card className="mb-6">
+          <CardHeader
+            title="2. Selecionar documentos"
+            meta={`${selectedDocs.size} de ${docs.length} selecionado(s)`}
+            actions={
+              docs.length > 0 ? (
+                <a href={zipDownloadHref} className={buttonClass("secondary")}>
+                  {zipDownloadLabel}
+                </a>
+              ) : undefined
+            }
+          />
+
+          <div className="flex flex-col gap-2 border-b border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div className="w-full sm:max-w-md">
+              <label htmlFor="filtro-documentos" className="sr-only">
+                Filtrar documentos por nome
+              </label>
+              <input
+                id="filtro-documentos"
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Filtrar por nome (POP, TCLE, MANUAL...)"
+                className={fieldClass}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="quiet" disabled={removingBatch} onClick={selecionarFiltrados}>
+                Selecionar {normalizedSearch ? "filtrados" : "todos"}
+              </Button>
+              <Button variant="quiet" disabled={removingBatch} onClick={desselecionarTodos}>
+                Nenhum
+              </Button>
+              {docsComErro.length > 0 && (
+                <Button
+                  variant="quiet"
+                  disabled={removingBatch || applying || analisando}
+                  onClick={selecionarComErro}
+                >
+                  Só os {docsComErro.length} com erro
+                </Button>
+              )}
+              <Button
+                variant="danger"
+                disabled={selectedDocs.size === 0 || removingBatch || applying}
+                onClick={() =>
+                  setConfirmacao({
+                    title: "Excluir do lote?",
+                    description: `${selectedDocs.size} documento(s) selecionado(s) saem deste lote de correção. Os arquivos gerados pela pasta não são afetados.`,
+                    confirmLabel: "Excluir do lote",
+                    destrutiva: true,
+                    onConfirm: () => {
+                      setConfirmacao(null);
+                      void removerSelecionados();
+                    },
+                  })
+                }
+              >
+                {removingBatch ? "Excluindo..." : `Excluir selecionados (${selectedDocs.size})`}
+              </Button>
+            </div>
+          </div>
+
+          {loading && <p className="px-4 py-6 text-sm text-ink-muted sm:px-5">Carregando documentos...</p>}
+          {!loading && docs.length === 0 && (
+            <p className="px-4 py-6 text-sm text-ink-muted sm:px-5">Nenhum documento enviado ainda.</p>
+          )}
+          {!loading && docs.length > 0 && docsFiltrados.length === 0 && (
+            <p className="px-4 py-6 text-sm text-ink-muted sm:px-5">
+              Nenhum documento encontrado para esse filtro.
+            </p>
+          )}
+
+          <ul className="divide-y divide-gray-200">
+            {docsFiltrados.map((doc) => {
+              const resultado = resultados[doc.id];
+              const versoesAnteriores = doc.versoes.filter((v) => v.outputPath !== doc.outputPath);
+              const docStatus = UPLOAD_STATUS[doc.status];
+              const restaurando = restaurandoId === doc.id;
+              return (
+                <li key={doc.id} className="px-4 py-3 sm:px-5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedDocs.has(doc.id)}
+                      onChange={() => toggleDoc(doc.id)}
+                      aria-label={`Selecionar ${doc.nomeArquivo}`}
+                      disabled={removingBatch}
+                      className="h-4 w-4 shrink-0 rounded border-gray-300"
+                    />
+                    <span className="min-w-[16rem] flex-[1_1_24rem] break-words text-sm text-ink">
+                      {doc.nomeArquivo}
+                    </span>
+                    {docStatus && <StatusBadge tone={docStatus.tone}>{docStatus.label}</StatusBadge>}
+                    <Button
+                      variant="quiet"
+                      aria-label={`Visualizar ${doc.nomeArquivo}`}
+                      onClick={() => {
+                        void visualizarDocumento(doc);
+                      }}
+                    >
+                      Visualizar
+                    </Button>
+                    <a
+                      href={`/api/pastas/${id}/uploads-corrigidos/${doc.id}/download`}
+                      aria-label={`Baixar ${doc.nomeArquivo}`}
+                      className={buttonClass("quiet")}
+                    >
+                      Baixar
+                    </a>
+                    {doc.outputPath && (
+                      <Button
+                        variant="quiet"
+                        disabled={restaurando || applying || analisando || removingBatch}
+                        onClick={() => pedirRestauracao(doc, "original")}
+                      >
+                        {restaurando ? "Restaurando..." : "Restaurar original"}
+                      </Button>
+                    )}
+                    <Button
+                      variant="quiet"
+                      disabled={removingId === doc.id || removingBatch || applying}
+                      aria-label={`Remover ${doc.nomeArquivo} do lote`}
+                      onClick={() =>
+                        setConfirmacao({
+                          title: "Remover do lote?",
+                          description: `"${doc.nomeArquivo}" sai deste lote de correção. O arquivo gerado pela pasta não é afetado.`,
+                          confirmLabel: "Remover",
+                          destrutiva: true,
+                          onConfirm: () => {
+                            setConfirmacao(null);
+                            void removerDocumento(doc);
+                          },
+                        })
+                      }
+                    >
+                      Remover
+                    </Button>
+                  </div>
+
+                  {doc.status === "erro" && doc.mensagemErro && (
+                    <Feedback tone="erro" title={describeErrorOrigin(doc.mensagemErro).rotulo} className="mt-2">
+                      {doc.mensagemErro}
+                    </Feedback>
+                  )}
+
+                  {resultado && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {resultado.logoSubstituida && <StatusBadge tone="sucesso">Logo trocada</StatusBadge>}
+                      {resultado.logoFundoAplicado && (
+                        <StatusBadge tone="sucesso">Fundo da logo pintado</StatusBadge>
+                      )}
+                      {resultado.aplicadas?.map((valor) => {
+                        const contagem = resultado.contagens?.find((c) => c.de === valor);
+                        return (
+                          <StatusBadge key={`ok-${valor}`} tone="sucesso">
+                            {`"${valor}" aplicado${contagem ? ` (${contagem.total}x)` : ""}`}
+                          </StatusBadge>
+                        );
+                      })}
+                      {resultado.naoEncontradas?.map((valor) => (
+                        <StatusBadge key={`miss-${valor}`} tone="atencao">
+                          {`"${valor}" não encontrado`}
+                        </StatusBadge>
+                      ))}
+                    </div>
+                  )}
+
+                  {versoesAnteriores.length > 0 && (
+                    <details className="mt-2 text-sm text-ink-muted">
+                      <summary className="cursor-pointer text-brand-accent">
+                        Versões anteriores ({versoesAnteriores.length})
+                      </summary>
+                      <ul className="mt-2 flex flex-col gap-2">
+                        {versoesAnteriores.map((versao) => (
+                          <li
+                            key={versao.id}
+                            className="flex flex-wrap items-center gap-2 rounded-md border border-gray-200 bg-surface-subtle px-3 py-1"
+                          >
+                            <span>{new Date(versao.criadaEm).toLocaleString("pt-BR")}</span>
+                            <Button
+                              variant="quiet"
+                              onClick={() => {
+                                void visualizarDocumento(doc, versao.id);
+                              }}
+                            >
+                              Visualizar
+                            </Button>
+                            <a
+                              href={`/api/pastas/${id}/uploads-corrigidos/${doc.id}/download?versaoId=${versao.id}`}
+                              className={buttonClass("quiet")}
+                            >
+                              Baixar
+                            </a>
+                            <Button
+                              variant="quiet"
+                              disabled={restaurando || applying || analisando || removingBatch}
+                              onClick={() => pedirRestauracao(doc, "versao", versao.id)}
+                            >
+                              Restaurar esta
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+
+        <div aria-live="polite">
+          {restauracaoMensagem && (
+            <Feedback
+              tone={restauracaoErro ? "erro" : "atencao"}
+              title={restauracaoErro ? describeErrorOrigin(restauracaoMensagem).rotulo : undefined}
+              className="mb-6"
+            >
+              {restauracaoMensagem}
+            </Feedback>
+          )}
+        </div>
+
+        {/* 3. Rodada */}
+        <Card className="mb-6">
+          <CardHeader
+            title="3. Definir a rodada"
+            description="Informe o valor antigo e o novo de cada dado que muda (razão social, CNPJ, nome do RT, endereço, telefone, e-mail). Só troca o que você indicar; o resto do documento fica intacto."
+          />
+          <div className="px-4 py-4 sm:px-5">
+            <div className="mb-3 flex flex-col gap-2">
+              {pares.map((par, index) => (
+                <div key={index} className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    type="text"
+                    value={par.de}
+                    onChange={(e) => updatePar(index, "de", e.target.value)}
+                    aria-label={`Valor antigo do par ${index + 1}`}
+                    placeholder="Valor antigo (ex: Razão Social Ltda)"
+                    className={fieldClass}
+                  />
+                  <input
+                    type="text"
+                    value={par.para}
+                    onChange={(e) => updatePar(index, "para", e.target.value)}
+                    aria-label={`Valor novo do par ${index + 1}`}
+                    placeholder="Valor novo"
+                    className={fieldClass}
+                  />
+                  {pares.length > 1 && (
+                    <Button variant="danger" onClick={() => removePar(index)}>
+                      Remover
+                      <span className="sr-only">{` par ${index + 1}`}</span>
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <Button variant="secondary" onClick={addPar}>
+              Adicionar par
+            </Button>
+
+            <div className="mt-4 border-t border-gray-200 pt-4">
+              <label className="mb-1 block text-sm font-semibold text-ink" htmlFor="logo-nova">
+                Trocar logo (opcional)
+              </label>
+              <input
+                id="logo-nova"
+                type="file"
+                accept="image/png,image/jpeg"
+                onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                className="block w-full rounded-md border border-gray-300 bg-surface-card p-1 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface-subtle file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-accent"
+              />
+              {logoFile && (
+                <p className="mt-1 text-sm text-ink-muted">
+                  Logo selecionada: <span className="font-semibold text-ink">{logoFile.name}</span>
                 </p>
               )}
             </div>
-          )}
-        </div>
-      </Card>
 
-      {/* 5. Aplicar */}
-      <Card className="mb-6">
-        <CardHeader
-          title="5. Aplicar e baixar"
-          description="Cada documento é processado numa chamada própria, então uma falha isolada não interrompe o lote. A saída anterior nunca é sobrescrita: cada rodada cria uma versão nova, e a etapa 2 permite voltar a qualquer uma delas."
-        />
-        <div className="px-4 py-4 sm:px-5">
-          <div aria-live="polite">
-            {applyError && (
-              <Feedback tone="erro" title={describeErrorOrigin(applyError).rotulo} className="mb-4">
-                {applyError}
-              </Feedback>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              disabled={applying || analisando || !!bloqueioAplicar}
-              title={bloqueioAplicar || undefined}
-              onClick={() => {
-                void aplicar();
-              }}
-            >
-              {applying
-                ? `Aplicando ${batchDone}/${batchTotal}...`
-                : `Aplicar aos ${selectedDocs.size} selecionado(s)`}
-            </Button>
-            {docsComErro.length > 0 && !applying && (
-              <Button variant="secondary" disabled={analisando} onClick={selecionarComErro}>
-                Selecionar só os {docsComErro.length} com erro
-              </Button>
-            )}
-            {docs.length > 0 && (
-              <a href={zipDownloadHref} className={buttonClass("secondary")}>
-                {zipDownloadLabel}
-              </a>
-            )}
-          </div>
-
-          {bloqueioAplicar && !applying && (
-            <p className="mt-2 text-sm text-ink-muted">{bloqueioAplicar}</p>
-          )}
-
-          {applying && (
-            <div className="mt-3">
-              <ProgressBar value={aplicaPercent} label="Progresso da aplicação" />
-              <p aria-live="polite" className="mt-1 text-sm text-ink-muted empty:mt-0">
-                {currentDocName && `Processando: ${currentDocName}`}
+            <div className="mt-4 border-t border-gray-200 pt-4">
+              <label className="mb-1 block text-sm font-semibold text-ink" htmlFor="logo-bg-hex-lote">
+                Cor de fundo da logo (opcional)
+              </label>
+              <p id="logo-bg-hex-lote-hint" className="mb-2 text-sm text-ink-muted">
+                Pinta o quadrado atrás da logo no cabeçalho dos documentos selecionados, igual à
+                geração. Vem preenchida com a cor da pasta; alterar aqui também passa a valer para o
+                que for gerado depois. Deixe em branco para manter o fundo atual dos arquivos.
               </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="color"
+                  value={hexValido ? hexNormalizado : "#1b4332"}
+                  onChange={(e) => setLogoBgHex(e.target.value)}
+                  className="h-11 w-14 cursor-pointer rounded-md border border-gray-300 bg-surface-card p-1"
+                  aria-label="Seletor de cor de fundo da logo"
+                />
+                <input
+                  id="logo-bg-hex-lote"
+                  type="text"
+                  value={logoBgHex}
+                  aria-describedby="logo-bg-hex-lote-hint"
+                  onChange={(e) => setLogoBgHex(e.target.value)}
+                  placeholder="#1B4332"
+                  className={`${fieldClass} w-44`}
+                />
+                {logoBgHex.trim() && (
+                  <Button variant="quiet" onClick={() => setLogoBgHex("")}>
+                    Limpar cor
+                  </Button>
+                )}
+              </div>
+              {hexBruto && !hexValido && (
+                <Feedback tone="erro" className="mt-2">
+                  Cor inválida. Use um hex de 6 dígitos, como #1B4332.
+                </Feedback>
+              )}
             </div>
-          )}
 
-          <div aria-live="polite">
-            {!applying && applySummary && (
-              <Feedback tone="sucesso" title="Rodada concluída" className="mt-3">
-                {applySummary}
-              </Feedback>
+            <p className="mt-3 text-sm text-ink-muted">
+              Se um valor não for encontrado em algum documento, ele aparece marcado como
+              &quot;não encontrado&quot;, sem alterar o arquivo.
+            </p>
+          </div>
+        </Card>
+
+        {/* 4. Revisão */}
+        <Card className="mb-6">
+          <CardHeader
+            title="4. Revisar o que vai mudar"
+            description="A análise abre cada documento selecionado e conta as ocorrências sem alterar nada. Aplicar usa exatamente estes números — se algum arquivo mudar nesse meio-tempo, a aplicação é recusada."
+          />
+          <div className="px-4 py-4 sm:px-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                disabled={analisando || applying}
+                onClick={() => {
+                  void analisar();
+                }}
+              >
+                {analisando
+                  ? `Analisando ${analiseDone}/${analiseTotal}...`
+                  : `Analisar ${selectedDocs.size} selecionado(s)`}
+              </Button>
+              {analiseValida && !analisando && (
+                <StatusBadge tone="info">
+                  {revisao.totalOcorrencias} ocorrência(s) em{" "}
+                  {docsSelecionados.length - revisao.naoAnalisados.length} documento(s)
+                </StatusBadge>
+              )}
+            </div>
+
+            <div aria-live="polite">
+              {analiseError && (
+                <Feedback tone="erro" title={describeErrorOrigin(analiseError).rotulo} className="mt-3">
+                  {analiseError}
+                </Feedback>
+              )}
+              {analiseVencida && !analisando && (
+                <Feedback tone="atencao" title="Análise vencida" className="mt-3">
+                  Os pares mudaram depois da última análise. Analise novamente — os números anteriores
+                  descrevem outra rodada.
+                </Feedback>
+              )}
+            </div>
+
+            {analisando && (
+              <div className="mt-3">
+                <ProgressBar value={analisePercent} label="Progresso da análise" />
+              </div>
+            )}
+
+            {analiseValida && !analisando && (
+              <div className="mt-4 flex flex-col gap-4">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <caption className="sr-only">Contagem de ocorrências por par de substituição</caption>
+                    <thead>
+                      <tr className="text-left text-ink-muted">
+                        <th scope="col" className="py-2 pr-3 font-semibold">Valor antigo</th>
+                        <th scope="col" className="py-2 pr-3 font-semibold">Valor novo</th>
+                        <th scope="col" className="py-2 pr-3 text-right font-semibold">Ocorrências</th>
+                        <th scope="col" className="py-2 text-right font-semibold">Documentos</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {resumoPorPar.map((par, indice) => (
+                        <tr key={`${par.de}-${indice}`} className="text-ink">
+                          <th scope="row" className="break-words py-2 pr-3 text-left font-normal">
+                            {par.de}
+                          </th>
+                          <td className="break-words py-2 pr-3">
+                            {par.para || <span className="text-ink-subtle">(vazio — remove o texto)</span>}
+                          </td>
+                          <td className="py-2 pr-3 text-right tabular-nums">
+                            {par.total === 0 ? (
+                              <span className="font-semibold text-status-warning">0</span>
+                            ) : (
+                              par.total
+                            )}
+                          </td>
+                          <td className="py-2 text-right tabular-nums">{par.documentosAfetados}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <ul className="divide-y divide-gray-200 border-t border-gray-200">
+                  {docsSelecionados.map((doc) => {
+                    const entrada = analises[doc.id];
+                    const aberto = detalhesAbertos.has(doc.id);
+                    return (
+                      <li key={doc.id} className="py-2">
+                        <div className="flex flex-wrap items-center gap-2 text-sm">
+                          <Button variant="quiet" aria-expanded={aberto} onClick={() => toggleDetalhes(doc.id)}>
+                            <span aria-hidden="true">{aberto ? "▾" : "▸"}</span>
+                            {doc.nomeArquivo}
+                          </Button>
+                          {!entrada && <StatusBadge tone="neutro">Não analisado</StatusBadge>}
+                          {entrada && !entrada.ok && (
+                            <StatusBadge tone="erro">Falha na análise: {entrada.erro}</StatusBadge>
+                          )}
+                          {entrada?.ok && (
+                            <>
+                              <StatusBadge tone={entrada.plano.totalOcorrencias === 0 ? "atencao" : "info"}>
+                                {entrada.plano.totalOcorrencias} ocorrência(s)
+                              </StatusBadge>
+                              {entrada.plano.baseCorrigida && (
+                                <StatusBadge tone="neutro">Sobre correção anterior</StatusBadge>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        {aberto && entrada?.ok && (
+                          <div className="ml-4 mt-2 flex flex-col gap-2">
+                            {entrada.plano.substituicoes.map((sub, indice) => (
+                              <div key={`${doc.id}-${indice}`} className="text-sm">
+                                <p className={sub.total === 0 ? "text-status-warning" : "text-ink"}>
+                                  <span className="font-semibold">{sub.de}</span> → {sub.para || "(vazio)"} ·{" "}
+                                  {sub.total} ocorrência(s)
+                                  {sub.total > 0 && (
+                                    <> ({sub.corpo} no corpo, {sub.cabecalho} no cabeçalho, {sub.rodape} no rodapé)</>
+                                  )}
+                                </p>
+                                {sub.ocorrencias.slice(0, 3).map((ocorrencia, i) => (
+                                  <p key={i} className="mt-0.5 break-words text-ink-muted">
+                                    {ESCOPO_LABEL[ocorrencia.escopo]}: {ocorrencia.contexto}
+                                  </p>
+                                ))}
+                                {sub.ocorrencias.length > 3 && (
+                                  <p className="mt-0.5 text-ink-subtle">
+                                    e outras {sub.ocorrencias.length - 3} ocorrência(s)
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                {temRessalva && (
+                  <Feedback tone="atencao" title="Revise antes de aplicar">
+                    <ul className="mt-1 flex list-disc flex-col gap-1 pl-5">
+                      {revisao.semOcorrencia.length > 0 && (
+                        <li>
+                          {revisao.semOcorrencia.length} documento(s) sem nenhuma ocorrência — aplicar não
+                          muda nada neles: {revisao.semOcorrencia.slice(0, 5).join(", ")}
+                          {revisao.semOcorrencia.length > 5 && ` e outros ${revisao.semOcorrencia.length - 5}`}.
+                        </li>
+                      )}
+                      {revisao.excessivas.map((item, i) => (
+                        <li key={`exc-${i}`}>
+                          &quot;{item.de}&quot; casa {item.total} vezes em {item.nome} — mais que o esperado
+                          para um dado comercial. Confira se o trecho não é genérico.
+                        </li>
+                      ))}
+                      {revisao.falharam.map((item, i) => (
+                        <li key={`fail-${i}`}>
+                          {item.nome} não pôde ser analisado ({item.erro}) e será pulado.
+                        </li>
+                      ))}
+                    </ul>
+                    <label className="mt-3 flex items-start gap-2 font-semibold">
+                      <input
+                        type="checkbox"
+                        checked={confirmouRessalvas}
+                        onChange={(e) => setConfirmouRessalvas(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                      />
+                      Revisei as ressalvas acima e quero aplicar assim mesmo.
+                    </label>
+                  </Feedback>
+                )}
+
+                {revisao.sobreCorrecao.length > 0 && (
+                  <p className="text-sm text-ink-muted">
+                    {revisao.sobreCorrecao.length} documento(s) já tinham correção anterior, então esta
+                    rodada é cumulativa sobre ela. Para partir do arquivo original, use
+                    &quot;Restaurar original&quot; na etapa 2 antes de aplicar.
+                  </p>
+                )}
+              </div>
             )}
           </div>
-        </div>
-      </Card>
+        </Card>
 
-      {confirmacao && (
-        <ConfirmDialog
-          title={confirmacao.title}
-          description={confirmacao.description}
-          confirmLabel={confirmacao.confirmLabel}
-          destrutiva={confirmacao.destrutiva}
-          onCancel={() => setConfirmacao(null)}
-          onConfirm={confirmacao.onConfirm}
-        />
-      )}
+        {/* 5. Aplicar */}
+        <Card className="mb-6">
+          <CardHeader
+            title="5. Aplicar e baixar"
+            description="Cada documento é processado numa chamada própria, então uma falha isolada não interrompe o lote. A saída anterior nunca é sobrescrita: cada rodada cria uma versão nova, e a etapa 2 permite voltar a qualquer uma delas."
+          />
+          <div className="px-4 py-4 sm:px-5">
+            <div aria-live="polite">
+              {applyError && (
+                <Feedback tone="erro" title={describeErrorOrigin(applyError).rotulo} className="mb-4">
+                  {applyError}
+                </Feedback>
+              )}
+            </div>
 
-      <DocumentPreviewModal preview={preview} onClose={() => setPreview(null)} />
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                disabled={applying || analisando || !!bloqueioAplicar}
+                title={bloqueioAplicar || undefined}
+                onClick={() => {
+                  void aplicar();
+                }}
+              >
+                {applying
+                  ? `Aplicando ${batchDone}/${batchTotal}...`
+                  : `Aplicar aos ${selectedDocs.size} selecionado(s)`}
+              </Button>
+              {docsComErro.length > 0 && !applying && (
+                <Button variant="secondary" disabled={analisando} onClick={selecionarComErro}>
+                  Selecionar só os {docsComErro.length} com erro
+                </Button>
+              )}
+              {docs.length > 0 && (
+                <a href={zipDownloadHref} className={buttonClass("secondary")}>
+                  {zipDownloadLabel}
+                </a>
+              )}
+            </div>
+
+            {bloqueioAplicar && !applying && (
+              <p className="mt-2 text-sm text-ink-muted">{bloqueioAplicar}</p>
+            )}
+
+            {applying && (
+              <div className="mt-3">
+                <ProgressBar value={aplicaPercent} label="Progresso da aplicação" />
+                <p aria-live="polite" className="mt-1 text-sm text-ink-muted empty:mt-0">
+                  {currentDocName && `Processando: ${currentDocName}`}
+                </p>
+              </div>
+            )}
+
+            <div aria-live="polite">
+              {!applying && applySummary && (
+                <Feedback tone="sucesso" title="Rodada concluída" className="mt-3">
+                  {applySummary}
+                </Feedback>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {confirmacao && (
+          <ConfirmDialog
+            title={confirmacao.title}
+            description={confirmacao.description}
+            confirmLabel={confirmacao.confirmLabel}
+            destrutiva={confirmacao.destrutiva}
+            onCancel={() => setConfirmacao(null)}
+            onConfirm={confirmacao.onConfirm}
+          />
+        )}
+
+        <DocumentPreviewModal preview={preview} onClose={() => setPreview(null)} />
+      </div>
     </div>
   );
 }

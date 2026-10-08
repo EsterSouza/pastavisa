@@ -1082,7 +1082,7 @@ export default function ProcessarPasta() {
 
       <PastaHeader
         id={id}
-        nome={pastaInfo?.nome ?? null}
+        nome={pastaInfo ? pastaInfo.nome : undefined}
         status={pastaInfo?.status}
         meta={[
           [pastaInfo?.cidade, estadoCliente].filter(Boolean).join(" / "),

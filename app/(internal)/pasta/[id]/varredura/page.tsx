@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
-import { Button, buttonClass } from "@/components/ui/Button";
-import { Card, CardHeader, PageHeader } from "@/components/ui/Surface";
+import { PastaHeader, usePastaCabecalho } from "@/components/pasta/PastaHeader";
+import { Button } from "@/components/ui/Button";
+import { Card, CardHeader } from "@/components/ui/Surface";
 import { Feedback, StatusBadge, type Tone } from "@/components/ui/Status";
 import type { AlertaVarredura, TipoAlerta } from "@/lib/revisao/varredura";
 
@@ -29,6 +29,7 @@ export default function VarreduraPasta() {
   const [varrendo, setVarrendo] = useState(false);
   const [erro, setErro] = useState("");
   const [preview, setPreview] = useState<DocumentPreviewState | null>(null);
+  const cabecalho = usePastaCabecalho(id);
 
   async function chamar<T>(url: string): Promise<T> {
     const res = await fetch(url);
@@ -69,16 +70,8 @@ export default function VarreduraPasta() {
   const limpos = documentos?.filter((d) => d.alertas.length === 0) ?? [];
 
   return (
-    <div>
-      <PageHeader
-        title="Varredura da pasta"
-        description="Confere sem IA, na hora e sem custo, os documentos gerados desta pasta."
-        actions={
-          <Link href={`/pasta/${id}`}className={buttonClass("secondary")}>
-            Voltar à pasta
-          </Link>
-        }
-      />
+    <div className="mx-auto max-w-[80rem]">
+      <PastaHeader id={id} nome={cabecalho ? cabecalho.nome : undefined} status={cabecalho?.status} meta={cabecalho?.local || undefined} />
 
       {erro && (
         <Feedback tone="erro" title="Erro" className="mb-6">
