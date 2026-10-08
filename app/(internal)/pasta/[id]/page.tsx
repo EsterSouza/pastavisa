@@ -218,6 +218,11 @@ export default function PastaDetalhe() {
                 Baixar ZIP ({gerados})
               </a>
             )}
+            {gerados > 0 && (
+              <Link href={`/pasta/${id}/varredura`} className={buttonClass("secondary")}>
+                Varredura
+              </Link>
+            )}
             <Link href={`/pasta/${id}/editar`} className={buttonClass("secondary")}>
               Editar dados
             </Link>

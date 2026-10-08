@@ -13,6 +13,17 @@ const navigation = [
   { href: "/legislacoes", label: "Legislações", matches: (path: string) => path.startsWith("/legislacoes") },
 ];
 
+function SairLink({ className = "" }: { className?: string }) {
+  return (
+    <a
+      href="/api/auth/logout"
+      className={`flex min-h-11 items-center rounded-md px-3 text-sm font-semibold text-shell-muted hover:bg-shell-hover hover:text-shell-text ${className}`}
+    >
+      Sair
+    </a>
+  );
+}
+
 function NavigationLinks({ compact = false }: { compact?: boolean }) {
   const pathname = usePathname();
 
@@ -51,6 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <NavigationLinks />
         <PlannerLink />
         <ThemeToggle className="mt-auto w-full justify-center" />
+        <SairLink className="mt-2 justify-center" />
       </aside>
 
       <div className="min-w-0">
@@ -67,6 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </summary>
                 <div className="absolute right-0 top-[calc(100%+0.5rem)] z-popover w-52 rounded-md border border-shell-border bg-shell-bg p-2 shadow-lg">
                   <NavigationLinks compact />
+                  <SairLink />
                 </div>
               </details>
             </div>
