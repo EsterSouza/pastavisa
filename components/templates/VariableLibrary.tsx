@@ -34,7 +34,7 @@ export function VariableCard({
     <div className={`rounded-lg border p-3 ${used ? "border-status-success bg-status-success-soft/40" : "border-gray-200 bg-surface-card"}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <code className="text-xs font-semibold text-brand-navy">{variable.tag}</code>
+          <code className="text-xs font-semibold text-ink">{variable.tag}</code>
           {variable.legacy && <span className="ml-2 text-[10px] text-status-warning">legado</span>}
         </div>
         <button type="button" onClick={() => onCopyTag(variable.tag)} className="shrink-0 text-xs text-brand-accent hover:underline">

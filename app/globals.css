@@ -310,11 +310,17 @@ textarea {
 /* Caixa de seleção desenhada pelo app: a nativa seguia o color-scheme e ficava
    escura sem marcar, quase sumindo no tema escuro. Borda em ink-subtle passa de
    3:1 nos dois temas (WCAG 1.4.11). */
+@layer base {
+  /* Tamanho padrão na camada base: classes h-5 w-5 da tela ainda mandam. */
+  input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
 input[type="checkbox"] {
   appearance: none;
   flex-shrink: 0;
-  width: 1rem;
-  height: 1rem;
   border: 1.5px solid rgb(var(--color-ink-subtle));
   border-radius: 0.25rem;
   background: rgb(var(--color-surface-card)) center / 0.75rem no-repeat;

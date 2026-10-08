@@ -2,6 +2,7 @@
 
 import { Feedback } from "@/components/ui/Status";
 import { fieldClass } from "@/components/ui/Field";
+import { buttonClass } from "@/components/ui/Button";
 import { ESTADOS_BR, type ReferenciaImportada } from "@/components/legislacoes/constants";
 
 interface ImportPanelProps {
@@ -98,7 +99,7 @@ export function ImportPanel({
           type="button"
           onClick={onAnalisar}
           disabled={importando || !importFile}
-          className="rounded-lg bg-status-warning px-4 py-2 text-sm font-medium text-brand-on-dark hover:opacity-90 disabled:opacity-50"
+          className={buttonClass("primary")}
         >
           {importando ? "Analisando..." : "Analisar"}
         </button>
@@ -125,7 +126,7 @@ export function ImportPanel({
               type="button"
               onClick={onAdicionarSelecionadas}
               disabled={importando || selecionadasImportacao.size === 0}
-              className="rounded bg-status-warning px-3 py-1.5 text-xs font-medium text-brand-on-dark hover:opacity-90 disabled:opacity-50"
+              className={buttonClass("primary")}
             >
               Adicionar selecionadas
             </button>

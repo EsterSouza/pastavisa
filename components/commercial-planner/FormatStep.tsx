@@ -48,7 +48,7 @@ export function FormatStep({ retirada, formato, onSelect }: FormatStepProps) {
               <label
                 key={opcao}
                 className={`flex cursor-pointer flex-col gap-3 rounded-lg border p-5 ${
-                  escolhido ? "border-brand-action bg-brand-pale shadow-sm" : "border-gray-200 bg-surface-card hover:bg-surface-subtle"
+                  escolhido ? "border-brand-action bg-surface-subtle shadow-sm" : "border-gray-200 bg-surface-card hover:bg-surface-subtle"
                 }`}
               >
                 <span className="flex items-start gap-3">
