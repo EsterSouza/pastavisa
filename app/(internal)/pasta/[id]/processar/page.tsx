@@ -1,20 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
+import { PastaHeader } from "@/components/pasta/PastaHeader";
+import { ActionMenu } from "@/components/ui/ActionMenu";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Drawer } from "@/components/ui/Drawer";
 import { fieldClass } from "@/components/ui/Field";
-import { Card, CardHeader, PageHeader } from "@/components/ui/Surface";
+import { Card } from "@/components/ui/Surface";
 import {
   DOCUMENTO_STATUS,
   describeErrorOrigin,
   Feedback,
   ProgressBar,
   StatusBadge,
+  ToneMark,
+  type Tone,
 } from "@/components/ui/Status";
 import { normalizeForMatch } from "@/components/ui/text";
 import { findBestTemplateMatch } from "@/lib/template-matcher";
@@ -230,6 +235,29 @@ function grupoAbertoKey(docId: string, groupId: string): string {
   return `${docId}::${groupId}`;
 }
 
+// Situação usada nos filtros e nos blocos da lista. "processando" conta como
+// "a gerar": é o documento que está saindo agora.
+type GrupoDoc = "erro" | "a-gerar" | "gerados";
+type FiltroDocs = "todos" | GrupoDoc;
+
+function grupoDoDocumento(doc: Documento): GrupoDoc {
+  if (doc.status === "gerado") return "gerados";
+  if (doc.status === "erro") return "erro";
+  return "a-gerar";
+}
+
+const FILTROS_DOCS: Array<{ id: FiltroDocs; label: string }> = [
+  { id: "todos", label: "Todos" },
+  { id: "a-gerar", label: "A gerar" },
+  { id: "erro", label: "Com erro" },
+  { id: "gerados", label: "Gerados" },
+];
+
+// Colunas da lista: seleção, documento, situação, template, ações. Remover e
+// Visualizar ficam no menu ⋯ para a linha nunca quebrar em duas.
+const LINHA_GRID =
+  "grid grid-cols-[1.75rem_minmax(0,1fr)_6.5rem_minmax(12rem,16rem)_2.75rem] items-center gap-3";
+
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
@@ -275,6 +303,14 @@ export default function ProcessarPasta() {
   const [generationStartedAt, setGenerationStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   const [preview, setPreview] = useState<DocumentPreviewState | null>(null);
+  const [pastaInfo, setPastaInfo] = useState<{ nome: string | null; status: string; cidade: string | null } | null>(null);
+  const [filtroDocs, setFiltroDocs] = useState<FiltroDocs>("todos");
+  const [adicionarAberto, setAdicionarAberto] = useState(false);
+  const [materiaisAbertos, setMateriaisAbertos] = useState<Set<string>>(new Set());
+  const [legislacoesAbertas, setLegislacoesAbertas] = useState(false);
+  const [legislacaoSearch, setLegislacaoSearch] = useState("");
+  const [associadasAoAbrir, setAssociadasAoAbrir] = useState<string[]>([]);
+  const selecionarTodosRef = useRef<HTMLInputElement>(null);
 
   // Evita que o auto-preenchimento rode mais de uma vez.
   const autoAssigned = useRef(false);
@@ -286,6 +322,11 @@ export default function ProcessarPasta() {
       .then((r) => r.json())
       .then((pasta) => {
         const estado = pasta.clienteEstado || "";
+        setPastaInfo({
+          nome: pasta.clienteNomeFantasia ?? null,
+          status: pasta.status || "rascunho",
+          cidade: pasta.clienteCidade ?? null,
+        });
         setEstadoCliente(estado);
         setClienteEquipamentos(parseEquipamentos(pasta.clienteEquipamentos));
         setClienteProdutosInsumos(parseProdutosInsumos(pasta.clienteProdutosInsumos));
@@ -420,9 +461,13 @@ export default function ProcessarPasta() {
     });
   }
 
-  function selecionarTodos() { setSelectedDocs(new Set(docs.map((d) => d.id))); }
-  function selecionarPendentes() { setSelectedDocs(new Set(docs.filter((d) => d.status !== "gerado").map((d) => d.id))); }
-  function desselecionarTodos() { setSelectedDocs(new Set()); }
+  function alternarMateriais(docId: string) {
+    setMateriaisAbertos((prev) => {
+      const next = new Set(prev);
+      if (next.has(docId)) next.delete(docId); else next.add(docId);
+      return next;
+    });
+  }
 
   function salvarLegislacoes(ids: string[]) {
     setSelectedLeg(ids);
@@ -942,13 +987,88 @@ export default function ProcessarPasta() {
     ? { url: `/api/pastas/${id}/download?ids=${selectedGeradosIds.join(",")}`, label: `Baixar ZIP (${selectedGeradosIds.length} selecionados)` }
     : { url: `/api/pastas/${id}/download`, label: `Baixar ZIP (${gerados} documentos)` };
 
-  // A lista longa fica em dois blocos recolhíveis: o que falta gerar (aberto)
-  // e o que já foi gerado (fechado). Com busca ativa, os dois abrem.
+  // A lista fica em blocos recolhíveis: erros primeiro, depois o que falta
+  // gerar (ambos abertos) e o que já foi gerado (fechado). Com busca ativa ou
+  // filtro em Gerados, o último também abre.
   const buscandoDocs = normalizedDocumentSearch.length > 0;
-  const gruposDocs = [
-    { id: "a-gerar", titulo: "A gerar", docs: visibleDocs.filter((d) => d.status !== "gerado"), aberto: true },
-    { id: "gerados", titulo: "Já gerados", docs: visibleDocs.filter((d) => d.status === "gerado"), aberto: buscandoDocs },
-  ].filter((g) => g.docs.length > 0);
+  const contagemFiltro: Record<FiltroDocs, number> = {
+    todos: visibleDocs.length,
+    erro: visibleDocs.filter((d) => grupoDoDocumento(d) === "erro").length,
+    "a-gerar": visibleDocs.filter((d) => grupoDoDocumento(d) === "a-gerar").length,
+    gerados: visibleDocs.filter((d) => grupoDoDocumento(d) === "gerados").length,
+  };
+  const docsDaLista = filtroDocs === "todos"
+    ? visibleDocs
+    : visibleDocs.filter((d) => grupoDoDocumento(d) === filtroDocs);
+  const gruposDocs = ([
+    { id: "erro", titulo: "Com erro", aberto: true },
+    { id: "a-gerar", titulo: "A gerar", aberto: true },
+    { id: "gerados", titulo: "Já gerados", aberto: buscandoDocs || filtroDocs === "gerados" },
+  ] as Array<{ id: GrupoDoc; titulo: string; aberto: boolean }>)
+    .map((g) => ({ ...g, docs: docsDaLista.filter((d) => grupoDoDocumento(d) === g.id) }))
+    .filter((g) => g.docs.length > 0);
+
+  const visiveisSelecionados = docsDaLista.filter((d) => selectedDocs.has(d.id)).length;
+  const todosVisiveisSelecionados = docsDaLista.length > 0 && visiveisSelecionados === docsDaLista.length;
+  useEffect(() => {
+    if (selecionarTodosRef.current) {
+      selecionarTodosRef.current.indeterminate = visiveisSelecionados > 0 && !todosVisiveisSelecionados;
+    }
+  }, [visiveisSelecionados, todosVisiveisSelecionados]);
+
+  function alternarTodosVisiveis() {
+    setSelectedDocs((prev) => {
+      const next = new Set(prev);
+      docsDaLista.forEach((d) => {
+        if (todosVisiveisSelecionados) next.delete(d.id); else next.add(d.id);
+      });
+      return next;
+    });
+  }
+
+  const insumosMateriais = clienteProdutosInsumos.map(produtoInsumoToMaterial);
+  const materialGroups = buildMaterialGroups(clienteEquipamentos, insumosMateriais);
+  const legislacoesAssociadas = legislacoes.filter((leg) => selectedLeg.includes(leg.id));
+  const normalizedLegislacaoSearch = normalizeForMatch(legislacaoSearch.trim());
+  // No painel, as associadas vêm primeiro: são as que importam conferir. A ordem
+  // é a do momento em que o painel abriu, para a linha não pular ao marcar.
+  const legislacoesVisiveis = (normalizedLegislacaoSearch
+    ? legislacoes.filter((leg) =>
+        normalizeForMatch(`${leg.titulo} ${leg.tipo} ${leg.estadoUf} ${leg.municipio || ""}`).includes(normalizedLegislacaoSearch)
+      )
+    : legislacoes
+  ).slice().sort((a, b) => Number(associadasAoAbrir.includes(b.id)) - Number(associadasAoAbrir.includes(a.id)));
+  const regerarSelecionados = docs.filter((d) => d.status === "gerado" && selectedDocs.has(d.id) && assignments[d.id]).length;
+
+  // "Antes de gerar": o que pode sair errado no lote, numa lista só, no lugar
+  // dos avisos espalhados pela página.
+  const conferencias: Array<{ tone: Tone; texto: ReactNode }> = [];
+  if (templates.length === 0) {
+    conferencias.push({
+      tone: "atencao",
+      texto: <>Nenhum template ativo. Cadastre em <Link href="/templates" className="underline">Templates</Link>.</>,
+    });
+  }
+  if (semTemplate > 0) {
+    conferencias.push({ tone: "atencao", texto: `${semTemplate} selecionado(s) sem template ficam fora da geração.` });
+  }
+  if (regerarSelecionados > 0) {
+    conferencias.push({ tone: "atencao", texto: `${regerarSelecionados} já gerado(s) selecionado(s) vão ser regerados.` });
+  }
+  if (erros > 0) {
+    conferencias.push({ tone: "erro", texto: `${erros} com erro. Use "Regerar com erro" na barra acima.` });
+  }
+  if (!estadoCliente) {
+    conferencias.push({ tone: "atencao", texto: "Pasta sem UF: as legislações estaduais não carregam." });
+  } else if (selectedLeg.length === 0) {
+    conferencias.push({ tone: "atencao", texto: "Nenhuma legislação associada à pasta." });
+  }
+  if (conferencias.length === 0) {
+    conferencias.push({
+      tone: "sucesso",
+      texto: prontoParaGerar > 0 ? `Tudo certo para gerar ${prontoParaGerar} documento(s).` : "Nada pendente para gerar.",
+    });
+  }
 
   const rotuloGerar = processing
     ? `Gerando ${batchDone} de ${batchTotal}...`
@@ -957,17 +1077,17 @@ export default function ProcessarPasta() {
     : `Gerar ${prontoParaGerar} documento${prontoParaGerar !== 1 ? "s" : ""}`;
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-[80rem]">
       <ScrollToTopButton />
 
-      <PageHeader
-        title="Gerar documentos"
-        description="Confirme o template de cada documento, as legislações da UF e gere o lote."
-        actions={
-          <Link href={`/pasta/${id}`} className={buttonClass("secondary")}>
-            Voltar para a pasta
-          </Link>
-        }
+      <PastaHeader
+        id={id}
+        nome={pastaInfo?.nome ?? null}
+        status={pastaInfo?.status}
+        meta={[
+          [pastaInfo?.cidade, estadoCliente].filter(Boolean).join(" / "),
+          `${total} documento${total !== 1 ? "s" : ""}`,
+        ].filter(Boolean).join(" · ")}
       />
 
       <div aria-live="polite">
@@ -987,15 +1107,24 @@ export default function ProcessarPasta() {
 
       {/* Barra de ações fixa: progresso, Gerar e Baixar ZIP ficam visíveis em
           qualquer ponto da rolagem. O fundo cobre o conteúdo que passa por baixo. */}
-      <div className="sticky top-0 z-popover -mx-2 mb-4 bg-surface-page px-2 pb-2 pt-3">
-        <Card className="p-4 shadow-sm">
+      <div className="sticky top-0 z-popover -mx-2 mb-5 bg-surface-page px-2 pb-2 pt-3">
+        <Card className="p-4 shadow-md">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div aria-live="polite" className="flex min-w-[18rem] flex-1 items-center gap-3">
               <StatusBadge tone={barraTone}>{barraStatus}</StatusBadge>
               <p className="text-sm text-ink">
-                {processing
-                  ? `${batchDone} de ${batchTotal} documentos do lote · ${lotePercent}%`
-                  : `${gerados} de ${total} gerado(s)${erros ? `, ${erros} com erro` : ""} · ${progress}% da pasta`}
+                {processing ? (
+                  <>
+                    <strong>{batchDone} de {batchTotal}</strong> documentos do lote · {lotePercent}%
+                  </>
+                ) : (
+                  <>
+                    <strong>{gerados} de {total} gerado(s)</strong>
+                    <span className="text-ink-muted">
+                      {erros ? ` · ${erros} com erro` : ""} · {progress}% da pasta
+                    </span>
+                  </>
+                )}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -1052,116 +1181,15 @@ export default function ProcessarPasta() {
               </div>
             </dl>
           )}
-
-          {!processing && ((done && batchTotal > 0) || totalTokens > 0) && (
-            <p className="mt-3 text-sm text-ink-muted">
-              {done && batchTotal > 0 && (
-                <>
-                  Último lote: <strong className="text-ink">{formatDuration(elapsedSeconds)}</strong> para{" "}
-                  {batchTotal} documento{batchTotal !== 1 ? "s" : ""}.{" "}
-                </>
-              )}
-              {totalTokens > 0 && (
-                <>
-                  <strong className="text-ink">{totalTokens.toLocaleString("pt-BR")} tokens</strong> ·{" "}
-                  {custo.usd} · {custo.brl} (estimativa por template).
-                </>
-              )}
-            </p>
-          )}
         </Card>
       </div>
 
-      {semTemplate > 0 && !processing && (
-        <Feedback tone="atencao" className="mb-4">
-          {semTemplate} documento(s) selecionado(s) ainda estão sem template e não serão gerados.
-        </Feedback>
-      )}
-
-      <Card className="mb-6">
-        <CardHeader
-          title="Documentos a gerar"
-          description="Os templates são sugeridos pelo nome do documento. Revise antes de gerar."
-          actions={
-            <>
-              <Button variant="quiet" disabled={processing || autoFilling} onClick={autoPreencherTemplates}>
-                {autoFilling ? "Preenchendo..." : "Auto preencher"}
-              </Button>
-              <Button variant="quiet" disabled={processing} onClick={selecionarTodos}>
-                Todos
-              </Button>
-              <Button variant="quiet" disabled={processing} onClick={selecionarPendentes}>
-                Pendentes e erros
-              </Button>
-              <Button variant="quiet" disabled={processing} onClick={desselecionarTodos}>
-                Nenhum
-              </Button>
-            </>
-          }
-        />
-
-        <div aria-live="polite">
-          {autoFillError && (
-            <div className="border-b border-gray-200 px-4 py-3 sm:px-5">
-              <Feedback tone="erro" title={describeErrorOrigin(autoFillError).rotulo}>
-                {autoFillError}
-              </Feedback>
-            </div>
-          )}
-        </div>
-
-        <details className="border-b border-gray-200">
-            <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink sm:px-5">
-              Adicionar documento por template
-            </summary>
-          <div className="px-4 pb-4 sm:px-5">
-            <label htmlFor="template-add" className="sr-only">
-              Buscar template para adicionar
-            </label>
-            <p id="template-add-hint" className="text-sm text-ink-muted">
-              Use quando a cliente contratou um serviço depois do Documento em Elaboração e o POP não
-              entrou na lista inicial.
-            </p>
-            <input
-              id="template-add"
-              type="search"
-              value={templateAddSearch}
-              aria-describedby="template-add-hint"
-              onChange={(e) => setTemplateAddSearch(e.target.value)}
-              disabled={processing || changingDocuments}
-              placeholder="Buscar template ativo..."
-              className={`${fieldClass} mt-2`}
-            />
-            {templateAddSearch.trim() && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {templatesParaAdicionar.length > 0 ? (
-                  templatesParaAdicionar.map((template) => (
-                    <Button
-                      key={template.id}
-                      variant="secondary"
-                      disabled={processing || changingDocuments}
-                      onClick={() => {
-                        void addDocumentFromTemplate(template);
-                      }}
-                    >
-                      Adicionar {template.nome}
-                    </Button>
-                  ))
-                ) : (
-                  <p className="text-sm text-ink-muted">
-                    Nenhum template ativo disponível, ou o documento já está na pasta.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </details>
-
-        {docs.length > 0 && (
-          <div className="flex flex-col gap-2 border-b border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <div className="w-full sm:max-w-md">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_17rem]">
+        <section aria-label="Documentos" className="min-w-0 rounded-lg border border-gray-200 bg-surface-card">
+          <div className="flex flex-wrap items-center gap-2 px-4 py-3">
+            <div className="min-w-[14rem] flex-[1_1_16rem]">
               <label className="sr-only" htmlFor="document-search">
-                Pesquisar documentos
+                Buscar documento ou template
               </label>
               <input
                 id="document-search"
@@ -1169,393 +1197,597 @@ export default function ProcessarPasta() {
                 value={documentSearch}
                 onChange={(e) => setDocumentSearch(e.target.value)}
                 disabled={processing}
-                placeholder="Pesquisar documentos..."
+                placeholder="Buscar documento ou template"
                 className={fieldClass}
               />
             </div>
-            <p className="text-sm text-ink-muted" aria-live="polite">
-              {visibleDocs.length} de {docs.length} documentos · {selectedDocs.size} selecionado(s)
-            </p>
+            <div role="group" aria-label="Filtrar por situação" className="order-last flex basis-full flex-wrap gap-1.5">
+              {FILTROS_DOCS.map((filtro) => {
+                const ativo = filtroDocs === filtro.id;
+                return (
+                  <button
+                    key={filtro.id}
+                    type="button"
+                    aria-pressed={ativo}
+                    onClick={() => setFiltroDocs(filtro.id)}
+                    className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold ${
+                      ativo
+                        ? "border-brand-action bg-brand-action text-brand-on-dark"
+                        : "border-gray-300 bg-surface-card text-ink-muted hover:bg-surface-subtle hover:text-ink"
+                    }`}
+                  >
+                    {filtro.label}
+                    <span className={ativo ? "" : "text-ink-subtle"}>{contagemFiltro[filtro.id]}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <Button variant="quiet" disabled={processing || autoFilling} onClick={autoPreencherTemplates}>
+              {autoFilling ? "Preenchendo..." : "Auto preencher"}
+            </Button>
+            <Button
+              variant="secondary"
+              aria-expanded={adicionarAberto}
+              aria-controls="adicionar-documento"
+              disabled={processing}
+              onClick={() => setAdicionarAberto((v) => !v)}
+            >
+              {adicionarAberto ? "Fechar" : "+ Adicionar documento"}
+            </Button>
           </div>
-        )}
+
+          {adicionarAberto && (
+            <div id="adicionar-documento" className="border-t border-gray-200 bg-surface-subtle px-4 py-3">
+              <label htmlFor="template-add" className="text-sm font-semibold text-ink">
+                Adicionar documento por template
+              </label>
+              <p id="template-add-hint" className="text-sm text-ink-muted">
+                Para quando a cliente contratou um serviço depois do Documento em Elaboração e o POP não
+                entrou na lista inicial.
+              </p>
+              <input
+                id="template-add"
+                type="search"
+                autoFocus
+                value={templateAddSearch}
+                aria-describedby="template-add-hint"
+                onChange={(e) => setTemplateAddSearch(e.target.value)}
+                disabled={processing || changingDocuments}
+                placeholder="Digite parte do nome do template"
+                className={`${fieldClass} mt-2`}
+              />
+              {templateAddSearch.trim() && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {templatesParaAdicionar.length > 0 ? (
+                    templatesParaAdicionar.map((template) => (
+                      <Button
+                        key={template.id}
+                        variant="secondary"
+                        disabled={processing || changingDocuments}
+                        onClick={() => {
+                          void addDocumentFromTemplate(template);
+                        }}
+                      >
+                        + {template.nome}
+                      </Button>
+                    ))
+                  ) : (
+                    <p className="text-sm text-ink-muted">
+                      Nenhum template ativo disponível, ou o documento já está na pasta.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div aria-live="polite">
+            {autoFillError && (
+              <div className="border-t border-gray-200 px-4 py-3">
+                <Feedback tone="erro" title={describeErrorOrigin(autoFillError).rotulo}>
+                  {autoFillError}
+                </Feedback>
+              </div>
+            )}
+            {documentActionMessage && (
+              <div className="border-t border-gray-200 px-4 py-3">
+                <Feedback
+                  tone={documentActionErro ? "erro" : "info"}
+                  title={documentActionErro ? describeErrorOrigin(documentActionMessage).rotulo : undefined}
+                >
+                  {documentActionMessage}
+                </Feedback>
+              </div>
+            )}
+          </div>
+
+          {docs.length > 0 && (
+            <div
+              className={`${LINHA_GRID} border-y border-gray-200 bg-surface-subtle px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-ink-muted`}
+            >
+              <label className="-m-3 flex cursor-pointer p-3">
+                <input
+                  ref={selecionarTodosRef}
+                  type="checkbox"
+                  checked={todosVisiveisSelecionados}
+                  disabled={processing || docsDaLista.length === 0}
+                  onChange={alternarTodosVisiveis}
+                  aria-label="Selecionar todos os documentos da lista"
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+              </label>
+              <span aria-live="polite">Documento · {selectedDocs.size} selecionado(s)</span>
+              <span>Situação</span>
+              <span>Template</span>
+              <span className="sr-only">Ações</span>
+            </div>
+          )}
+
+          {docs.length === 0 && (
+            <p className="border-t border-gray-200 px-4 py-6 text-sm text-ink-muted">
+              Nenhum documento nesta pasta. Use <strong>+ Adicionar documento</strong> para incluir o primeiro.
+            </p>
+          )}
+
+          {docs.length > 0 && docsDaLista.length === 0 && (
+            <p className="px-4 py-6 text-sm text-ink-muted">
+              Nenhum documento {buscandoDocs ? "encontrado para essa busca" : "nesta situação"}.
+            </p>
+          )}
+
+          {gruposDocs.map((grupoDocs) => {
+            const selecionadosNoBloco = grupoDocs.docs.filter((d) => selectedDocs.has(d.id)).length;
+            return (
+              <details key={grupoDocs.id} open={grupoDocs.aberto || undefined} className="group border-b border-gray-200 last:border-b-0">
+                <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-ink hover:bg-surface-subtle [&::-webkit-details-marker]:hidden">
+                  <span aria-hidden="true" className="inline-block w-3 text-ink-muted transition-transform group-open:rotate-90">
+                    ›
+                  </span>
+                  {grupoDocs.titulo}
+                  <span className="font-normal text-ink-muted">
+                    {grupoDocs.docs.length} documento{grupoDocs.docs.length !== 1 ? "s" : ""} · {selecionadosNoBloco} selecionado(s)
+                  </span>
+                </summary>
+                <ul className="divide-y divide-gray-200 border-t border-gray-200">
+                  {grupoDocs.docs.map((doc) => {
+                    const isSelecionado = selectedDocs.has(doc.id);
+                    const jaGerado = doc.status === "gerado";
+                    const templateAtual = getTemplateAtual(doc, assignments, templates);
+                    const docStatus = DOCUMENTO_STATUS[doc.status] || DOCUMENTO_STATUS.pendente;
+                    const isPop = isPopDocumento(doc, assignments, templates);
+                    const equipamentosDoc = equipmentAssignments[doc.id] || [];
+                    const equipamentosDocKeys = new Set(equipamentosDoc.map(equipamentoKey));
+                    const temMateriais = isPop && materialGroups.length > 0;
+                    const materiaisVisiveis = temMateriais && materiaisAbertos.has(doc.id);
+                    const detalhes = [
+                      templateAtual?.tipo,
+                      doc.tokensUsados ? `${doc.tokensUsados.toLocaleString("pt-BR")} tokens` : "",
+                    ].filter(Boolean).join(" · ");
+
+                    return (
+                      <li key={doc.id} className="px-4 py-2.5">
+                        <div className={LINHA_GRID}>
+                          {/* O padding leva o alvo de clique a 44px (docs/DESIGN.md); a margem
+                              negativa devolve o espaco, entao nada se move na tela. */}
+                          <label className="-m-3 flex shrink-0 cursor-pointer p-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelecionado}
+                              disabled={processing}
+                              onChange={() => toggleDoc(doc.id)}
+                              aria-label={`Selecionar ${doc.nomeArquivo}`}
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                          </label>
+
+                          <div className="min-w-0">
+                            <p
+                              className={`break-words text-sm font-semibold leading-snug ${
+                                jaGerado && !isSelecionado ? "text-ink-muted" : "text-ink"
+                              }`}
+                            >
+                              {doc.nomeArquivo}
+                            </p>
+                            {(detalhes || temMateriais) && (
+                              <p className="mt-0.5 text-sm text-ink-muted">
+                                {detalhes}
+                                {detalhes && temMateriais && " · "}
+                                {temMateriais && (
+                                  <button
+                                    type="button"
+                                    aria-expanded={materiaisVisiveis}
+                                    aria-controls={`materiais-${doc.id}`}
+                                    onClick={() => alternarMateriais(doc.id)}
+                                    className="font-semibold text-brand-accent underline-offset-4 hover:underline"
+                                  >
+                                    {equipamentosDoc.length > 0
+                                      ? `${equipamentosDoc.length} materia${equipamentosDoc.length !== 1 ? "is" : "l"} especificado${equipamentosDoc.length !== 1 ? "s" : ""}`
+                                      : "Especificar materiais"}
+                                  </button>
+                                )}
+                              </p>
+                            )}
+                          </div>
+
+                          <div>
+                            <StatusBadge tone={docStatus.tone}>{docStatus.label}</StatusBadge>
+                          </div>
+
+                          <div>
+                            <label className="sr-only" htmlFor={`template-${doc.id}`}>
+                              Template de {doc.nomeArquivo}
+                            </label>
+                            <select
+                              id={`template-${doc.id}`}
+                              value={assignments[doc.id] ?? ""}
+                              onChange={(e) => {
+                                const templateId = e.target.value;
+                                setAssignments((prev) => ({ ...prev, [doc.id]: templateId }));
+                                // Persiste na hora, para sobreviver ao reload.
+                                fetch(`/api/pastas/${id}/documentos`, {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ docId: doc.id, templateId: templateId || null }),
+                                }).catch(console.error);
+                              }}
+                              disabled={processing}
+                              className={`${fieldClass} ${assignments[doc.id] ? "" : "text-ink-muted"}`}
+                            >
+                              <option value="">Escolher template…</option>
+                              {[...templates]
+                                .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }))
+                                .map((t) => (
+                                  <option key={t.id} value={t.id}>{t.nome}</option>
+                                ))}
+                            </select>
+                          </div>
+
+                          <ActionMenu
+                            label={`Mais ações de ${doc.nomeArquivo}`}
+                            disabled={processing}
+                            items={[
+                              ...(doc.outputPath
+                                ? [{ label: "Visualizar", onSelect: () => { void visualizarDocumento(doc); } }]
+                                : []),
+                              ...(temMateriais
+                                ? [{ label: materiaisVisiveis ? "Ocultar materiais" : "Especificar materiais", onSelect: () => alternarMateriais(doc.id) }]
+                                : []),
+                              {
+                                label: "Remover da pasta",
+                                destrutiva: true,
+                                disabled: changingDocuments,
+                                onSelect: () => { void removeDocument(doc); },
+                              },
+                            ]}
+                          />
+                        </div>
+
+                        {(doc.mensagemErro || (!assignments[doc.id] && isSelecionado) || (jaGerado && (isSelecionado || doc.logoSubstituida === false || doc.avisoRtNoCorpo))) && (
+                          <div className="ml-10 mr-14 mt-1 space-y-0.5">
+                            {doc.mensagemErro && (
+                              <p className="text-sm text-status-danger">
+                                <span className="font-semibold">{describeErrorOrigin(doc.mensagemErro).rotulo}:</span>{" "}
+                                {doc.mensagemErro}
+                              </p>
+                            )}
+                            {!assignments[doc.id] && isSelecionado && (
+                              <p className="text-sm text-status-warning">
+                                Sem template escolhido — fica fora da geração.
+                              </p>
+                            )}
+                            {jaGerado && isSelecionado && (
+                              <p className="text-sm text-status-warning">Selecionado: vai ser regerado.</p>
+                            )}
+                            {jaGerado && doc.logoSubstituida === false && (
+                              <p className="text-sm text-status-warning">
+                                Logo da cliente não substituída no cabeçalho.
+                              </p>
+                            )}
+                            {jaGerado && doc.avisoRtNoCorpo && (
+                              <p className="text-sm text-status-warning">
+                                Cita o responsável técnico no corpo. Confira antes de entregar.
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {materiaisVisiveis && (
+                          <div
+                            id={`materiais-${doc.id}`}
+                            className="ml-10 mr-14 mt-2 flex flex-col gap-2 rounded-md border border-gray-200 bg-surface-subtle px-3 py-3"
+                          >
+                            {materialGroups.map((grupo) => {
+                              const grupoItensKeys = new Set(grupo.itens.map(equipamentoKey));
+                              const selecionadosNoGrupo = equipamentosDoc.filter((eq) => grupoItensKeys.has(equipamentoKey(eq)));
+                              const grupoAberto = !!equipmentOptionsOpen[grupoAbertoKey(doc.id, grupo.id)];
+                              const labelLower = (MATERIAL_GROUP_LABEL[grupo.id] || grupo.label).toLowerCase();
+                              return (
+                                <div key={grupo.id}>
+                                  <label className="inline-flex items-center gap-2 text-sm text-ink">
+                                    <input
+                                      type="checkbox"
+                                      checked={grupoAberto}
+                                      disabled={processing}
+                                      onChange={(e) => toggleMaterialGroup(doc, grupo.id, grupo.itens, e.target.checked)}
+                                      className="h-4 w-4 rounded border-gray-300"
+                                    />
+                                    <span>
+                                      Especificar {labelLower} neste POP
+                                      {selecionadosNoGrupo.length > 0 ? ` (${selecionadosNoGrupo.length})` : ""}
+                                    </span>
+                                  </label>
+
+                                  {grupoAberto && (
+                                    <div className="mt-2 rounded-md border border-gray-200 bg-surface-card px-3 py-3">
+                                      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                        <p className="text-sm font-semibold text-ink">
+                                          {grupo.label} na seção de materiais
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                          {grupo.id === "equipamento" && (
+                                            <Button
+                                              variant="quiet"
+                                              disabled={processing || !templateAtual}
+                                              onClick={() => aplicarSugestaoEquipamentos(doc)}
+                                            >
+                                              Sugerir
+                                            </Button>
+                                          )}
+                                          <Button
+                                            variant="quiet"
+                                            disabled={processing || selecionadosNoGrupo.length === 0}
+                                            onClick={() => limparGrupoMateriais(doc.id, grupo.itens)}
+                                          >
+                                            Limpar
+                                          </Button>
+                                        </div>
+                                      </div>
+                                      <div className="grid gap-1.5 sm:grid-cols-2">
+                                        {grupo.itens.map((item) => {
+                                          const key = equipamentoKey(item);
+                                          return (
+                                            <label key={key} className="flex items-start gap-2 text-sm text-ink-muted">
+                                              <input
+                                                type="checkbox"
+                                                checked={equipamentosDocKeys.has(key)}
+                                                disabled={processing}
+                                                onChange={() => toggleEquipamentoDoc(doc.id, item)}
+                                                className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                                              />
+                                              <span>{equipamentoLabel(item)}</span>
+                                            </label>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            );
+          })}
+        </section>
+
+        <aside aria-label="Conferência da pasta" className="flex flex-col gap-4">
+          <Card className="p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="font-display text-base text-ink">Legislações</h2>
+              <StatusBadge tone={selectedLeg.length > 0 ? "sucesso" : "atencao"}>
+                {selectedLeg.length} de {legislacoes.length}
+              </StatusBadge>
+            </div>
+            <p className="mt-2 text-sm text-ink-muted">
+              {estadoCliente
+                ? `Federais e de ${estadoCliente}. As associadas entram nas referências de todos os documentos.`
+                : "Preencha a UF nos dados da cliente para carregar as legislações."}
+            </p>
+            {legislacoesAssociadas.length > 0 && (
+              <ul className="mt-3 space-y-1.5 text-sm text-ink">
+                {legislacoesAssociadas.slice(0, 3).map((leg) => (
+                  <li key={leg.id} className="line-clamp-2">
+                    {leg.titulo}
+                    <span className="text-ink-muted">{leg.estadoUf === "BR" ? " · Federal" : ` · ${leg.estadoUf}`}</span>
+                  </li>
+                ))}
+                {legislacoesAssociadas.length > 3 && (
+                  <li className="text-ink-muted">+ {legislacoesAssociadas.length - 3} referências</li>
+                )}
+              </ul>
+            )}
+            <Button
+              variant="secondary"
+              className="mt-3 w-full"
+              onClick={() => {
+                setAssociadasAoAbrir(selectedLeg);
+                setLegislacoesAbertas(true);
+              }}
+            >
+              Revisar legislações
+            </Button>
+          </Card>
+
+          <Card className="p-4">
+            <h2 className="font-display text-base text-ink">Antes de gerar</h2>
+            <ul className="mt-3 space-y-2 text-sm text-ink">
+              {conferencias.map((item, index) => (
+                <li key={index} className="flex gap-2">
+                  <ToneMark tone={item.tone} />
+                  <span>{item.texto}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
+          <Card className="p-4">
+            <h2 className="font-display text-base text-ink">Custo desta pasta</h2>
+            {totalTokens > 0 ? (
+              <>
+                <p className="mt-2 text-2xl font-bold text-ink">{custo.brl}</p>
+                <p className="text-sm text-ink-muted">
+                  {custo.usd} · {totalTokens.toLocaleString("pt-BR")} tokens · estimativa por template
+                </p>
+              </>
+            ) : (
+              <p className="mt-2 text-sm text-ink-muted">Nenhum documento gerado ainda.</p>
+            )}
+            {!processing && done && batchTotal > 0 && (
+              <p className="mt-2 text-sm text-ink-muted">
+                Último lote: <strong className="text-ink">{formatDuration(elapsedSeconds)}</strong> para{" "}
+                {batchTotal} documento{batchTotal !== 1 ? "s" : ""}.
+              </p>
+            )}
+          </Card>
+        </aside>
+      </div>
+
+      <Drawer
+        aberto={legislacoesAbertas}
+        titulo={`Legislações${estadoCliente ? ` — ${estadoCliente}` : ""}`}
+        descricao={`${selectedLeg.length} de ${legislacoes.length} associadas. A seleção inicial veio do Documento em Elaboração.`}
+        onClose={() => setLegislacoesAbertas(false)}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="secondary"
+            disabled={processing || associandoLegislacoes}
+            onClick={() => {
+              void associarLegislacoesDoArquivo();
+            }}
+          >
+            {associandoLegislacoes ? "Reconhecendo..." : "Reconhecer do documento"}
+          </Button>
+          <Button
+            variant="quiet"
+            disabled={processing || associandoLegislacoes}
+            onClick={() => {
+              void buscarReferenciasNovasDoArquivo();
+            }}
+          >
+            Importar novas
+          </Button>
+          <span className="flex-1" />
+          <Button variant="quiet" onClick={() => salvarLegislacoes(legislacoes.map((l) => l.id))}>
+            Todas
+          </Button>
+          <Button variant="quiet" onClick={() => salvarLegislacoes([])}>
+            Nenhuma
+          </Button>
+        </div>
 
         <div aria-live="polite">
-          {documentActionMessage && (
-            <div className="border-b border-gray-200 px-4 py-3 sm:px-5">
-              <Feedback
-                tone={documentActionErro ? "erro" : "info"}
-                title={documentActionErro ? describeErrorOrigin(documentActionMessage).rotulo : undefined}
-              >
-                {documentActionMessage}
-              </Feedback>
-            </div>
+          {legislacaoMessage && (
+            <Feedback
+              tone={legislacaoErro ? "erro" : "info"}
+              title={legislacaoErro ? describeErrorOrigin(legislacaoMessage).rotulo : undefined}
+              className="mt-4"
+            >
+              {legislacaoMessage}
+            </Feedback>
           )}
         </div>
 
-        {docs.length === 0 && (
-          <p className="px-4 py-6 text-sm text-ink-muted sm:px-5">
-            Nenhum documento nesta pasta. Use a busca de templates acima para adicionar o primeiro.
-          </p>
+        {referenciasNovas.length > 0 && (
+          <div className="mt-4 overflow-hidden rounded-md border border-gray-200">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-surface-subtle px-3 py-2">
+              <p className="text-sm font-semibold text-ink">
+                {referenciasNovasSelecionadas.size} de {referenciasNovas.length} referência(s) nova(s)
+                selecionada(s)
+              </p>
+              <Button
+                disabled={processing || associandoLegislacoes || referenciasNovasSelecionadas.size === 0}
+                onClick={() => {
+                  void adicionarReferenciasNovas();
+                }}
+              >
+                Adicionar à base e associar
+              </Button>
+            </div>
+            <ul className="divide-y divide-gray-200">
+              {referenciasNovas.map((referencia, index) => (
+                <li key={`${referencia.referenciaAbnt}-${index}`} className="px-3 py-2">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={referenciasNovasSelecionadas.has(index)}
+                      onChange={() => toggleReferenciaNova(index)}
+                      className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-ink">{referencia.titulo}</span>
+                      <span className="block text-sm text-ink-muted">
+                        {referencia.tipo} · {referencia.estadoUf}
+                        {referencia.municipio ? ` · ${referencia.municipio}` : ""}
+                      </span>
+                      <span className="mt-1 block text-sm text-ink-muted">{referencia.referenciaAbnt}</span>
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
-        {docs.length > 0 && visibleDocs.length === 0 && (
-          <p className="px-4 py-6 text-sm text-ink-muted sm:px-5">
-            Nenhum documento encontrado para essa busca.
-          </p>
+        {legislacoes.length > 0 && (
+          <div className="mt-4">
+            <label className="sr-only" htmlFor="legislacao-search">
+              Buscar legislação
+            </label>
+            <input
+              id="legislacao-search"
+              type="search"
+              value={legislacaoSearch}
+              onChange={(e) => setLegislacaoSearch(e.target.value)}
+              placeholder="Buscar por título, tipo ou município"
+              className={fieldClass}
+            />
+          </div>
         )}
 
-        {gruposDocs.map((grupoDocs) => {
-          const selecionadosNoBloco = grupoDocs.docs.filter((d) => selectedDocs.has(d.id)).length;
-          return (
-            <details key={grupoDocs.id} open={grupoDocs.aberto || undefined} className="border-b border-gray-200 last:border-b-0">
-              <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink sm:px-5">
-                {grupoDocs.titulo} ({grupoDocs.docs.length})
-                <span className="font-normal text-ink-muted"> · {selecionadosNoBloco} selecionado(s)</span>
-              </summary>
-              <ul className="divide-y divide-gray-200 border-t border-gray-200">
-                {grupoDocs.docs.map((doc) => {
-                  const isSelecionado = selectedDocs.has(doc.id);
-                  const jaGerado = doc.status === "gerado";
-                  const templateAtual = getTemplateAtual(doc, assignments, templates);
-                  const docStatus = DOCUMENTO_STATUS[doc.status] || DOCUMENTO_STATUS.pendente;
-                  const isPop = isPopDocumento(doc, assignments, templates);
-                  const equipamentosDoc = equipmentAssignments[doc.id] || [];
-                  const equipamentosDocKeys = new Set(equipamentosDoc.map(equipamentoKey));
-                  const insumosMateriais = clienteProdutosInsumos.map(produtoInsumoToMaterial);
-                  const materialGroups = buildMaterialGroups(clienteEquipamentos, insumosMateriais);
-
-                  return (
-                    <li key={doc.id} className="flex flex-col gap-2 px-4 py-3 sm:px-5">
-                      <div className="flex flex-wrap items-center gap-3">
-                        {/* O padding leva o alvo de clique a 44px (docs/DESIGN.md); a margem
-                            negativa devolve o espaco, entao nada se move na tela. */}
-                        <label className="-m-3.5 flex shrink-0 cursor-pointer p-3.5">
-                          <input
-                            type="checkbox"
-                            checked={isSelecionado}
-                            disabled={processing}
-                            onChange={() => toggleDoc(doc.id)}
-                            aria-label={`Selecionar ${doc.nomeArquivo}`}
-                            className="h-4 w-4 rounded border-gray-300"
-                          />
-                        </label>
-
-                        <span
-                          className={`min-w-[16rem] flex-[1_1_24rem] break-words text-sm leading-snug ${
-                            jaGerado && !isSelecionado ? "text-ink-subtle" : "text-ink"
-                          }`}
-                        >
-                          {doc.nomeArquivo}
-                        </span>
-
-                        <StatusBadge tone={docStatus.tone}>{docStatus.label}</StatusBadge>
-
-                        {jaGerado && isSelecionado && (
-                          <StatusBadge tone="atencao">Vai regerar</StatusBadge>
-                        )}
-
-                        <label className="sr-only" htmlFor={`template-${doc.id}`}>
-                          Template de {doc.nomeArquivo}
-                        </label>
-                        <select
-                          id={`template-${doc.id}`}
-                          value={assignments[doc.id] ?? ""}
-                          onChange={(e) => {
-                            const templateId = e.target.value;
-                            setAssignments((prev) => ({ ...prev, [doc.id]: templateId }));
-                            // Persiste na hora, para sobreviver ao reload.
-                            fetch(`/api/pastas/${id}/documentos`, {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ docId: doc.id, templateId: templateId || null }),
-                            }).catch(console.error);
-                          }}
-                          disabled={processing}
-                          className={`${fieldClass} w-full sm:w-[22rem] lg:w-[26rem] lg:shrink-0`}
-                        >
-                          <option value="">— sem template —</option>
-                          {[...templates]
-                            .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }))
-                            .map((t) => (
-                              <option key={t.id} value={t.id}>{t.nome}</option>
-                            ))}
-                        </select>
-
-                        {doc.tokensUsados ? (
-                          <span className="shrink-0 text-sm tabular-nums text-ink-subtle">
-                            {doc.tokensUsados.toLocaleString("pt-BR")} tokens
-                          </span>
-                        ) : null}
-
-                        {doc.outputPath && (
-                          <Button
-                            variant="quiet"
-                            disabled={processing}
-                            aria-label={`Visualizar ${doc.nomeArquivo}`}
-                            onClick={() => {
-                              void visualizarDocumento(doc);
-                            }}
-                          >
-                            Visualizar
-                          </Button>
-                        )}
-                        <Button
-                          variant="quiet"
-                          disabled={processing || changingDocuments}
-                          aria-label={`Remover ${doc.nomeArquivo} da pasta`}
-                          onClick={() => {
-                            void removeDocument(doc);
-                          }}
-                        >
-                          Remover
-                        </Button>
-                      </div>
-
-                      {!assignments[doc.id] && isSelecionado && (
-                        <Feedback tone="atencao">
-                          Sem template escolhido — este documento fica de fora da geração.
-                        </Feedback>
-                      )}
-
-                      {doc.mensagemErro && (
-                        <Feedback tone="erro" title={describeErrorOrigin(doc.mensagemErro).rotulo}>
-                          {doc.mensagemErro}
-                        </Feedback>
-                      )}
-
-                      {jaGerado && doc.logoSubstituida === false && (
-                        <Feedback tone="atencao" title="Falha na logo">
-                          O documento foi gerado, mas a logo do cliente não foi substituída no cabeçalho.
-                        </Feedback>
-                      )}
-
-                      {jaGerado && doc.avisoRtNoCorpo && (
-                        <Feedback tone="atencao" title="Revisar responsável técnico">
-                          O template cita o responsável técnico no corpo do documento. Confira o texto antes
-                          de entregar.
-                        </Feedback>
-                      )}
-
-                      {isPop && materialGroups.length > 0 && (
-                        <div className="flex flex-col gap-2 sm:ml-7">
-                          {materialGroups.map((grupo) => {
-                            const grupoItensKeys = new Set(grupo.itens.map(equipamentoKey));
-                            const selecionadosNoGrupo = equipamentosDoc.filter((eq) => grupoItensKeys.has(equipamentoKey(eq)));
-                            const grupoAberto = !!equipmentOptionsOpen[grupoAbertoKey(doc.id, grupo.id)];
-                            const labelLower = (MATERIAL_GROUP_LABEL[grupo.id] || grupo.label).toLowerCase();
-                            return (
-                              <div key={grupo.id}>
-                                <label className="inline-flex items-center gap-2 text-sm text-ink-muted">
-                                  <input
-                                    type="checkbox"
-                                    checked={grupoAberto}
-                                    disabled={processing}
-                                    onChange={(e) => toggleMaterialGroup(doc, grupo.id, grupo.itens, e.target.checked)}
-                                    className="h-4 w-4 rounded border-gray-300"
-                                  />
-                                  <span>
-                                    Especificar {labelLower} neste POP
-                                    {selecionadosNoGrupo.length > 0 ? ` (${selecionadosNoGrupo.length})` : ""}
-                                  </span>
-                                </label>
-
-                                {grupoAberto && (
-                                  <div className="mt-2 rounded-md border border-gray-200 bg-surface-subtle px-3 py-3">
-                                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                                      <p className="text-sm font-semibold text-ink">
-                                        {grupo.label} na seção de materiais
-                                      </p>
-                                      <div className="flex flex-wrap gap-2">
-                                        {grupo.id === "equipamento" && (
-                                          <Button
-                                            variant="quiet"
-                                            disabled={processing || !templateAtual}
-                                            onClick={() => aplicarSugestaoEquipamentos(doc)}
-                                          >
-                                            Sugerir
-                                          </Button>
-                                        )}
-                                        <Button
-                                          variant="quiet"
-                                          disabled={processing || selecionadosNoGrupo.length === 0}
-                                          onClick={() => limparGrupoMateriais(doc.id, grupo.itens)}
-                                        >
-                                          Limpar
-                                        </Button>
-                                      </div>
-                                    </div>
-                                    <div className="grid gap-1.5 sm:grid-cols-2">
-                                      {grupo.itens.map((item) => {
-                                        const key = equipamentoKey(item);
-                                        return (
-                                          <label key={key} className="flex items-start gap-2 text-sm text-ink-muted">
-                                            <input
-                                              type="checkbox"
-                                              checked={equipamentosDocKeys.has(key)}
-                                              disabled={processing}
-                                              onChange={() => toggleEquipamentoDoc(doc.id, item)}
-                                              className="mt-0.5 h-4 w-4 rounded border-gray-300"
-                                            />
-                                            <span>{equipamentoLabel(item)}</span>
-                                          </label>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </details>
-          );
-        })}
-      </Card>
-
-      {(legislacoes.length > 0 || estadoCliente) && (
-        <Card className="mb-6">
-          <details>
-            <summary className="cursor-pointer px-4 py-4 sm:px-5">
-              <h2 className="inline font-display text-base text-ink">
-                Legislações{estadoCliente ? ` — ${estadoCliente}` : ""}
-              </h2>
-              <span className="text-sm text-ink-muted"> · {selectedLeg.length} de {legislacoes.length} associadas</span>
-            </summary>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-y border-gray-200 px-4 py-3 sm:px-5">
-              <p className="text-sm text-ink-muted">A seleção inicial veio do Documento em Elaboração.</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="quiet"
-                  disabled={processing || associandoLegislacoes}
-                  onClick={() => {
-                    void associarLegislacoesDoArquivo();
-                  }}
-                >
-                  {associandoLegislacoes ? "Reconhecendo..." : "Reconhecer do documento"}
-                </Button>
-                <Button
-                  variant="quiet"
-                  disabled={processing || associandoLegislacoes}
-                  onClick={() => {
-                    void buscarReferenciasNovasDoArquivo();
-                  }}
-                >
-                  Importar novas
-                </Button>
-                <Button variant="quiet" onClick={() => salvarLegislacoes(legislacoes.map((l) => l.id))}>
-                  Todas
-                </Button>
-                <Button variant="quiet" onClick={() => salvarLegislacoes([])}>
-                  Nenhuma
-                </Button>
-              </div>
-            </div>
-
-            <div className="px-4 py-4 sm:px-5">
-              <div aria-live="polite">
-                {legislacaoMessage && (
-                  <Feedback
-                    tone={legislacaoErro ? "erro" : "info"}
-                    title={legislacaoErro ? describeErrorOrigin(legislacaoMessage).rotulo : undefined}
-                    className="mb-4"
-                  >
-                    {legislacaoMessage}
-                  </Feedback>
-                )}
-              </div>
-
-              {referenciasNovas.length > 0 && (
-                <div className="mb-4 overflow-hidden rounded-md border border-gray-200">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-surface-subtle px-3 py-2">
-                    <p className="text-sm font-semibold text-ink">
-                      {referenciasNovasSelecionadas.size} de {referenciasNovas.length} referência(s) nova(s)
-                      selecionada(s)
-                    </p>
-                    <Button
-                      disabled={processing || associandoLegislacoes || referenciasNovasSelecionadas.size === 0}
-                      onClick={() => {
-                        void adicionarReferenciasNovas();
-                      }}
-                    >
-                      Adicionar à base e associar
-                    </Button>
-                  </div>
-                  <ul className="divide-y divide-gray-200">
-                    {referenciasNovas.map((referencia, index) => (
-                      <li key={`${referencia.referenciaAbnt}-${index}`} className="px-3 py-2">
-                        <label className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            checked={referenciasNovasSelecionadas.has(index)}
-                            onChange={() => toggleReferenciaNova(index)}
-                            className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300"
-                          />
-                          <span className="min-w-0">
-                            <span className="block text-sm font-semibold text-ink">{referencia.titulo}</span>
-                            <span className="block text-sm text-ink-muted">
-                              {referencia.tipo} · {referencia.estadoUf}
-                              {referencia.municipio ? ` · ${referencia.municipio}` : ""}
-                            </span>
-                            <span className="mt-1 block text-sm text-ink-muted">{referencia.referenciaAbnt}</span>
-                          </span>
-                        </label>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {legislacoes.length === 0 ? (
-                <p className="text-sm text-ink-muted">
-                  Nenhuma legislação carregada para esta UF. Use <strong>Importar novas</strong> para
-                  buscar no Documento em Elaboração.
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {legislacoes.map((leg) => (
-                    <li key={leg.id}>
-                      <label className="flex cursor-pointer items-start gap-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedLeg.includes(leg.id)}
-                          onChange={(e) =>
-                            salvarLegislacoes(
-                              e.target.checked
-                                ? Array.from(new Set([...selectedLeg, leg.id]))
-                                : selectedLeg.filter((l) => l !== leg.id)
-                            )
-                          }
-                          className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300"
-                        />
-                        <span className="min-w-0">
-                          <span className="block text-sm font-semibold text-ink">{leg.titulo}</span>
-                          <span className="block text-sm text-ink-muted">
-                            {leg.tipo}
-                            {leg.estadoUf === "BR" ? " · Federal" : ` · ${leg.estadoUf}`}
-                            {leg.municipio ? ` · ${leg.municipio}` : ""}
-                          </span>
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </details>
-        </Card>
-      )}
-
-      {templates.length === 0 && (
-        <Feedback tone="atencao" title="Nenhum template cadastrado" className="mt-4">
-          Cadastre os templates em <Link href="/templates" className="underline">Templates</Link> antes
-          de gerar.
-        </Feedback>
-      )}
+        {legislacoes.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-muted">
+            Nenhuma legislação carregada para esta UF. Use <strong>Importar novas</strong> para
+            buscar no Documento em Elaboração.
+          </p>
+        ) : legislacoesVisiveis.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-muted">Nenhuma legislação encontrada para essa busca.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-gray-200">
+            {legislacoesVisiveis.map((leg) => (
+              <li key={leg.id}>
+                <label className="flex cursor-pointer items-start gap-3 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={selectedLeg.includes(leg.id)}
+                    onChange={(e) =>
+                      salvarLegislacoes(
+                        e.target.checked
+                          ? Array.from(new Set([...selectedLeg, leg.id]))
+                          : selectedLeg.filter((l) => l !== leg.id)
+                      )
+                    }
+                    className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-ink">{leg.titulo}</span>
+                    <span className="block text-sm text-ink-muted">
+                      {leg.tipo}
+                      {leg.estadoUf === "BR" ? " · Federal" : ` · ${leg.estadoUf}`}
+                      {leg.municipio ? ` · ${leg.municipio}` : ""}
+                    </span>
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Drawer>
 
       {confirmRegerar.length > 0 && (
         <ConfirmDialog

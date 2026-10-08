@@ -37,6 +37,18 @@ export function StatusBadge({ tone, children }: { tone: Tone; children: ReactNod
   );
 }
 
+/** Só o símbolo do tom, para listas de conferência em que o texto vem ao lado. */
+export function ToneMark({ tone }: { tone: Tone }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-bold ${TONE_SURFACE[tone]}`}
+    >
+      {TONE_SYMBOL[tone]}
+    </span>
+  );
+}
+
 /** Bloco de mensagem: erro, atenção, sucesso ou orientação. */
 export function Feedback({
   tone,
