@@ -2,30 +2,65 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { ActionMenu } from "@/components/ui/ActionMenu";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { Card, EmptyState, PageHeader } from "@/components/ui/Surface";
+import { EmptyState, PageHeader } from "@/components/ui/Surface";
 import { fieldClass } from "@/components/ui/Field";
-import { describeErrorOrigin, Feedback, PASTA_STATUS, StatusBadge } from "@/components/ui/Status";
+import { describeErrorOrigin, Feedback, StatusBadge, type Tone } from "@/components/ui/Status";
 import { normalizeForMatch } from "@/components/ui/text";
+
+// Mesmo prazo de app/api/cron/retencao-pastas: concluída, a pasta some em 30 dias.
+const DIAS_RETENCAO = 30;
 
 interface Pasta {
   id: string;
   status: string;
   criadaEm: string;
+  concluidaEm: string | null;
   clienteNomeFantasia: string | null;
+  clienteRazaoSocial: string | null;
+  clienteCnpj: string | null;
+  clienteCidade: string | null;
   clienteEstado: string | null;
   documentos: Array<{ id: string; status: string }>;
 }
 
-const FILTROS = [
+// Situação de trabalho, derivada dos documentos: diz o que a pasta pede agora,
+// não só o status gravado no banco.
+type Situacao = "producao" | "erro" | "pronta" | "concluida";
+
+const FILTROS: Array<{ id: "todas" | Situacao; label: string }> = [
   { id: "todas", label: "Todas" },
-  { id: "rascunho", label: "Rascunho" },
-  { id: "processando", label: "Processando" },
-  { id: "concluida", label: "Concluída" },
-] as const;
+  { id: "producao", label: "Em produção" },
+  { id: "erro", label: "Com erro" },
+  { id: "pronta", label: "Prontas" },
+  { id: "concluida", label: "Concluídas" },
+];
 
 type FiltroId = (typeof FILTROS)[number]["id"];
+
+function dataCurta(value: string | Date): string {
+  return new Date(value).toLocaleDateString("pt-BR");
+}
+
+function exclusaoEm(pasta: Pasta): Date | null {
+  if (pasta.status !== "concluida" || !pasta.concluidaEm) return null;
+  return new Date(new Date(pasta.concluidaEm).getTime() + DIAS_RETENCAO * 24 * 60 * 60 * 1000);
+}
+
+function situacaoDa(pasta: Pasta): { id: Situacao; label: string; tone: Tone } {
+  if (pasta.status === "concluida") {
+    const exclui = exclusaoEm(pasta);
+    return { id: "concluida", label: exclui ? `Concluída · exclui em ${dataCurta(exclui).slice(0, 5)}` : "Concluída", tone: "neutro" };
+  }
+  const total = pasta.documentos.length;
+  const gerados = pasta.documentos.filter((d) => d.status === "gerado").length;
+  if (pasta.documentos.some((d) => d.status === "erro")) return { id: "erro", label: "Com erro", tone: "atencao" };
+  if (total > 0 && gerados === total) return { id: "pronta", label: "Pronta", tone: "sucesso" };
+  if (gerados === 0) return { id: "producao", label: total === 0 ? "Sem documentos" : "Rascunho", tone: "neutro" };
+  return { id: "producao", label: "Em produção", tone: "info" };
+}
 
 export default function Dashboard() {
   const [pastas, setPastas] = useState<Pasta[]>([]);
@@ -34,6 +69,7 @@ export default function Dashboard() {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<FiltroId>("todas");
   const [confirmDelete, setConfirmDelete] = useState<Pasta | null>(null);
+  const [confirmConcluir, setConfirmConcluir] = useState<Pasta | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [statusError, setStatusError] = useState("");
@@ -84,6 +120,10 @@ export default function Dashboard() {
         body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error(`O banco recusou a mudança de status (HTTP ${res.status}).`);
+      const updated = await res.json();
+      setPastas((prev) =>
+        prev.map((p) => (p.id === pastaId ? { ...p, status: updated.status, concluidaEm: updated.concluidaEm ?? null } : p))
+      );
     } catch (error) {
       setPastas(previous);
       setStatusError(
@@ -92,81 +132,79 @@ export default function Dashboard() {
     }
   }
 
+  const comSituacao = useMemo(() => pastas.map((pasta) => ({ pasta, situacao: situacaoDa(pasta) })), [pastas]);
+
   const contagens = useMemo(() => {
-    const base: Record<string, number> = { todas: pastas.length };
-    for (const item of FILTROS) {
-      if (item.id === "todas") continue;
-      base[item.id] = pastas.filter((p) => p.status === item.id).length;
-    }
+    const base: Record<FiltroId, number> = { todas: pastas.length, producao: 0, erro: 0, pronta: 0, concluida: 0 };
+    comSituacao.forEach(({ situacao }) => {
+      base[situacao.id] += 1;
+    });
     return base;
-  }, [pastas]);
+  }, [comSituacao, pastas.length]);
 
   // Recentes primeiro: a pasta mexida por último é quase sempre a próxima a abrir.
   const visiveis = useMemo(() => {
     const termo = normalizeForMatch(busca.trim());
-    return pastas
-      .filter((pasta) => (filtro === "todas" ? true : pasta.status === filtro))
-      .filter((pasta) => {
+    return comSituacao
+      .filter(({ situacao }) => (filtro === "todas" ? true : situacao.id === filtro))
+      .filter(({ pasta }) => {
         if (!termo) return true;
         return normalizeForMatch(
-          `${pasta.clienteNomeFantasia || ""} ${pasta.clienteEstado || ""}`
+          [
+            pasta.clienteNomeFantasia,
+            pasta.clienteRazaoSocial,
+            pasta.clienteCidade,
+            pasta.clienteEstado,
+            pasta.clienteCnpj,
+            pasta.clienteCnpj?.replace(/\D/g, ""),
+          ].filter(Boolean).join(" ")
         ).includes(termo);
       })
-      .sort((a, b) => new Date(b.criadaEm).getTime() - new Date(a.criadaEm).getTime());
-  }, [pastas, busca, filtro]);
+      .sort((a, b) => new Date(b.pasta.criadaEm).getTime() - new Date(a.pasta.criadaEm).getTime());
+  }, [comSituacao, busca, filtro]);
 
   const filtrando = filtro !== "todas" || busca.trim().length > 0;
 
+  const resumo: Array<{ id: Situacao; rotulo: string; cor: string }> = [
+    { id: "producao", rotulo: "Em produção", cor: "text-ink" },
+    { id: "erro", rotulo: "Com erro na geração", cor: contagens.erro > 0 ? "text-status-warning" : "text-ink" },
+    { id: "pronta", rotulo: "Prontas para entregar", cor: contagens.pronta > 0 ? "text-status-success" : "text-ink" },
+    { id: "concluida", rotulo: `Concluídas · somem em ${DIAS_RETENCAO} dias`, cor: "text-ink" },
+  ];
+
   return (
-    <div>
+    <div className="mx-auto max-w-[80rem]">
       <PageHeader
-        title="Pastas Sanitárias"
-        description="Cada pasta reúne os documentos de um cliente, do formulário à entrega."
+        title="Pastas sanitárias"
+        description="Uma pasta por cliente. Abra para gerar, conferir e entregar."
         actions={
           <Link href="/pasta/nova" className={buttonClass("primary")}>
-            Nova pasta
+            + Nova pasta
           </Link>
         }
       />
 
-      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por status">
-          {FILTROS.map((item) => {
+      {!loading && !loadError && pastas.length > 0 && (
+        <div className="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {resumo.map((item) => {
             const ativo = filtro === item.id;
             return (
               <button
                 key={item.id}
                 type="button"
                 aria-pressed={ativo}
-                aria-label={`${item.label}: ${contagens[item.id] ?? 0} pasta(s)`}
-                onClick={() => setFiltro(item.id)}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-md border px-3 text-sm font-semibold ${
-                  ativo
-                    ? "border-brand-action bg-brand-action text-brand-on-dark"
-                    : "border-gray-300 bg-surface-card text-ink-muted hover:bg-surface-subtle"
+                onClick={() => setFiltro(ativo ? "todas" : item.id)}
+                className={`flex flex-col gap-1 rounded-lg border bg-surface-card px-4 py-3 text-left hover:bg-surface-subtle ${
+                  ativo ? "border-brand-action ring-1 ring-brand-action" : "border-gray-200"
                 }`}
               >
-                {item.label}
-                <span className="tabular-nums">{contagens[item.id] ?? 0}</span>
+                <span className="text-sm text-ink-muted">{item.rotulo}</span>
+                <span className={`font-display text-2xl ${item.cor}`}>{contagens[item.id]}</span>
               </button>
             );
           })}
         </div>
-
-        <div className="lg:w-80">
-          <label htmlFor="busca-pastas" className="sr-only">
-            Buscar pasta por cliente ou UF
-          </label>
-          <input
-            id="busca-pastas"
-            type="search"
-            value={busca}
-            onChange={(event) => setBusca(event.target.value)}
-            placeholder="Buscar por cliente ou UF..."
-            className={fieldClass}
-          />
-        </div>
-      </div>
+      )}
 
       <div aria-live="polite">
         {statusError && (
@@ -197,85 +235,175 @@ export default function Dashboard() {
       )}
 
       {!loading && !loadError && pastas.length > 0 && (
-        <>
-          <div className="mb-3 flex items-baseline justify-between gap-3">
-            <h2 className="font-display text-base text-ink">
-              {filtrando ? "Resultados" : "Recentes"}
-            </h2>
-            <p className="text-sm text-ink-muted" aria-live="polite">
-              {visiveis.length} de {pastas.length} pastas
-            </p>
+        <section aria-label="Lista de pastas" className="rounded-lg border border-gray-200 bg-surface-card">
+          <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <div className="min-w-[16rem] flex-[1_1_20rem]">
+              <label htmlFor="busca-pastas" className="sr-only">
+                Buscar pasta por cliente, cidade ou CNPJ
+              </label>
+              <input
+                id="busca-pastas"
+                type="search"
+                value={busca}
+                onChange={(event) => setBusca(event.target.value)}
+                placeholder="Buscar cliente, cidade ou CNPJ"
+                className={fieldClass}
+              />
+            </div>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por situação">
+              {FILTROS.map((item) => {
+                const ativo = filtro === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={ativo}
+                    onClick={() => setFiltro(item.id)}
+                    className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold ${
+                      ativo
+                        ? "border-brand-action bg-brand-action text-brand-on-dark"
+                        : "border-gray-300 bg-surface-card text-ink-muted hover:bg-surface-subtle hover:text-ink"
+                    }`}
+                  >
+                    {item.label}
+                    <span className={`tabular-nums ${ativo ? "" : "text-ink-subtle"}`}>{contagens[item.id]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[minmax(0,1.6fr)_12rem_minmax(9rem,1fr)_7rem_2.75rem] items-center gap-4 border-y border-gray-200 bg-surface-subtle px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-ink-muted">
+            <span aria-live="polite">
+              Cliente · {visiveis.length} de {pastas.length}
+            </span>
+            <span>Situação</span>
+            <span>Progresso</span>
+            <span>Criada em</span>
+            <span className="sr-only">Ações</span>
           </div>
 
           {visiveis.length === 0 ? (
-            <EmptyState
-              title="Nenhuma pasta encontrada"
-              description="Ajuste a busca ou volte para todas as pastas."
-              action={
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setBusca("");
-                    setFiltro("todas");
-                  }}
-                >
-                  Limpar filtros
-                </Button>
-              }
-            />
+            <div className="px-4 py-8 text-center">
+              <p className="font-display text-base text-ink">Nenhuma pasta encontrada</p>
+              <p className="mt-1 text-sm text-ink-muted">Ajuste a busca ou volte para todas as pastas.</p>
+              <Button
+                variant="secondary"
+                className="mt-3"
+                onClick={() => {
+                  setBusca("");
+                  setFiltro("todas");
+                }}
+              >
+                Limpar filtros
+              </Button>
+            </div>
           ) : (
-            <ul className="space-y-3">
-              {visiveis.map((pasta) => {
-                const status = PASTA_STATUS[pasta.status] || PASTA_STATUS.rascunho;
+            <ul className="divide-y divide-gray-200">
+              {visiveis.map(({ pasta, situacao }) => {
                 const docsGerados = pasta.documentos.filter((d) => d.status === "gerado").length;
                 const docsTotal = pasta.documentos.length;
+                const pct = docsTotal > 0 ? Math.round((docsGerados / docsTotal) * 100) : 0;
                 const nome = pasta.clienteNomeFantasia || "Pasta sem nome";
                 const concluida = pasta.status === "concluida";
+                const local = [pasta.clienteCidade, pasta.clienteEstado].filter(Boolean).join(" / ");
                 return (
-                  <li key={pasta.id}>
-                    <Card className="flex flex-wrap items-center gap-3 p-3 sm:p-4">
+                  <li
+                    key={pasta.id}
+                    className="relative grid grid-cols-[minmax(0,1.6fr)_12rem_minmax(9rem,1fr)_7rem_2.75rem] items-center gap-4 px-4 py-3 hover:bg-surface-subtle"
+                  >
+                    {/* O link cobre a linha inteira; o menu ⋯ fica por cima dele. */}
+                    <div className="min-w-0">
                       <Link
                         href={`/pasta/${pasta.id}`}
-                        className="min-w-[14rem] flex-1 rounded-md py-1"
+                        className="block truncate font-semibold text-ink after:absolute after:inset-0 after:content-['']"
                       >
-                        <span className="block font-semibold text-ink">{nome}</span>
-                        <span className="mt-0.5 block text-sm text-ink-muted">
-                          {pasta.clienteEstado ? `${pasta.clienteEstado} · ` : ""}
-                          Criada em {new Date(pasta.criadaEm).toLocaleDateString("pt-BR")}
-                          {docsTotal > 0 ? ` · ${docsGerados}/${docsTotal} documentos gerados` : ""}
-                        </span>
+                        {nome}
                       </Link>
-
-                      <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="secondary"
-                          aria-label={`${concluida ? "Reabrir" : "Concluir"} pasta ${nome}`}
-                          onClick={() => {
-                            void atualizarStatusPasta(pasta.id, concluida ? "rascunho" : "concluida");
-                          }}
-                        >
-                          {concluida ? "Reabrir" : "Concluir"}
-                        </Button>
-                        <Button
-                          variant="danger"
-                          aria-label={`Excluir pasta ${nome}`}
-                          onClick={() => {
-                            setDeleteError("");
-                            setConfirmDelete(pasta);
-                          }}
-                        >
-                          Excluir
-                        </Button>
-                      </div>
-                    </Card>
+                      <p className="truncate text-sm text-ink-muted">{local || "Sem cidade/UF"}</p>
+                    </div>
+                    <div>
+                      <StatusBadge tone={situacao.tone}>{situacao.label}</StatusBadge>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-sm text-ink-muted">
+                        {docsTotal > 0 ? `${docsGerados} de ${docsTotal} gerados` : "Sem documentos"}
+                      </span>
+                      <span
+                        className="block h-1.5 overflow-hidden rounded-full bg-surface-subtle"
+                        role="img"
+                        aria-label={`${pct}% gerado`}
+                      >
+                        <span
+                          className={`block h-full ${situacao.id === "erro" ? "bg-status-warning" : "bg-brand-action"}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </span>
+                    </div>
+                    <span className="text-sm text-ink-muted">{dataCurta(pasta.criadaEm)}</span>
+                    <div className="relative z-[1]">
+                      <ActionMenu
+                        label={`Mais ações de ${nome}`}
+                        items={[
+                          concluida
+                            ? { label: "Reabrir pasta", onSelect: () => { void atualizarStatusPasta(pasta.id, "rascunho"); } }
+                            : { label: "Marcar como concluída…", onSelect: () => setConfirmConcluir(pasta) },
+                          {
+                            label: "Excluir pasta…",
+                            destrutiva: true,
+                            onSelect: () => {
+                              setDeleteError("");
+                              setConfirmDelete(pasta);
+                            },
+                          },
+                        ]}
+                      />
+                    </div>
                   </li>
                 );
               })}
             </ul>
           )}
-        </>
+        </section>
+      )}
+
+      {filtrando && visiveis.length > 0 && (
+        <p className="mt-3 text-sm text-ink-muted">
+          Mostrando {visiveis.length} de {pastas.length} pastas.{" "}
+          <button
+            type="button"
+            className="font-semibold text-brand-accent underline-offset-4 hover:underline"
+            onClick={() => {
+              setBusca("");
+              setFiltro("todas");
+            }}
+          >
+            Ver todas
+          </button>
+        </p>
+      )}
+
+      {confirmConcluir && (
+        <ConfirmDialog
+          title="Marcar a pasta como concluída?"
+          confirmLabel="Sim, concluir"
+          description={
+            <>
+              <span className="font-semibold text-ink">
+                {confirmConcluir.clienteNomeFantasia || "Pasta sem nome"}
+              </span>
+              <br />
+              Concluída, a pasta e os arquivos gerados são excluídos automaticamente{" "}
+              <strong>{DIAS_RETENCAO} dias depois</strong>. Baixe o ZIP final antes. Até lá, dá para reabrir.
+            </>
+          }
+          onCancel={() => setConfirmConcluir(null)}
+          onConfirm={() => {
+            const alvo = confirmConcluir;
+            setConfirmConcluir(null);
+            void atualizarStatusPasta(alvo.id, "concluida");
+          }}
+        />
       )}
 
       {confirmDelete && (
