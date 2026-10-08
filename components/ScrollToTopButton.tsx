@@ -35,7 +35,7 @@ export function ScrollToTopButton() {
           }
           aria-label="Ir para o final"
           title="Ir para o final"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-600 text-white shadow-lg hover:bg-gray-700 transition-colors"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-300 bg-surface-card text-ink shadow-lg transition-colors hover:bg-surface-subtle"
         >
           ↓
         </button>
@@ -46,7 +46,7 @@ export function ScrollToTopButton() {
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           aria-label="Voltar ao topo"
           title="Voltar ao topo"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-action text-brand-on-dark shadow-lg transition-colors hover:bg-brand-navy"
         >
           ↑
         </button>

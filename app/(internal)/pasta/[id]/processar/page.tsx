@@ -925,6 +925,31 @@ export default function ProcessarPasta() {
     ? Math.max(0, Math.round(averageSeconds * (batchTotal - batchDone)))
     : null;
 
+  const barraStatus = processing
+    ? "Gerando"
+    : total > 0 && concluidos === total
+    ? erros > 0 ? "Concluído com erros" : "Concluído"
+    : erros > 0 ? "Com erros" : "Pendente";
+  const barraTone = processing ? "info" : erros > 0 ? "atencao" : total > 0 && concluidos === total ? "sucesso" : "neutro";
+
+  // ZIP disponível sempre que houver documento gerado; com parte dos gerados
+  // selecionada, baixa só essa parte.
+  const selectedGeradosIds = docs.filter((d) => d.status === "gerado" && selectedDocs.has(d.id)).map((d) => d.id);
+  const downloadParcial = selectedGeradosIds.length > 0 && selectedGeradosIds.length < gerados;
+  const download = gerados === 0
+    ? null
+    : downloadParcial
+    ? { url: `/api/pastas/${id}/download?ids=${selectedGeradosIds.join(",")}`, label: `Baixar ZIP (${selectedGeradosIds.length} selecionados)` }
+    : { url: `/api/pastas/${id}/download`, label: `Baixar ZIP (${gerados} documentos)` };
+
+  // A lista longa fica em dois blocos recolhíveis: o que falta gerar (aberto)
+  // e o que já foi gerado (fechado). Com busca ativa, os dois abrem.
+  const buscandoDocs = normalizedDocumentSearch.length > 0;
+  const gruposDocs = [
+    { id: "a-gerar", titulo: "A gerar", docs: visibleDocs.filter((d) => d.status !== "gerado"), aberto: true },
+    { id: "gerados", titulo: "Já gerados", docs: visibleDocs.filter((d) => d.status === "gerado"), aberto: buscandoDocs },
+  ].filter((g) => g.docs.length > 0);
+
   const rotuloGerar = processing
     ? `Gerando ${batchDone} de ${batchTotal}...`
     : prontoParaGerar === 0
@@ -939,19 +964,9 @@ export default function ProcessarPasta() {
         title="Gerar documentos"
         description="Confirme o template de cada documento, as legislações da UF e gere o lote."
         actions={
-          <>
-            <Link href={`/pasta/${id}`} className={buttonClass("secondary")}>
-              Voltar para a pasta
-            </Link>
-            <Button
-              disabled={processing || prontoParaGerar === 0}
-              onClick={() => {
-                void handleGerar();
-              }}
-            >
-              {rotuloGerar}
-            </Button>
-          </>
+          <Link href={`/pasta/${id}`} className={buttonClass("secondary")}>
+            Voltar para a pasta
+          </Link>
         }
       />
 
@@ -970,32 +985,52 @@ export default function ProcessarPasta() {
         </Feedback>
       )}
 
-      {/* Estado da geração: sempre no topo, visível enquanto a lista rola. */}
-      {(processing || done) && total > 0 && (
-        <Card className="mb-6 p-4 sm:p-5">
-          <div aria-live="polite" className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <StatusBadge tone={processing ? "info" : erros > 0 ? "atencao" : "sucesso"}>
-                {processing ? "Gerando" : erros > 0 ? "Concluído com erros" : "Concluído"}
-              </StatusBadge>
+      {/* Barra de ações fixa: progresso, Gerar e Baixar ZIP ficam visíveis em
+          qualquer ponto da rolagem. O fundo cobre o conteúdo que passa por baixo. */}
+      <div className="sticky top-0 z-popover -mx-2 mb-4 bg-surface-page px-2 pb-2 pt-3">
+        <Card className="p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div aria-live="polite" className="flex min-w-[18rem] flex-1 items-center gap-3">
+              <StatusBadge tone={barraTone}>{barraStatus}</StatusBadge>
               <p className="text-sm text-ink">
                 {processing
-                  ? `${batchDone} de ${batchTotal} documentos do lote`
-                  : concluidos === total
-                  ? `${gerados} gerado(s)${erros ? `, ${erros} com erro` : ""}`
-                  : `${concluidos} de ${total} concluídos (${gerados} gerado(s)${erros ? `, ${erros} com erro` : ""})`}
+                  ? `${batchDone} de ${batchTotal} documentos do lote · ${lotePercent}%`
+                  : `${gerados} de ${total} gerado(s)${erros ? `, ${erros} com erro` : ""} · ${progress}% da pasta`}
               </p>
             </div>
-            <p className="text-sm font-semibold tabular-nums text-ink">
-              {processing ? `${lotePercent}% do lote` : `${progress}% da pasta`}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {!processing && erros > 0 && (
+                <Button variant="secondary" onClick={regenerarComErro}>
+                  Regerar {erros} com erro
+                </Button>
+              )}
+              <Button
+                disabled={processing || prontoParaGerar === 0}
+                onClick={() => {
+                  void handleGerar();
+                }}
+              >
+                {rotuloGerar}
+              </Button>
+              {download && (
+                processing ? (
+                  <span className={`${buttonClass("secondary")} pointer-events-none opacity-50`} aria-disabled="true">
+                    {download.label}
+                  </span>
+                ) : (
+                  <a href={download.url} className={buttonClass("secondary")}>
+                    {download.label}
+                  </a>
+                )
+              )}
+            </div>
           </div>
 
           <div className="mt-3">
             <ProgressBar
               value={processing ? lotePercent : progress}
               label={processing ? "Progresso do lote" : "Progresso da pasta"}
-              tone={processing ? "info" : erros > 0 ? "atencao" : "sucesso"}
+              tone={barraTone === "neutro" ? "info" : barraTone}
             />
           </div>
 
@@ -1018,34 +1053,29 @@ export default function ProcessarPasta() {
             </dl>
           )}
 
-          {!processing && done && batchTotal > 0 && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-ink-muted">
-              <span>
-                Tempo de execução: <strong className="text-ink">{formatDuration(elapsedSeconds)}</strong>{" "}
-                para {batchTotal} documento{batchTotal !== 1 ? "s" : ""}.
-              </span>
-              {erros > 0 && (
-                <Button variant="secondary" onClick={regenerarComErro}>
-                  Regerar {erros} com erro
-                </Button>
-              )}
-            </div>
-          )}
-
-          {!processing && concluidos < total && (
+          {!processing && ((done && batchTotal > 0) || totalTokens > 0) && (
             <p className="mt-3 text-sm text-ink-muted">
-              Ainda há {total - concluidos} documento{total - concluidos !== 1 ? "s" : ""} pendente
-              {total - concluidos !== 1 ? "s" : ""}. Use <strong>Pendentes e erros</strong> para continuar.
-            </p>
-          )}
-
-          {totalTokens > 0 && (
-            <p className="mt-3 border-t border-gray-200 pt-3 text-sm text-ink-muted">
-              <strong className="text-ink">{totalTokens.toLocaleString("pt-BR")} tokens</strong> usados ·{" "}
-              {custo.usd} · {custo.brl} · estimativa por template (Haiku ou Sonnet).
+              {done && batchTotal > 0 && (
+                <>
+                  Último lote: <strong className="text-ink">{formatDuration(elapsedSeconds)}</strong> para{" "}
+                  {batchTotal} documento{batchTotal !== 1 ? "s" : ""}.{" "}
+                </>
+              )}
+              {totalTokens > 0 && (
+                <>
+                  <strong className="text-ink">{totalTokens.toLocaleString("pt-BR")} tokens</strong> ·{" "}
+                  {custo.usd} · {custo.brl} (estimativa por template).
+                </>
+              )}
             </p>
           )}
         </Card>
+      </div>
+
+      {semTemplate > 0 && !processing && (
+        <Feedback tone="atencao" className="mb-4">
+          {semTemplate} documento(s) selecionado(s) ainda estão sem template e não serão gerados.
+        </Feedback>
       )}
 
       <Card className="mb-6">
@@ -1080,47 +1110,52 @@ export default function ProcessarPasta() {
           )}
         </div>
 
-        <div className="border-b border-gray-200 px-4 py-4 sm:px-5">
-          <label htmlFor="template-add" className="block text-sm font-semibold text-ink">
-            Adicionar documento por template
-          </label>
-          <p id="template-add-hint" className="mt-1 text-sm text-ink-muted">
-            Use quando a cliente contratou um serviço depois do Documento em Elaboração e o POP não
-            entrou na lista inicial.
-          </p>
-          <input
-            id="template-add"
-            type="search"
-            value={templateAddSearch}
-            aria-describedby="template-add-hint"
-            onChange={(e) => setTemplateAddSearch(e.target.value)}
-            disabled={processing || changingDocuments}
-            placeholder="Buscar template ativo..."
-            className={`${fieldClass} mt-2`}
-          />
-          {templateAddSearch.trim() && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {templatesParaAdicionar.length > 0 ? (
-                templatesParaAdicionar.map((template) => (
-                  <Button
-                    key={template.id}
-                    variant="secondary"
-                    disabled={processing || changingDocuments}
-                    onClick={() => {
-                      void addDocumentFromTemplate(template);
-                    }}
-                  >
-                    Adicionar {template.nome}
-                  </Button>
-                ))
-              ) : (
-                <p className="text-sm text-ink-muted">
-                  Nenhum template ativo disponível, ou o documento já está na pasta.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+        <details className="border-b border-gray-200">
+            <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink sm:px-5">
+              Adicionar documento por template
+            </summary>
+          <div className="px-4 pb-4 sm:px-5">
+            <label htmlFor="template-add" className="sr-only">
+              Buscar template para adicionar
+            </label>
+            <p id="template-add-hint" className="text-sm text-ink-muted">
+              Use quando a cliente contratou um serviço depois do Documento em Elaboração e o POP não
+              entrou na lista inicial.
+            </p>
+            <input
+              id="template-add"
+              type="search"
+              value={templateAddSearch}
+              aria-describedby="template-add-hint"
+              onChange={(e) => setTemplateAddSearch(e.target.value)}
+              disabled={processing || changingDocuments}
+              placeholder="Buscar template ativo..."
+              className={`${fieldClass} mt-2`}
+            />
+            {templateAddSearch.trim() && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {templatesParaAdicionar.length > 0 ? (
+                  templatesParaAdicionar.map((template) => (
+                    <Button
+                      key={template.id}
+                      variant="secondary"
+                      disabled={processing || changingDocuments}
+                      onClick={() => {
+                        void addDocumentFromTemplate(template);
+                      }}
+                    >
+                      Adicionar {template.nome}
+                    </Button>
+                  ))
+                ) : (
+                  <p className="text-sm text-ink-muted">
+                    Nenhum template ativo disponível, ou o documento já está na pasta.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </details>
 
         {docs.length > 0 && (
           <div className="flex flex-col gap-2 border-b border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -1169,215 +1204,231 @@ export default function ProcessarPasta() {
           </p>
         )}
 
-        <ul className="divide-y divide-gray-200">
-          {visibleDocs.map((doc) => {
-            const isSelecionado = selectedDocs.has(doc.id);
-            const jaGerado = doc.status === "gerado";
-            const templateAtual = getTemplateAtual(doc, assignments, templates);
-            const docStatus = DOCUMENTO_STATUS[doc.status] || DOCUMENTO_STATUS.pendente;
-            const isPop = isPopDocumento(doc, assignments, templates);
-            const equipamentosDoc = equipmentAssignments[doc.id] || [];
-            const equipamentosDocKeys = new Set(equipamentosDoc.map(equipamentoKey));
-            const insumosMateriais = clienteProdutosInsumos.map(produtoInsumoToMaterial);
-            const materialGroups = buildMaterialGroups(clienteEquipamentos, insumosMateriais);
+        {gruposDocs.map((grupoDocs) => {
+          const selecionadosNoBloco = grupoDocs.docs.filter((d) => selectedDocs.has(d.id)).length;
+          return (
+            <details key={grupoDocs.id} open={grupoDocs.aberto || undefined} className="border-b border-gray-200 last:border-b-0">
+              <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink sm:px-5">
+                {grupoDocs.titulo} ({grupoDocs.docs.length})
+                <span className="font-normal text-ink-muted"> · {selecionadosNoBloco} selecionado(s)</span>
+              </summary>
+              <ul className="divide-y divide-gray-200 border-t border-gray-200">
+                {grupoDocs.docs.map((doc) => {
+                  const isSelecionado = selectedDocs.has(doc.id);
+                  const jaGerado = doc.status === "gerado";
+                  const templateAtual = getTemplateAtual(doc, assignments, templates);
+                  const docStatus = DOCUMENTO_STATUS[doc.status] || DOCUMENTO_STATUS.pendente;
+                  const isPop = isPopDocumento(doc, assignments, templates);
+                  const equipamentosDoc = equipmentAssignments[doc.id] || [];
+                  const equipamentosDocKeys = new Set(equipamentosDoc.map(equipamentoKey));
+                  const insumosMateriais = clienteProdutosInsumos.map(produtoInsumoToMaterial);
+                  const materialGroups = buildMaterialGroups(clienteEquipamentos, insumosMateriais);
 
-            return (
-              <li key={doc.id} className="flex flex-col gap-2 px-4 py-3 sm:px-5">
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* O padding leva o alvo de clique a 44px (docs/DESIGN.md); a margem
-                      negativa devolve o espaco, entao nada se move na tela. */}
-                  <label className="-m-3.5 flex shrink-0 cursor-pointer p-3.5">
-                    <input
-                      type="checkbox"
-                      checked={isSelecionado}
-                      disabled={processing}
-                      onChange={() => toggleDoc(doc.id)}
-                      aria-label={`Selecionar ${doc.nomeArquivo}`}
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                  </label>
+                  return (
+                    <li key={doc.id} className="flex flex-col gap-2 px-4 py-3 sm:px-5">
+                      <div className="flex flex-wrap items-center gap-3">
+                        {/* O padding leva o alvo de clique a 44px (docs/DESIGN.md); a margem
+                            negativa devolve o espaco, entao nada se move na tela. */}
+                        <label className="-m-3.5 flex shrink-0 cursor-pointer p-3.5">
+                          <input
+                            type="checkbox"
+                            checked={isSelecionado}
+                            disabled={processing}
+                            onChange={() => toggleDoc(doc.id)}
+                            aria-label={`Selecionar ${doc.nomeArquivo}`}
+                            className="h-4 w-4 rounded border-gray-300"
+                          />
+                        </label>
 
-                  <span
-                    className={`min-w-[16rem] flex-[1_1_24rem] break-words text-sm leading-snug ${
-                      jaGerado && !isSelecionado ? "text-ink-subtle" : "text-ink"
-                    }`}
-                  >
-                    {doc.nomeArquivo}
-                  </span>
+                        <span
+                          className={`min-w-[16rem] flex-[1_1_24rem] break-words text-sm leading-snug ${
+                            jaGerado && !isSelecionado ? "text-ink-subtle" : "text-ink"
+                          }`}
+                        >
+                          {doc.nomeArquivo}
+                        </span>
 
-                  <StatusBadge tone={docStatus.tone}>{docStatus.label}</StatusBadge>
+                        <StatusBadge tone={docStatus.tone}>{docStatus.label}</StatusBadge>
 
-                  {jaGerado && isSelecionado && (
-                    <StatusBadge tone="atencao">Vai regerar</StatusBadge>
-                  )}
+                        {jaGerado && isSelecionado && (
+                          <StatusBadge tone="atencao">Vai regerar</StatusBadge>
+                        )}
 
-                  <label className="sr-only" htmlFor={`template-${doc.id}`}>
-                    Template de {doc.nomeArquivo}
-                  </label>
-                  <select
-                    id={`template-${doc.id}`}
-                    value={assignments[doc.id] ?? ""}
-                    onChange={(e) => {
-                      const templateId = e.target.value;
-                      setAssignments((prev) => ({ ...prev, [doc.id]: templateId }));
-                      // Persiste na hora, para sobreviver ao reload.
-                      fetch(`/api/pastas/${id}/documentos`, {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ docId: doc.id, templateId: templateId || null }),
-                      }).catch(console.error);
-                    }}
-                    disabled={processing}
-                    className={`${fieldClass} w-full sm:w-[22rem] lg:w-[26rem] lg:shrink-0`}
-                  >
-                    <option value="">— sem template —</option>
-                    {[...templates]
-                      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }))
-                      .map((t) => (
-                        <option key={t.id} value={t.id}>{t.nome}</option>
-                      ))}
-                  </select>
+                        <label className="sr-only" htmlFor={`template-${doc.id}`}>
+                          Template de {doc.nomeArquivo}
+                        </label>
+                        <select
+                          id={`template-${doc.id}`}
+                          value={assignments[doc.id] ?? ""}
+                          onChange={(e) => {
+                            const templateId = e.target.value;
+                            setAssignments((prev) => ({ ...prev, [doc.id]: templateId }));
+                            // Persiste na hora, para sobreviver ao reload.
+                            fetch(`/api/pastas/${id}/documentos`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ docId: doc.id, templateId: templateId || null }),
+                            }).catch(console.error);
+                          }}
+                          disabled={processing}
+                          className={`${fieldClass} w-full sm:w-[22rem] lg:w-[26rem] lg:shrink-0`}
+                        >
+                          <option value="">— sem template —</option>
+                          {[...templates]
+                            .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }))
+                            .map((t) => (
+                              <option key={t.id} value={t.id}>{t.nome}</option>
+                            ))}
+                        </select>
 
-                  {doc.tokensUsados ? (
-                    <span className="shrink-0 text-sm tabular-nums text-ink-subtle">
-                      {doc.tokensUsados.toLocaleString("pt-BR")} tokens
-                    </span>
-                  ) : null}
+                        {doc.tokensUsados ? (
+                          <span className="shrink-0 text-sm tabular-nums text-ink-subtle">
+                            {doc.tokensUsados.toLocaleString("pt-BR")} tokens
+                          </span>
+                        ) : null}
 
-                  {doc.outputPath && (
-                    <Button
-                      variant="quiet"
-                      disabled={processing}
-                      aria-label={`Visualizar ${doc.nomeArquivo}`}
-                      onClick={() => {
-                        void visualizarDocumento(doc);
-                      }}
-                    >
-                      Visualizar
-                    </Button>
-                  )}
-                  <Button
-                    variant="quiet"
-                    disabled={processing || changingDocuments}
-                    aria-label={`Remover ${doc.nomeArquivo} da pasta`}
-                    onClick={() => {
-                      void removeDocument(doc);
-                    }}
-                  >
-                    Remover
-                  </Button>
-                </div>
+                        {doc.outputPath && (
+                          <Button
+                            variant="quiet"
+                            disabled={processing}
+                            aria-label={`Visualizar ${doc.nomeArquivo}`}
+                            onClick={() => {
+                              void visualizarDocumento(doc);
+                            }}
+                          >
+                            Visualizar
+                          </Button>
+                        )}
+                        <Button
+                          variant="quiet"
+                          disabled={processing || changingDocuments}
+                          aria-label={`Remover ${doc.nomeArquivo} da pasta`}
+                          onClick={() => {
+                            void removeDocument(doc);
+                          }}
+                        >
+                          Remover
+                        </Button>
+                      </div>
 
-                {!assignments[doc.id] && isSelecionado && (
-                  <Feedback tone="atencao">
-                    Sem template escolhido — este documento fica de fora da geração.
-                  </Feedback>
-                )}
+                      {!assignments[doc.id] && isSelecionado && (
+                        <Feedback tone="atencao">
+                          Sem template escolhido — este documento fica de fora da geração.
+                        </Feedback>
+                      )}
 
-                {doc.mensagemErro && (
-                  <Feedback tone="erro" title={describeErrorOrigin(doc.mensagemErro).rotulo}>
-                    {doc.mensagemErro}
-                  </Feedback>
-                )}
+                      {doc.mensagemErro && (
+                        <Feedback tone="erro" title={describeErrorOrigin(doc.mensagemErro).rotulo}>
+                          {doc.mensagemErro}
+                        </Feedback>
+                      )}
 
-                {jaGerado && doc.logoSubstituida === false && (
-                  <Feedback tone="atencao" title="Falha na logo">
-                    O documento foi gerado, mas a logo do cliente não foi substituída no cabeçalho.
-                  </Feedback>
-                )}
+                      {jaGerado && doc.logoSubstituida === false && (
+                        <Feedback tone="atencao" title="Falha na logo">
+                          O documento foi gerado, mas a logo do cliente não foi substituída no cabeçalho.
+                        </Feedback>
+                      )}
 
-                {jaGerado && doc.avisoRtNoCorpo && (
-                  <Feedback tone="atencao" title="Revisar responsável técnico">
-                    O template cita o responsável técnico no corpo do documento. Confira o texto antes
-                    de entregar.
-                  </Feedback>
-                )}
+                      {jaGerado && doc.avisoRtNoCorpo && (
+                        <Feedback tone="atencao" title="Revisar responsável técnico">
+                          O template cita o responsável técnico no corpo do documento. Confira o texto antes
+                          de entregar.
+                        </Feedback>
+                      )}
 
-                {isPop && materialGroups.length > 0 && (
-                  <div className="flex flex-col gap-2 sm:ml-7">
-                    {materialGroups.map((grupo) => {
-                      const grupoItensKeys = new Set(grupo.itens.map(equipamentoKey));
-                      const selecionadosNoGrupo = equipamentosDoc.filter((eq) => grupoItensKeys.has(equipamentoKey(eq)));
-                      const grupoAberto = !!equipmentOptionsOpen[grupoAbertoKey(doc.id, grupo.id)];
-                      const labelLower = (MATERIAL_GROUP_LABEL[grupo.id] || grupo.label).toLowerCase();
-                      return (
-                        <div key={grupo.id}>
-                          <label className="inline-flex items-center gap-2 text-sm text-ink-muted">
-                            <input
-                              type="checkbox"
-                              checked={grupoAberto}
-                              disabled={processing}
-                              onChange={(e) => toggleMaterialGroup(doc, grupo.id, grupo.itens, e.target.checked)}
-                              className="h-4 w-4 rounded border-gray-300"
-                            />
-                            <span>
-                              Especificar {labelLower} neste POP
-                              {selecionadosNoGrupo.length > 0 ? ` (${selecionadosNoGrupo.length})` : ""}
-                            </span>
-                          </label>
+                      {isPop && materialGroups.length > 0 && (
+                        <div className="flex flex-col gap-2 sm:ml-7">
+                          {materialGroups.map((grupo) => {
+                            const grupoItensKeys = new Set(grupo.itens.map(equipamentoKey));
+                            const selecionadosNoGrupo = equipamentosDoc.filter((eq) => grupoItensKeys.has(equipamentoKey(eq)));
+                            const grupoAberto = !!equipmentOptionsOpen[grupoAbertoKey(doc.id, grupo.id)];
+                            const labelLower = (MATERIAL_GROUP_LABEL[grupo.id] || grupo.label).toLowerCase();
+                            return (
+                              <div key={grupo.id}>
+                                <label className="inline-flex items-center gap-2 text-sm text-ink-muted">
+                                  <input
+                                    type="checkbox"
+                                    checked={grupoAberto}
+                                    disabled={processing}
+                                    onChange={(e) => toggleMaterialGroup(doc, grupo.id, grupo.itens, e.target.checked)}
+                                    className="h-4 w-4 rounded border-gray-300"
+                                  />
+                                  <span>
+                                    Especificar {labelLower} neste POP
+                                    {selecionadosNoGrupo.length > 0 ? ` (${selecionadosNoGrupo.length})` : ""}
+                                  </span>
+                                </label>
 
-                          {grupoAberto && (
-                            <div className="mt-2 rounded-md border border-gray-200 bg-surface-subtle px-3 py-3">
-                              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                                <p className="text-sm font-semibold text-ink">
-                                  {grupo.label} na seção de materiais
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                  {grupo.id === "equipamento" && (
-                                    <Button
-                                      variant="quiet"
-                                      disabled={processing || !templateAtual}
-                                      onClick={() => aplicarSugestaoEquipamentos(doc)}
-                                    >
-                                      Sugerir
-                                    </Button>
-                                  )}
-                                  <Button
-                                    variant="quiet"
-                                    disabled={processing || selecionadosNoGrupo.length === 0}
-                                    onClick={() => limparGrupoMateriais(doc.id, grupo.itens)}
-                                  >
-                                    Limpar
-                                  </Button>
-                                </div>
+                                {grupoAberto && (
+                                  <div className="mt-2 rounded-md border border-gray-200 bg-surface-subtle px-3 py-3">
+                                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                      <p className="text-sm font-semibold text-ink">
+                                        {grupo.label} na seção de materiais
+                                      </p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {grupo.id === "equipamento" && (
+                                          <Button
+                                            variant="quiet"
+                                            disabled={processing || !templateAtual}
+                                            onClick={() => aplicarSugestaoEquipamentos(doc)}
+                                          >
+                                            Sugerir
+                                          </Button>
+                                        )}
+                                        <Button
+                                          variant="quiet"
+                                          disabled={processing || selecionadosNoGrupo.length === 0}
+                                          onClick={() => limparGrupoMateriais(doc.id, grupo.itens)}
+                                        >
+                                          Limpar
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <div className="grid gap-1.5 sm:grid-cols-2">
+                                      {grupo.itens.map((item) => {
+                                        const key = equipamentoKey(item);
+                                        return (
+                                          <label key={key} className="flex items-start gap-2 text-sm text-ink-muted">
+                                            <input
+                                              type="checkbox"
+                                              checked={equipamentosDocKeys.has(key)}
+                                              disabled={processing}
+                                              onChange={() => toggleEquipamentoDoc(doc.id, item)}
+                                              className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                                            />
+                                            <span>{equipamentoLabel(item)}</span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                              <div className="grid gap-1.5 sm:grid-cols-2">
-                                {grupo.itens.map((item) => {
-                                  const key = equipamentoKey(item);
-                                  return (
-                                    <label key={key} className="flex items-start gap-2 text-sm text-ink-muted">
-                                      <input
-                                        type="checkbox"
-                                        checked={equipamentosDocKeys.has(key)}
-                                        disabled={processing}
-                                        onChange={() => toggleEquipamentoDoc(doc.id, item)}
-                                        className="mt-0.5 h-4 w-4 rounded border-gray-300"
-                                      />
-                                      <span>{equipamentoLabel(item)}</span>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </details>
+          );
+        })}
       </Card>
 
       {(legislacoes.length > 0 || estadoCliente) && (
         <Card className="mb-6">
-          <CardHeader
-            title={`Legislações${estadoCliente ? ` — ${estadoCliente}` : ""}`}
-            description={`${selectedLeg.length} de ${legislacoes.length} associadas. A seleção inicial veio do Documento em Elaboração.`}
-            actions={
-              <>
+          <details>
+            <summary className="cursor-pointer px-4 py-4 sm:px-5">
+              <h2 className="inline font-display text-base text-ink">
+                Legislações{estadoCliente ? ` — ${estadoCliente}` : ""}
+              </h2>
+              <span className="text-sm text-ink-muted"> · {selectedLeg.length} de {legislacoes.length} associadas</span>
+            </summary>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-y border-gray-200 px-4 py-3 sm:px-5">
+              <p className="text-sm text-ink-muted">A seleção inicial veio do Documento em Elaboração.</p>
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="quiet"
                   disabled={processing || associandoLegislacoes}
@@ -1402,137 +1453,101 @@ export default function ProcessarPasta() {
                 <Button variant="quiet" onClick={() => salvarLegislacoes([])}>
                   Nenhuma
                 </Button>
-              </>
-            }
-          />
-
-          <div className="px-4 py-4 sm:px-5">
-            <div aria-live="polite">
-              {legislacaoMessage && (
-                <Feedback
-                  tone={legislacaoErro ? "erro" : "info"}
-                  title={legislacaoErro ? describeErrorOrigin(legislacaoMessage).rotulo : undefined}
-                  className="mb-4"
-                >
-                  {legislacaoMessage}
-                </Feedback>
-              )}
+              </div>
             </div>
 
-            {referenciasNovas.length > 0 && (
-              <div className="mb-4 overflow-hidden rounded-md border border-gray-200">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-surface-subtle px-3 py-2">
-                  <p className="text-sm font-semibold text-ink">
-                    {referenciasNovasSelecionadas.size} de {referenciasNovas.length} referência(s) nova(s)
-                    selecionada(s)
-                  </p>
-                  <Button
-                    disabled={processing || associandoLegislacoes || referenciasNovasSelecionadas.size === 0}
-                    onClick={() => {
-                      void adicionarReferenciasNovas();
-                    }}
+            <div className="px-4 py-4 sm:px-5">
+              <div aria-live="polite">
+                {legislacaoMessage && (
+                  <Feedback
+                    tone={legislacaoErro ? "erro" : "info"}
+                    title={legislacaoErro ? describeErrorOrigin(legislacaoMessage).rotulo : undefined}
+                    className="mb-4"
                   >
-                    Adicionar à base e associar
-                  </Button>
+                    {legislacaoMessage}
+                  </Feedback>
+                )}
+              </div>
+
+              {referenciasNovas.length > 0 && (
+                <div className="mb-4 overflow-hidden rounded-md border border-gray-200">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-surface-subtle px-3 py-2">
+                    <p className="text-sm font-semibold text-ink">
+                      {referenciasNovasSelecionadas.size} de {referenciasNovas.length} referência(s) nova(s)
+                      selecionada(s)
+                    </p>
+                    <Button
+                      disabled={processing || associandoLegislacoes || referenciasNovasSelecionadas.size === 0}
+                      onClick={() => {
+                        void adicionarReferenciasNovas();
+                      }}
+                    >
+                      Adicionar à base e associar
+                    </Button>
+                  </div>
+                  <ul className="divide-y divide-gray-200">
+                    {referenciasNovas.map((referencia, index) => (
+                      <li key={`${referencia.referenciaAbnt}-${index}`} className="px-3 py-2">
+                        <label className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={referenciasNovasSelecionadas.has(index)}
+                            onChange={() => toggleReferenciaNova(index)}
+                            className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300"
+                          />
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold text-ink">{referencia.titulo}</span>
+                            <span className="block text-sm text-ink-muted">
+                              {referencia.tipo} · {referencia.estadoUf}
+                              {referencia.municipio ? ` · ${referencia.municipio}` : ""}
+                            </span>
+                            <span className="mt-1 block text-sm text-ink-muted">{referencia.referenciaAbnt}</span>
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="divide-y divide-gray-200">
-                  {referenciasNovas.map((referencia, index) => (
-                    <li key={`${referencia.referenciaAbnt}-${index}`} className="px-3 py-2">
-                      <label className="flex items-start gap-3">
+              )}
+
+              {legislacoes.length === 0 ? (
+                <p className="text-sm text-ink-muted">
+                  Nenhuma legislação carregada para esta UF. Use <strong>Importar novas</strong> para
+                  buscar no Documento em Elaboração.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {legislacoes.map((leg) => (
+                    <li key={leg.id}>
+                      <label className="flex cursor-pointer items-start gap-3">
                         <input
                           type="checkbox"
-                          checked={referenciasNovasSelecionadas.has(index)}
-                          onChange={() => toggleReferenciaNova(index)}
+                          checked={selectedLeg.includes(leg.id)}
+                          onChange={(e) =>
+                            salvarLegislacoes(
+                              e.target.checked
+                                ? Array.from(new Set([...selectedLeg, leg.id]))
+                                : selectedLeg.filter((l) => l !== leg.id)
+                            )
+                          }
                           className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300"
                         />
                         <span className="min-w-0">
-                          <span className="block text-sm font-semibold text-ink">{referencia.titulo}</span>
+                          <span className="block text-sm font-semibold text-ink">{leg.titulo}</span>
                           <span className="block text-sm text-ink-muted">
-                            {referencia.tipo} · {referencia.estadoUf}
-                            {referencia.municipio ? ` · ${referencia.municipio}` : ""}
+                            {leg.tipo}
+                            {leg.estadoUf === "BR" ? " · Federal" : ` · ${leg.estadoUf}`}
+                            {leg.municipio ? ` · ${leg.municipio}` : ""}
                           </span>
-                          <span className="mt-1 block text-sm text-ink-muted">{referencia.referenciaAbnt}</span>
                         </span>
                       </label>
                     </li>
                   ))}
                 </ul>
-              </div>
-            )}
-
-            {legislacoes.length === 0 ? (
-              <p className="text-sm text-ink-muted">
-                Nenhuma legislação carregada para esta UF. Use <strong>Importar novas</strong> para
-                buscar no Documento em Elaboração.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {legislacoes.map((leg) => (
-                  <li key={leg.id}>
-                    <label className="flex cursor-pointer items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedLeg.includes(leg.id)}
-                        onChange={(e) =>
-                          salvarLegislacoes(
-                            e.target.checked
-                              ? Array.from(new Set([...selectedLeg, leg.id]))
-                              : selectedLeg.filter((l) => l !== leg.id)
-                          )
-                        }
-                        className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300"
-                      />
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold text-ink">{leg.titulo}</span>
-                        <span className="block text-sm text-ink-muted">
-                          {leg.tipo}
-                          {leg.estadoUf === "BR" ? " · Federal" : ` · ${leg.estadoUf}`}
-                          {leg.municipio ? ` · ${leg.municipio}` : ""}
-                        </span>
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+              )}
+            </div>
+          </details>
         </Card>
-      )}
-
-      <div className="flex flex-wrap gap-3">
-        <Button
-          className="flex-1"
-          disabled={processing || prontoParaGerar === 0}
-          onClick={() => {
-            void handleGerar();
-          }}
-        >
-          {rotuloGerar}
-        </Button>
-
-        {done && gerados > 0 && (() => {
-          const selectedGeradosIds = docs
-            .filter((d) => d.status === "gerado" && selectedDocs.has(d.id))
-            .map((d) => d.id);
-          const parcial = selectedGeradosIds.length > 0 && selectedGeradosIds.length < gerados;
-          const downloadUrl = parcial
-            ? `/api/pastas/${id}/download?ids=${selectedGeradosIds.join(",")}`
-            : `/api/pastas/${id}/download`;
-          const label = parcial
-            ? `Baixar ZIP (${selectedGeradosIds.length} selecionados)`
-            : `Baixar ZIP (${gerados} documentos)`;
-          return (
-            <a href={downloadUrl} className={buttonClass("secondary")}>
-              {label}
-            </a>
-          );
-        })()}
-      </div>
-
-      {semTemplate > 0 && !processing && (
-        <Feedback tone="atencao" className="mt-4">
-          {semTemplate} documento(s) selecionado(s) ainda estão sem template e não serão gerados.
-        </Feedback>
       )}
 
       {templates.length === 0 && (
