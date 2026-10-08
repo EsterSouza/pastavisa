@@ -17,10 +17,13 @@ export function ActionMenu({
   label,
   items,
   disabled = false,
+  variant = "quiet",
 }: {
   label: string;
   items: ActionMenuItem[];
   disabled?: boolean;
+  /** "secondary" ganha borda, para ficar ao lado de botões no cabeçalho. */
+  variant?: "quiet" | "secondary";
 }) {
   const [aberto, setAberto] = useState(false);
   const raizRef = useRef<HTMLDivElement>(null);
@@ -67,7 +70,9 @@ export function ActionMenu({
         aria-expanded={aberto}
         disabled={disabled}
         onClick={() => setAberto((v) => !v)}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-lg font-semibold leading-none text-brand-accent hover:bg-surface-subtle disabled:cursor-not-allowed disabled:text-ink-subtle disabled:hover:bg-transparent"
+        className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-lg font-semibold leading-none hover:bg-surface-subtle disabled:cursor-not-allowed disabled:text-ink-subtle disabled:hover:bg-transparent ${
+          variant === "secondary" ? "border border-gray-300 bg-surface-card text-ink shadow-sm" : "text-brand-accent"
+        }`}
       >
         <span aria-hidden="true">⋯</span>
       </button>
@@ -75,7 +80,7 @@ export function ActionMenu({
         <div
           ref={menuRef}
           role="menu"
-          className="absolute right-0 top-full z-popover mt-1 min-w-[11rem] rounded-md border border-gray-200 bg-surface-card p-1 shadow-lg"
+          className="absolute right-0 top-full z-popover mt-1 min-w-[13rem] rounded-md border border-gray-200 bg-surface-card p-1 shadow-lg"
         >
           {items.map((item) => (
             <button
@@ -87,7 +92,7 @@ export function ActionMenu({
                 setAberto(false);
                 item.onSelect();
               }}
-              className={`flex min-h-10 w-full items-center rounded px-3 text-left text-sm font-semibold hover:bg-surface-subtle disabled:cursor-not-allowed disabled:text-ink-subtle disabled:hover:bg-transparent ${
+              className={`flex min-h-10 w-full items-center whitespace-nowrap rounded px-3 text-left text-sm font-semibold hover:bg-surface-subtle disabled:cursor-not-allowed disabled:text-ink-subtle disabled:hover:bg-transparent ${
                 item.destrutiva ? "text-status-danger" : "text-ink"
               }`}
             >
