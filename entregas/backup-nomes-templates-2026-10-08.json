@@ -1,0 +1,1802 @@
+[
+ {
+  "id": "038c1c9a-2065-4b04-8d8b-cd22e9027716",
+  "nome": "POP - ALTA FREQUENCIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "05b5689d-fd81-4b48-9106-b7e7dc6a6292",
+  "nome": "TCLE - ONDAS DE CHOQUE",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "07396008-ec7e-4b88-a770-4c5cb6523bb5",
+  "nome": "TCLE - PREENCHIMENTO DERMICO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "10cc6598-dd9b-442e-b3e6-fddf08e1f340",
+  "nome": "POP - LASERTERAPIA POS FURO E PIERCING",
+  "tipo": "POP"
+ },
+ {
+  "id": "1d96937f-ad1e-4935-80c5-cd313e7ffce9",
+  "nome": "POP - ULTRASSOM",
+  "tipo": "POP"
+ },
+ {
+  "id": "2397a209-63d4-418d-a20d-2dac399a5e4f",
+  "nome": "TCLE - MICROTOX",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "36b1d393-1b1f-49c3-9624-9c5fb14e6964",
+  "nome": "TCLE - HIDROLIPOCLASIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "388c4a6f-d62a-41ee-b512-4a3461110834",
+  "nome": "POP - ENDERMOTERAPIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "4ebd051a-b820-4ae8-b897-37b1308ee357",
+  "nome": "POP - RADIOFREQUÊNCIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "548494ed-3a6a-4c3c-809b-df97037f0ae3",
+  "nome": "FICHA - AVALIACAO NUTRICIONAL",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "5d64a035-e784-4cc7-9241-3bbd3104ce48",
+  "nome": "POP - CRIOLIPOLISE",
+  "tipo": "POP"
+ },
+ {
+  "id": "69fdbffd-85b2-4ea9-9db7-db3dcf6c0607",
+  "nome": "POP - MANTA TERMICA",
+  "tipo": "POP"
+ },
+ {
+  "id": "765724f8-419d-41b9-a206-3ffbb770b46e",
+  "nome": "POP - MICROTOX",
+  "tipo": "POP"
+ },
+ {
+  "id": "8702dbce-c8f3-4702-a85e-d69f05d21c61",
+  "nome": "POP - HIDROLIPOCLASIA NAO ASPIRATIVA",
+  "tipo": "POP"
+ },
+ {
+  "id": "92b17d96-4bc8-4315-8ed2-7097460e5c0d",
+  "nome": "POP - FURO DE ORELHA CRIANCAS ADULTOS",
+  "tipo": "POP"
+ },
+ {
+  "id": "932cee71-0b75-45b9-bf3d-d745179a6e26",
+  "nome": "TCLE - LIPO ENZIMATICA PAPADA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "a631286d-6405-44bd-bf64-133edc4ac6a3",
+  "nome": "POP - CLAREAMENTO INTIMO",
+  "tipo": "POP"
+ },
+ {
+  "id": "b12de3f0-1e72-4e74-a1bf-5009b829d05f",
+  "nome": "FICHA - AVALIACAO PEDIATRICA FURO ORELHA",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "b6c08559-7933-43b7-89e0-fc4c7be7e727",
+  "nome": "TCLE - ESTETICA INTIMA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "c1e8e472-6991-4bc1-bf8b-12b167395802",
+  "nome": "POP - TAPING POS CIRURGICO",
+  "tipo": "POP"
+ },
+ {
+  "id": "c5a9108a-51bb-4ab4-a40a-49d281b27173",
+  "nome": "POP - INTRADERMOTERAPIA CAPILAR",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pgs0000ewyx1jczx585",
+  "nome": "Controle Entrega Pos Procedimento",
+  "tipo": "PLANILHA"
+ },
+ {
+  "id": "cmp161ph60001ewyxkncxttu0",
+  "nome": "Controle Orientações Pos",
+  "tipo": "PLANILHA"
+ },
+ {
+  "id": "cmp161phh0002ewyxeva3jimo",
+  "nome": "Encaminhamento Profissional",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmp161phv0003ewyxwhac1oya",
+  "nome": "Ficha Anamnese Corporal",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmp161pik0005ewyx5xqpp47x",
+  "nome": "Ficha Anamnese Facial",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmp161pj10006ewyxn93px6up",
+  "nome": "Ficha Anamnese Injetaveis",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmp161pjh0007ewyx4kbyrkm0",
+  "nome": "Ficha Anamnese Injetaveis Harmonizacao",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmp161pjy0008ewyxjqzlsvdj",
+  "nome": "Ficha Anamnese Micropigmentacao Labios",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmp161pkb0009ewyxjeq9m7pp",
+  "nome": "FORM EVENTO ADVERSO",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmp161pl5000bewyxi7p6v4mu",
+  "nome": "MBP Embelezamento",
+  "tipo": "MBP"
+ },
+ {
+  "id": "cmp161pm1000dewyxgaofhpd5",
+  "nome": "PGRSS",
+  "tipo": "PGRSS"
+ },
+ {
+  "id": "cmp161pmf000eewyxq25bcmz7",
+  "nome": "Planilha Controle Temperatura",
+  "tipo": "PLANILHA"
+ },
+ {
+  "id": "cmp161pms000fewyx8lzh3fvm",
+  "nome": "Planilha Limpeza Desinfeccao",
+  "tipo": "PLANILHA"
+ },
+ {
+  "id": "cmp161pn8000gewyxdtqdr60d",
+  "nome": "PLANILHA RASTREABILIDADE PRODUTOS",
+  "tipo": "PLANILHA"
+ },
+ {
+  "id": "cmp161pnl000hewyx7grjvyui",
+  "nome": "Plano Contingencia",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmp161pnx000iewyxks69yjao",
+  "nome": "POP - AFERICAO E MONITORAMENTO DE SINAIS VITAIS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161po8000jewyxaumjz98k",
+  "nome": "POP - ASPIRACAO DE VIAS AEREAS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pol000kewyxt9ea0vbo",
+  "nome": "POP - ATENDIMENTO DOMICILIAR",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pow000lewyxsrto6zwx",
+  "nome": "POP - COLETA DE AMOSTRAS LABORATORIAIS E FLEBOTOMIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pp6000mewyxy4nmic1v",
+  "nome": "POP - CONSULTA DE ENFERMAGEM",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161ppg000newyx63w06pgz",
+  "nome": "POP - CUIDADOS COM ESTOMIAS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161ppu000oewyxg6vbdybj",
+  "nome": "POP - CUIDADOS COM SONDA ENTERAL",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pq6000pewyx84u53fma",
+  "nome": "POP - CUIDADOS COM SONDA VESICAL",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pqg000qewyx68dnvcg8",
+  "nome": "POP - CUIDADOS COM TRAQUEOSTOMIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pqq000rewyxypnwxnn1",
+  "nome": "POP - CURATIVO E CUIDADOS COM FERIDAS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pr1000sewyxw82gjq0w",
+  "nome": "POP - FIOS DE SUSTENTACAO PDO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161prd000tewyx2xwsryxm",
+  "nome": "POP - FOTOBIOMODULACAO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161prp000uewyxfxo5v54u",
+  "nome": "POP - GESTAO DE SEGURANCA LASER E LED",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161ps1000vewyx8xs9hbag",
+  "nome": "POP - INTRADERMOTERAPIA PRESSURIZADA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161psc000wewyxjbysy1lc",
+  "nome": "POP - JATO DE PLASMA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pt0000yewyx4gt1q8kn",
+  "nome": "POP - MESOTERAPIA E INTRADERMOTERAPIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pta000zewyx2k0hr7sj",
+  "nome": "POP - PEELINGS QUIMICOS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161ptm0010ewyx50a2lou0",
+  "nome": "POP - PEELINGS QUIMICOS ACIDO TRICLOROACETICO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pu30011ewyxm4pts5jd",
+  "nome": "POP - PEIM ESCLEROTERAPIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pug0012ewyx97y76yyf",
+  "nome": "POP - PRESCRICAO DE ENFERMAGEM",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pur0013ewyxnwx0fwih",
+  "nome": "POP - PREVENCAO E TRATAMENTO DE INTERCORRENCIAS VENOSAS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pv20014ewyxqaqvnbw3",
+  "nome": "POP - PROCESSO DE ENFERMAGEM",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pve0015ewyxhgwqo0je",
+  "nome": "POP - RETIRADA DE PONTOS CIRURGICOS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pvw0016ewyxkr7ck2ko",
+  "nome": "POP - SKINBOOSTER",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pwb0017ewyx34fnr8sc",
+  "nome": "POP - TERAPIA INJETAVEL E ADMINISTRACAO DE MEDICAMENTOS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pwp0018ewyxol384zt4",
+  "nome": "POP - TERAPIA ORTOMOLECULAR INTRAVENOSA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161px00019ewyx47a5of41",
+  "nome": "POP - TESTES RAPIDOS DIAGNOSTICOS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pxd001aewyxziinh88h",
+  "nome": "POP Acidentes Material Biologico",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pyf001bewyxc1g96y2g",
+  "nome": "POP BB Glow",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pz9001dewyx6ajrhui5",
+  "nome": "POP CONTROLE POTABILIDADE AGUA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161pzp001eewyxyuapwezx",
+  "nome": "POP Controle Vetores Pragas",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q03001fewyxl6ljyc8h",
+  "nome": "POP Estrias Plasma Bioestimulador",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q0d001gewyx28kwh3ak",
+  "nome": "POP Gerenciamento Residuos",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q10001iewyxyewulz86",
+  "nome": "POP Harmonizacao Facial Global",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q1b001jewyxg7zhlmb8",
+  "nome": "POP Harmonizacao Plasma Gel",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q1p001kewyxs4bijhlf",
+  "nome": "POP Hemoderivados PRP PRF",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q21001lewyx90fz1f0v",
+  "nome": "POP Higienizacao Maos",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q2f001mewyxd0zzrh2m",
+  "nome": "POP Intercorrencias Emergencias",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q2s001newyxjjc9uwsd",
+  "nome": "POP Limpeza Pele",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q3f001oewyxhg8dyoek",
+  "nome": "POP LIMPEZA PURIFICADOR AGUA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q3p001pewyxcbvkcczz",
+  "nome": "POP Limpeza Refrigerador",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q40001qewyxqabai1xm",
+  "nome": "POP Limpeza Superficies",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q4c001rewyx2nmpuu5o",
+  "nome": "POP Lip Glow",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q4m001sewyxhx0onogt",
+  "nome": "POP Manutencao Equipamentos",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q4y001tewyx15y9rhuc",
+  "nome": "POP Micropigmentacao Labial",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q58001uewyx1i1ynivc",
+  "nome": "POP Preenchimento Acido Hialuronico",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q5h001vewyxqmx1hiy4",
+  "nome": "POP Preenchimento Labial",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q5w001wewyxfpgqldks",
+  "nome": "POP Prevencao Oclusao Vascular",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q67001xewyx7jfnabtn",
+  "nome": "POP Processamento Materiais",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q6j001yewyxw13n0ta2",
+  "nome": "POP Recebimento Armazenamento",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q6u001zewyxw9b8mfc1",
+  "nome": "POP Rinomodelacao",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q740020ewyxqkaghz6k",
+  "nome": "POP Toxina Botulinica",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q7f0021ewyxofpalfjd",
+  "nome": "POP Uso EPIs",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp161q860023ewyxrstkcldn",
+  "nome": "PSP",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmp161q8w0025ewyxb0mx8je4",
+  "nome": "Receituario Pos Procedimento",
+  "tipo": "RECEITUARIO"
+ },
+ {
+  "id": "cmp161q980026ewyx541gd3lt",
+  "nome": "REGISTRO ESTERILIZACAO",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmp161q9i0027ewyxpo1yo4o5",
+  "nome": "Relacao Servicos Equipamentos",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmp161q9v0028ewyxl3074ll5",
+  "nome": "TCLE BB Glow",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qa80029ewyxvnqy5mri",
+  "nome": "TCLE Bioestimuladores Colageno",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qan002aewyxj8lz6ajs",
+  "nome": "TCLE Estrias Plasma Bioestimulador",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qaz002bewyx22jtfb3y",
+  "nome": "TCLE Harmonizacao Facial",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qbe002cewyxu5n0k1i0",
+  "nome": "TCLE Harmonizacao Gluteos",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qbw002dewyxhbmoeiw7",
+  "nome": "TCLE Harmonizacao Plasma Gel",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qc8002eewyxxuj1xfn7",
+  "nome": "TCLE Hemoderivados PRP PRF",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qcj002fewyx9xqf2m2v",
+  "nome": "TCLE Limpeza Pele",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qcv002gewyxhq5w9g6t",
+  "nome": "TCLE MICROAGULHAMENTO DRUG",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qd7002hewyxysmkhnsg",
+  "nome": "TCLE Micropigmentacao",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qdk002iewyxi40mvnv2",
+  "nome": "TCLE Preenchimento Labial",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qe0002jewyx49u3o31n",
+  "nome": "TCLE Rinomodelacao",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qed002kewyx5hmufepz",
+  "nome": "TCLE TOXINA BOTULINICA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qen002lewyxe61mu2gt",
+  "nome": "TCLE Uso Imagem LGPD",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp161qez002mewyxcmsyv3h2",
+  "nome": "Termo Renuncia Recusa Tratamento",
+  "tipo": "TERMO"
+ },
+ {
+  "id": "cmp2wj96k0000vkyx8kvf7dtn",
+  "nome": "POP - LASERTERAPIA EM AFECCOES",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp2wj96z0001vkyx4fy7m6q1",
+  "nome": "POP - LIMPEZA E MANUTENCAO CLIMATIZACAO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp2wj97d0002vkyx2439a39d",
+  "nome": "POP - MICROAGULHAMENTO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmp2wj98w0003vkyx94n04afb",
+  "nome": "TCLE Fios de Sustentacao de PDO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp2wj9990004vkyx1mvom0x9",
+  "nome": "TCLE Fotobiomodulacao Laserterapia",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp2wj99o0005vkyxuwavrjnf",
+  "nome": "TCLE Jato de Plasma",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp2wj9a00006vkyxetf0k89r",
+  "nome": "TCLE Mesoterapia Intradermoterapia Skinbooster",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp2wj9af0007vkyxo6t4qujh",
+  "nome": "TCLE Peelings Quimicos",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp2wj9at0008vkyxt3q0p19g",
+  "nome": "TCLE PEIM Escleroterapia",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp2wj9b70009vkyxejr51jle",
+  "nome": "TCLE Terapia Injetavel Administracao Medicamentos",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmp2wj9bl000avkyxgx8limsk",
+  "nome": "TCLE Terapia Ortomolecular Suplementacao Intravenosa",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmpei0mu9002b3c1oghqxgm7q",
+  "nome": "POP - AVALIACAO E ANALISE DE PELE",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmpei0mug002c3c1od7u4w5ug",
+  "nome": "POP - AVALIACAO NUTRICIONAL E DIETETICA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmpei0mul002d3c1ob6gyc4pk",
+  "nome": "POP - CONSULTA E PRONTUARIO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmpei0mut002e3c1ocq9qt2c1",
+  "nome": "POP - LEDTERAPIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmpei1399002f3c1omed231l7",
+  "nome": "MBP Servico Saude",
+  "tipo": "MBP"
+ },
+ {
+  "id": "cmpeo7zwy0000t81ocm7pk6bt",
+  "nome": "POP - AROMATERAPIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmpeo7zxb0001t81oy4pu6a7u",
+  "nome": "POP - DERMAPLANING",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmpeo7zxe0002t81oso9hbzn4",
+  "nome": "POP - DRENAGEM FACIAL E CORPORAL",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmpeo7zxj0003t81oe0gjjf77",
+  "nome": "POP - HIDRATACAO FACIAL",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmpeo7zxn0004t81ooulynw2a",
+  "nome": "POP - MASSAGEM MODELADORA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmpeo7zxs0005t81o0i48a0fj",
+  "nome": "POP - PEELING FISICO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmplfoue6000004kvldy4gsuq",
+  "nome": "Guia Utilizacao Pasta Sanitaria",
+  "tipo": "GUIA"
+ },
+ {
+  "id": "cmplfpr0k000104kvix8itpa7",
+  "nome": "POP - GESTAO DE EQUIPAMENTOS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmplfq58b000204kvg89jipfh",
+  "nome": "POP - FURO DE ORELHA HUMANIZADO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmppgtdtv000004jy4rl55egl",
+  "nome": "TCLE - OZONIOTERAPIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmppgtqev000104jy0qs5wcqa",
+  "nome": "POP - OZONIOTERAPIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmppjksvl000004kvgmzbhjc9",
+  "nome": "TCLE - FIOS DE PDO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmppjkth1000104kv1dol5vom",
+  "nome": "TCLE - TAPING POS CIRURGICO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmppjku31000204kv0eq3e7e3",
+  "nome": "TCLE - FURO HUMANIZADO E PIERCING ADULTOS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmppjkuw6000304kvn5pre4qu",
+  "nome": "TCLE - FURO DE ORELHA BEBES",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmppjpqop000404kv2rtqdooa",
+  "nome": "POP - FIOS DE PDO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmppjpr9o000504kvg7r3bhmz",
+  "nome": "POP - OTOMODELACAO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmppjwnsb000604kv9hvo2xhr",
+  "nome": "TCLE - LASERTERAPIA POS PROCEDIMENTO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmpwyg973000004l8l6uog4zt",
+  "nome": "TCLE EXTENSAO DE CILIOS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmpwyg9i9000104l8iz76nvvv",
+  "nome": "POP AVALIACAO FISIOTERAPEUTICA DERMATOFUNCIONAL",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmpwyg9wo000204l8v2xxlqws",
+  "nome": "POP EXTENSAO DE CILIOS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmpwyga80000304l8aldpwbw1",
+  "nome": "FICHA DE ANAMNESE SAUDE DA MULHER",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmpwygaso000404l8ydm1wr1l",
+  "nome": "TCLE LOBULOMODELACAO LOBULOPLASTIA NAO CIRURGICA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmpwygbrg000504l8wdkr9e4t",
+  "nome": "TCLE OTOMODELACAO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmpwygc2f000604l8tb5emmk9",
+  "nome": "POP ULTRASSOM MICROFOCADO E MACROFOCADO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmpwygcco000704l8us9yj8go",
+  "nome": "POP LOBULOMODELACAO LOBULOPLASTIA NAO CIRURGICA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmpwygd8t000804l8hl084lsx",
+  "nome": "POP ATENDIMENTOS E PROCEDIMENTOS EM SAUDE DA MULHER",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq7u02z1000004kzq67xm1bd",
+  "nome": "POP Harmonizacao Corporal Glutea",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq7wob8k000004jsl9bklv8e",
+  "nome": "POP VALIDACAO E MONITORAMENTO DA ESTERILIZACAO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq7woc1z000104js0hbtg86v",
+  "nome": "POP BIOESTIMULADORES DE COLAGENO FACIAL E CORPORAL",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq86v0li000004l4aags3wr0",
+  "nome": "POP PEELING ELETRICO INTIMO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq86v0x5000104l489ej011q",
+  "nome": "POP PEELING ELETRICO FACIAL E CORPORAL",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq86v1rb000204l4lskxbqu7",
+  "nome": "POP HIFU INTIMO ULTRASSOM MICRO E MACROFOCADO INTIMO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq86v227000304l429k6svq0",
+  "nome": "POP PEELING QUIMICO INTIMO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq86v2fh000404l45c2ao1is",
+  "nome": "POP PEELING QUIMICO FACIAL E CORPORAL RETINOL 10 E MANDELICO 30",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq86v2t5000504l4dmnc6ji4",
+  "nome": "POP RASTREABILIDADE DE INJETAVEIS LOTES E INSUMOS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq86v34c000604l4bf2zrm0c",
+  "nome": "POP CORRENTE AUSSIE E CORRENTE RUSSA FORTALECIMENTO MUSCULAR",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq86v3hq000704l4kzazwpik",
+  "nome": "POP LIPO ENZIMATICA GORDURA LOCALIZADA E GLUTEOS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq86v3s0000804l4dl20w895",
+  "nome": "POP HARMONIZACAO INTIMA FEMININA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq86v487000904l40l7sw5ph",
+  "nome": "POP RADIOFREQUENCIA INTIMA ULTRAMED INTIMY",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq86v4jb000a04l4d6exl4ku",
+  "nome": "POP LASERTERAPIA LEDTERAPIA MASCARA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq882dsh000004l54szqp7wj",
+  "nome": "POP PUMP UP NOS GLUTEOS COM RADIOFREQUENCIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq9g7aj1000004kyqyt2nhoo",
+  "nome": "POP TERAPIAS REGENERATIVAS PDRN EXOSSOMOS E REGENERADORES CELULARES",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmq9g7bgz000104kylmzq003v",
+  "nome": "TCLE PEELINGS ELETRICOS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmq9g7byy000204ky3rww2v7g",
+  "nome": "TCLE RADIOFREQUENCIA INTIMA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmq9g7ccu000304kyk01gm9dh",
+  "nome": "TCLE HIFU ULTRASSOM MACRO E MICROFOCADO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmq9g7cr1000404kytnld2faf",
+  "nome": "TCLE TERAPIAS REGENERATIVAS PDRN EXOSSOMOS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmq9g7d7z000504ky6yt4q94e",
+  "nome": "TCLE PUMP UP NOS GLUTEOS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmq9g7dma000604kyntf9fy3v",
+  "nome": "TCLE LIPO ENZIMATICA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqdshuzp000504lakvglzkwr",
+  "nome": "POP TRATAMENTO DE ESTRIAS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqdshva8000604la72623yqg",
+  "nome": "POP DETOX CORPORAL",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqdshvtn000704lawckwq96z",
+  "nome": "POP ELETROTERAPIA ESTETICA CORPORAL",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqdshw4b000804lah1j4gtol",
+  "nome": "POP CAVITACAO LIPO SEM CORTE",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqdshwet000904lata0cef12",
+  "nome": "POP ACOMPANHAMENTO PRE E POS PROCEDIMENTO ESTETICO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqdshwph000a04lak632ab5x",
+  "nome": "POP LIBERACAO MIOFASCIAL COM VENTOSA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqdshx01000b04laubauv4rq",
+  "nome": "POP TERAPIAS MANUAIS CORPORAIS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqfoh52e000004l5wy3t3bhw",
+  "nome": "TCLE TERAPIA CAPILAR ALOPECIA E CALVICIE",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfoh7kp000004kwxfr1cojd",
+  "nome": "TCLE TRATAMENTO DE CICATRIZES DE ACNE",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfoh9a1000104kwvm274tc8",
+  "nome": "TCLE CLAREAMENTO DE MELASMA MELANOSE E MANCHAS SENIS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfohb1g000204kwmlac6h4l",
+  "nome": "TCLE TRATAMENTO DE ESTRIAS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfohcti000304kw0027ivb0",
+  "nome": "TCLE JATO DE PLASMA REMOCAO DE SINAIS E PEQUENAS VERRUGAS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfoheba000404kwhq4e7a32",
+  "nome": "TCLE JATO DE PLASMA BLEFAROPLASTIA SEM CORTE",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfohfnf000504kwmb813x44",
+  "nome": "TCLE DERMAPLANING",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfohh2b000604kwm5z1pb89",
+  "nome": "TCLE DEPILACAO A LUZ PULSADA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfohito000704kwwt46c4ug",
+  "nome": "TCLE DEPILACAO A LASER",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfohkfj000804kw3jbuk9im",
+  "nome": "TCLE TERAPIAS MANUAIS CORPORAIS MASSAGEM DRENAGEM LINFATICA E VENTOSATERAPIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfohlua000904kw0u63354d",
+  "nome": "TCLE MANTA TERMICA E PROTOCOLOS CORPORAIS ASSOCIADOS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfohn4h000a04kwl55tx3ni",
+  "nome": "TCLE CORRENTE RUSSA ELETROESTIMULACAO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfohor3000b04kwzv158vws",
+  "nome": "TCLE CAVITACAO LIPO SEM CORTE",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfohqd5000c04kwjc7vvkqk",
+  "nome": "TCLE RADIOFREQUENCIA CORPORAL ENDERMOTERAPIA FLACIDEZ CELULITE E LIPEDEMA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqfohr5q000d04kw0is67ivp",
+  "nome": "POP TERAPIA CAPILAR ALOPECIA E CALVICIE",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqfohs1f000e04kw7z2uq6ax",
+  "nome": "POP REJUVENESCIMENTO FACIAL",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqfohsxq000f04kwcit46o3f",
+  "nome": "POP TRATAMENTO DE CICATRIZES DE ACNE",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqfohttz000g04kwszs0e6pz",
+  "nome": "POP CLAREAMENTO DE MELASMA MELANOSE E MANCHAS SENIS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqfohumr000h04kw2s92z431",
+  "nome": "POP LIMPEZA DE PELE COM RECURSOS ELETROTERAPEUTICOS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqfohvh5000i04kwldpd6jkc",
+  "nome": "POP DEPILACAO A LUZ PULSADA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqfohw9s000j04kwagueylj8",
+  "nome": "POP DEPILACAO A LASER",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqr7azx5000004l12gv8tvky",
+  "nome": "POP PEELING ENZIMATICO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqr7b1gi000104l1r5j5pdhk",
+  "nome": "TCLE CLAREAMENTO INTIMO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqr7b3bb000204l1z86e8fzb",
+  "nome": "TCLE LASER LAVIEEN LASER DE TULIO 1927NM",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqr7b57t000304l14ol2bdti",
+  "nome": "TCLE LASER CO2 E LASER CO2 FRACIONADO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqr7b6u2000404l119z4h3d3",
+  "nome": "TCLE CARBOXITERAPIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqr7b8lr000504l1ydnuradh",
+  "nome": "TCLE ALTA FREQUENCIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqr7baio000604l1ayo2z8g9",
+  "nome": "TCLE FOTOTERAPIA COM LED E LUZ INTENSA PULSADA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqr7bby3000704l11yy7nyib",
+  "nome": "TCLE APLICACAO DE ENZIMAS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqr7bdqa000804l1lmt9xfwu",
+  "nome": "TCLE SKINBOOSTER",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqr7bem3000904l10wwsnubc",
+  "nome": "POP FOTOTERAPIA COM LED",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqr7bfia000a04l1hrb1x07y",
+  "nome": "POP LASER CO2 E LASER CO2 FRACIONADO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqr7bgi6000b04l1zkv2syrk",
+  "nome": "POP CARBOXITERAPIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqr7bhho000c04l1zj84wuqs",
+  "nome": "POP LASER DE TULIO 1927NM LAVIEEN",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqr7bibe000d04l1fy5tsxly",
+  "nome": "POP APLICACAO DE ENZIMAS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqsguajl000004k1tdyx5btm",
+  "nome": "POP VAPOR DE OZONIO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqsizf5m000004lbc6pg3bbu",
+  "nome": "TCLE ENDERMOTERAPIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqsizh2w000104lba42h1tqu",
+  "nome": "TCLE RADIOFREQUENCIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqsiziqf000204lb21sgmhfq",
+  "nome": "TCLE VAPOR DE OZONIO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqsizkhq000304lbncvqnpon",
+  "nome": "TCLE PEELING ENZIMATICO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmquuqegr000004k1swor0ccb",
+  "nome": "TCLE DESIGN DE SOBRANCELHAS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmquuqffh000104k13kszlidc",
+  "nome": "POP MICROPIGMENTACAO COM DERMOGRAFO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmquuqg8y000204k11duvxp3i",
+  "nome": "POP MASSAGEM TERAPEUTICA RELAXANTE E REDUTORA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmquuqhbm000304k1odtm2ipp",
+  "nome": "POP PODOLOGIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmquuqi4d000404k1m1g1hkhx",
+  "nome": "POP DESIGN DE SOBRANCELHAS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmquuqj1h000504k1n59lbf0k",
+  "nome": "POP DEPILACAO ROLL ON",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmquuqkvy000604k12v894ccy",
+  "nome": "TCLE MICROPIGMENTACAO FACIAL",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmquuqm7s000704k1c0ge3nfq",
+  "nome": "TCLE DEPILACAO A CERA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmquuqnj2000804k1kmd93wkd",
+  "nome": "TCLE PODOLOGIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmquvp85q000004jrpz8d8pvy",
+  "nome": "TCLE MASSAGEM TERAPEUTICA RELAXANTE E REDUTOR",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmquwt2q0000004jvt68d8qqb",
+  "nome": "TCLE DRENAGEM LINFATICA POS OPERATORIO ESTETICA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqux05ko000104jvcnnusw0q",
+  "nome": "TCLE ULTRASSOM ESTETICO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqw5j7ij000004l5nyup02t2",
+  "nome": "FICHA DE AVALIACAO PODOLOGICA",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmqw5wp5n000004l4xt2orcbt",
+  "nome": "FICHA ANAMNESE ESTETICA INTEGRATIVA",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmqwblueb000004ju1e68qbxp",
+  "nome": "PROTOCOLO INTERCORRENCIAS SERVICO NAO INVASIVO",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmqwf7uc8000004jszk9voo9m",
+  "nome": "POP REDUCAO DE MEDIDAS RADIOFREQUENCIA BOTA COMPRESSIVA E MANTA TERMICA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqwf7vv1000104jsesb1gj30",
+  "nome": "TCLE REDUCAO DE MEDIDAS PROTOCOLO COMBINADO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqwf7xf8000204jsty4u8wi7",
+  "nome": "TCLE PROTOCOLO POS OPERATORIO ESTETICO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqwf7ygg000304jsme9ash0z",
+  "nome": "POP POS OPERATORIO ESTETICO PROTOCOLO COMBINADO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqwf7zcy000404jsvzk0smzr",
+  "nome": "POP REDUCAO DE MEDIDAS PROTOCOLO COMBINADO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqzbvspj000004kz741lwnxu",
+  "nome": "FICHA DE AVALIACAO CORPORAL E POS OPERATORIO",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmqzbvtrj000104kz99t1kftb",
+  "nome": "POP BOTA COMPRESSIVA PRESSOTERAPIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmqzbym5g000204kzxgqj5t56",
+  "nome": "TCLE BOTA COMPRESSIVA PRESSOTERAPIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmqzcsi5u000004jygm3wudhg",
+  "nome": "POP PREENCHIMENTO DERMICO ACIDO HIALURONICO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr2hxqlz000004jrndndi222",
+  "nome": "TCLE - REJUVENESCIMENTO INTIMO EXTERNO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr2hxskr000104jr1oz5lrb0",
+  "nome": "TCLE - REVITALIZACAO CORRECAO E FECHAMENTO DE LOBULO AURICULAR",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr2hxudo000204jrjnznkwis",
+  "nome": "TCLE - PRP PLASMA GEL E BIOESTIMULACAO AUTOLOGA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr2hxw5m000304jr9jeufxtn",
+  "nome": "TCLE - PERFURACAO AURICULAR HUMANIZADA LOBULO E CARTILAGEM",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr2hxy66000404jrtn3zhe6p",
+  "nome": "TCLE - MASSAGEM MODELADORA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr2hxznz000504jrcogz1yfp",
+  "nome": "TCLE - DRENAGEM LINFATICA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr2hy1bz000604jr81liouvo",
+  "nome": "TCLE - BODY PIERCING",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr2hy2yt000704jrkanyf2j6",
+  "nome": "TCLE - AURICULOTERAPIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr2hy4yo000804jruopqkbzb",
+  "nome": "TCLE - AROMATERAPIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr2hy6vv000904jrsbjkkxec",
+  "nome": "TCLE - BIORREMODELADORES TECIDUAIS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr2hy7t0000a04jrn8go1jo7",
+  "nome": "POP - REJUVENESCIMENTO INTIMO EXTERNO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr2hy8zo000b04jrc79rsabx",
+  "nome": "POP - PERFURACAO AURICULAR HUMANIZADA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr2hy9ws000c04jrymnzc6cu",
+  "nome": "POP - REVITALIZACAO CORRECAO E FECHAMENTO DE LOBULO AURICULAR",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr2hyb4w000d04jrdd1uqvsb",
+  "nome": "POP - PERFURACAO DE LOBULO E CARTILAGEM AURICULAR",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr2hyc48000e04jr0z0cmd4l",
+  "nome": "POP - BODY PIERCING",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr2hyd2b000f04jrvilf2uou",
+  "nome": "POP - DRENAGEM LINFATICA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr2hyecf000g04jr4v3vt1ws",
+  "nome": "POP - BIORREMODELADORES TECIDUAIS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr2hyfet000h04jrrt85fwvs",
+  "nome": "POP - PLASMA GEL AUTOLOGO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr2hygeb000i04jr00byip2c",
+  "nome": "POP - BIOESTIMULACAO AUTOLOGA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr2hyhaf000j04jrvpchocsz",
+  "nome": "POP - AURICULOTERAPIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr2hyi6x000k04jrxecft9tl",
+  "nome": "POP FOTOTERAPIA LEDTERAPIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr2jswld000004l14kt1tf5y",
+  "nome": "POP - CAVITACAO ULTRASSONICA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr2jsyee000104l1tp3g4kgh",
+  "nome": "TCLE - CAVITACAO ULTRASSONICA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr2jt026000204l16g8ntgpu",
+  "nome": "FICHA ANAMNESE PROCEDIMENTOS AURICULARES BODY PIERCING",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmr3d2mzx000004jrc6k3w8nb",
+  "nome": "REGULAMENTO INTERNO PROFISSIONAIS PARCEIROS E USO COMPARTILHADO DO ESPACO",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmr6b3yxv000004ky1egw11a2",
+  "nome": "ADMINISTRAÇÃO DE ANESTÉSICO LOCAL",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmr6b3zy9000104kyup5fmicg",
+  "nome": "POP INSERCAO DISPOSITIVO INTRAUTERINO DIU",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr6b40sn000204kye3b5g8c3",
+  "nome": "POP COLETA CITOPATOLOGICO MEIO LIQUIDO DNA HPV",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr6b41xo000304kykyndukaj",
+  "nome": "POP ADMINISTRACAO ANESTESICO LOCAL SAUDE REPRODUTIVA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr6b43tf000404kymgsq34w8",
+  "nome": "TCLE INSERCAO IMPLANTE CONTRACEPTIVO SUBDERMICO IMPLANON NXT",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr6b45sz000504kyy897g0iv",
+  "nome": "TCLE INSERCAO DISPOSITIVO INTRAUTERINO DIU",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr6b47la000604ky7akti3gr",
+  "nome": "TCLE CONSULTA ENFERMAGEM SAUDE MULHER SAUDE REPRODUTIVA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr6b49cv000704kyar6g0xuq",
+  "nome": "TCLE ADMINISTRACAO ANESTESICO LOCAL",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr6d77j8000004jm0zr3db21",
+  "nome": "TCLE COLETA CITOPATOLOGICO MEIO LIQUIDO DNA HPV",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr6d7njo000104jmsp9x4bnn",
+  "nome": "POP INSERCAO IMPLANTE CONTRACEPTIVO SUBDERMICO IMPLANON NXT",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmr9dugkr000004kvvp2ux71e",
+  "nome": "FICHA - AVALIACAO REMOCAO DE PIGMENTACAO ESTETICA",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmr9duihf000104kvdmjma16f",
+  "nome": "TCLE - REMOCAO DE PIGMENTACAO ESTETICA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmr9dujbr000204kva1xu38vf",
+  "nome": "POP - REMOCAO DE PIGMENTACAO ESTETICA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmrdf1bp7000004l2hqf4yage",
+  "nome": "POP - APLICACAO DE MEDICACAO IM E EV",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmrdf1csg000104l25fr6hb26",
+  "nome": "POP - CONTROLE DA GLICEMIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmrdf1dx4000204l2l959l97v",
+  "nome": "POP - MANEJO DE BOLSA DE COLOSTOMIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmrdf1uzf000304l2g4q47bf3",
+  "nome": "TCLE - ADMINISTRACAO DE MEDICAMENTOS IM E EV",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmrm48x0i000004jt8ysu9ojy",
+  "nome": "TCLE - MESOTERAPIA E INTRADERMOTERAPIA CAPILAR",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmrm48z40000104jthl3f4czs",
+  "nome": "FICHA - ANAMNESE E AVALIACAO TERAPIAS INJETAVEIS E SOROTERAPIA",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmrm491ox000204jt5hplu9y6",
+  "nome": "TCLE - MESOTERAPIA E INTRADERMOTERAPIA FACIAL E CORPORAL",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmsvr27ya000004l1fns0zo3s",
+  "nome": "POP - SUBCISAO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmsvr29sq000104l1bab1m8kg",
+  "nome": "TCLE - SUBCISAO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmszzcq2m000004i5p3ns3jpw",
+  "nome": "TCLE - LASH LIFTING",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmszzcrij000104i5ldt9p18h",
+  "nome": "TCLE - BROW LAMINATION",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmszzcshy000204i5yav6l3gb",
+  "nome": "POP - LASH LIFTING",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmszzcumm000004lck8vymyn9",
+  "nome": "REGISTRO TREINAMENTO INTERNO E CIENCIA DA EQUIPE",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmszzcvl9000104lcfpjr37lt",
+  "nome": "POP - BROW LAMINATION",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmszzcwgl000204lcw16snhy1",
+  "nome": "Relacao Profissionais Atuantes",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmszzcyd6000304lch02qcrg4",
+  "nome": "TCLE LIBERACAO MIOFASCIAL COM VENTOSA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmt00mcoa000004iamgjvvq2w",
+  "nome": "TCLE PLASTICA DOS PES",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmtcu41g3000004l1cqblai1e",
+  "nome": "TCLE - CURATIVO E CUIDADOS COM FERIDAS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmtcu430u000104l1o9rv6dsu",
+  "nome": "TCLE - NEBULIZACAO E INALOTERAPIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmtcu43vr000204l1rssnyjmu",
+  "nome": "POP - NEBULIZACAO E INALOTERAPIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmtj3ajgs000004kz0bqt8hja",
+  "nome": "REGISTRO DE MANUTENCAO CALIBRACAO E SEGURANCA ELETRICA DOS EQUIPAMENTOS",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmtj3akc5000104kz4hfyi481",
+  "nome": "POP - ENVIO RECEBIMENTO E RASTREABILIDADE DE MATERIAIS SUBMETIDOS A ESTERILIZACAO TERCEIRIZADA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmtj3al6i000204kzayi37e38",
+  "nome": "POP - TENS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmtj3am5k000304kzwh1zeyfj",
+  "nome": "CONTROLE DE ENVIO E RECEBIMENTO DE MATERIAIS PARA ESTERILIZACAO TERCEIRIZADA",
+  "tipo": "PLANILHA"
+ },
+ {
+  "id": "cmtu61x72000004ie3383fgm8",
+  "nome": "POP - TERAPIA DE FLORAIS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmtu61yv0000104ieicr97yv8",
+  "nome": "TCLE - TECARTERAPIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmtu61zt5000204ie0kgf8mwa",
+  "nome": "POP - TECARTERAPIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmtu622ch000304ie0yogpnod",
+  "nome": "TCLE - REFLEXOTERAPIA PODAL",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmtu623zf000404ie3trkp9cz",
+  "nome": "POP - REFLEXOTERAPIA PODAL",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmtu6269b000504ieo6gnn3g2",
+  "nome": "TCLE - TERAPIA DE FLORAIS",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmtvo5av3000004k1ds4o9rrv",
+  "nome": "FICHA - ATENDIMENTO E EVOLUCAO ENEMA E LAVAGEM INTESTINAL",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmtvo5cxv000104k1co2qax16",
+  "nome": "FICHA - ATENDIMENTO E EVOLUCAO OZONIOTERAPIA",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmtvo5ec3000204k1yg7xcf5c",
+  "nome": "FICHA - ATENDIMENTO E EVOLUCAO TERAPIAS INTEGRATIVAS",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmtvo5gvf000304k1yic60j8m",
+  "nome": "FOLHA DE EVOLUCAO SOBRANCELHAS E DEPILACAO",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmtvo5jgq000404k1d6hhaoh2",
+  "nome": "FOLHA DE EVOLUCAO CORPORAL",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmtvo5o6d000504k1vl6izmlr",
+  "nome": "FOLHA DE EVOLUCAO FACIAL",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmtvo5qzz000604k1oieb3mwy",
+  "nome": "FICHA - PERIMETRIA E EVOLUCAO CORPORAL",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmtvo5tru000704k1wo944xiz",
+  "nome": "FICHA - CADASTRO ANAMNESE E AVALIACAO ESTETICA",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmu2mbulv000004la67t1vkvo",
+  "nome": "POP - GESTAO DO PRONTUARIO IDENTIFICACAO DO PACIENTE E REGISTROS ASSISTENCIAIS MULTIPROFISSIONAIS",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu2mbvi7000104la7hsebxnn",
+  "nome": "POP - AVALIACAO POR BIOIMPEDANCIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu2mbx4e000204lam51hl2tp",
+  "nome": "POP - ENCAMINHAMENTO E TRANSFERENCIA DO PACIENTE",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu2mbypa000304la1lu6p3x8",
+  "nome": "TCLE - INFILTRACAO INTRA ARTICULAR E PERIARTICULAR",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmu2mbzkw000404la1s3s51dl",
+  "nome": "POP - INFILTRACAO INTRA ARTICULAR E PERIARTICULAR",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu2mc0ka000504la0e7vpmox",
+  "nome": "REGISTRO DO PROCEDIMENTO DE INFILTRACAO INTRA E PERIARTICULAR",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmu4onpb4000004jtctyd4hd8",
+  "nome": "TCLE - PEELING FISICO MICRODERMOABRASAO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmu4onq9o000104jtr7hrl8yi",
+  "nome": "POP - PEELING DE DIAMANTE MICRODERMOABRASAO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu5cjq4l000004l5do17k9pv",
+  "nome": "POP - ACUPUNTURA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu5cjrmx000104l520ft5yjl",
+  "nome": "TERMO DE CIENCIA E CONSENTIMENTO PARA AVALIACAO POR BIOIMPEDANCIA",
+  "tipo": "TERMO"
+ },
+ {
+  "id": "cmu5cjt8e000204l5hs54kxtd",
+  "nome": "TCLE - CONSULTA E ACOMPANHAMENTO FARMACEUTICO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmu5cjurv000304l5a8v5xjvf",
+  "nome": "TCLE - CONSULTA E ACOMPANHAMENTO NUTRICIONAL",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmu5cjw83000404l547nez901",
+  "nome": "TCLE - AVALIACAO CAPILAR",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmu5cjy0b000504l56c48hwbe",
+  "nome": "TCLE - MANICURE E PEDICURE",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmu5cjzcs000604l5pnu3974k",
+  "nome": "TCLE - ELETROPORACAO ESTETICA FACIAL CORPORAL E CAPILAR",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmu5ck088000704l5kwarg28o",
+  "nome": "CHECKLIST DE RECURSOS PARA ATENDIMENTO INICIAL DE EMERGENCIAS",
+  "tipo": "OUTROS"
+ },
+ {
+  "id": "cmu5ck182000804l52jxr615a",
+  "nome": "FICHA - MONITORAMENTO DA TERAPIA INFUSIONAL E DO ACESSO VENOSO PERIFERICO",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmu5ck3sr000904l5vso6ri35",
+  "nome": "POP - CONSULTA E ACOMPANHAMENTO FARMACEUTICO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu5ck4xy000a04l5rag44gb4",
+  "nome": "POP - MANICURE E PEDICURE",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu5ck5wk000b04l5d6wu72di",
+  "nome": "POP - AVALIACAO CAPILAR",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu5ck6pm000c04l5xyckpg0z",
+  "nome": "POP - ELETROPORACAO ESTETICA FACIAL CORPORAL E CAPILAR",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu5ck8lt000d04l5wgcc04rw",
+  "nome": "POP - PUNCAO MANUTENCAO E RETIRADA DE ACESSO VENOSO PERIFERICO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu5ckacz000e04l5q3sxhoqd",
+  "nome": "TCLE - ACUPUNTURA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmu5ekvth000004l6zf837w02",
+  "nome": "POP - EPILACAO A CERA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu5ekxic000104l6vqdut9pt",
+  "nome": "TCLE - VENTOSATERAPIA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmu5ekyci000204l6ar2tibbz",
+  "nome": "POP - VENTOSATERAPIA",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu5el09x000304l6f1ujtlys",
+  "nome": "TCLE - SPA DOS PES PLASTICA DOS PES",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmu5el171000404l6jcwhroti",
+  "nome": "POP - SPA DOS PES PLASTICA DOS PES",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmu5el2is000504l6duxghul6",
+  "nome": "TCLE - EPILACAO A CERA",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmujm0m39000004l23955rpio",
+  "nome": "POP - PEELING ULTRASSONICO",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmujm0ngv000104l25ax7l8v0",
+  "nome": "TCLE - ELETROLIFTING",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "cmujm0okl000204l2l9w4iula",
+  "nome": "POP - ELETROLIFTING",
+  "tipo": "POP"
+ },
+ {
+  "id": "cmujm0qcw000304l2rkvl5bvo",
+  "nome": "FICHA - AVALIACAO E EVOLUCAO CAPILAR E DO COURO CABELUDO",
+  "tipo": "FICHA"
+ },
+ {
+  "id": "cmujm0rr8000404l26cdy4ebk",
+  "nome": "TCLE - PEELING ULTRASSONICO",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "d74334d3-19f8-477d-91e0-1c59eaf5864b",
+  "nome": "POP - ONDAS DE CHOQUE",
+  "tipo": "POP"
+ },
+ {
+  "id": "edbc23c5-f11d-403d-978e-1231b5abfee4",
+  "nome": "TCLE - CRIOLIPOLISE",
+  "tipo": "TCLE"
+ },
+ {
+  "id": "efc1eea5-bd23-46e2-ad49-77a10ea49a6b",
+  "nome": "POP - LASERTERAPIA POS CIRURGICA",
+  "tipo": "POP"
+ },
+ {
+  "id": "f3262c11-f384-4f55-9e6e-bc741d5f972c",
+  "nome": "POP - TERAPIAS COMBINADAS",
+  "tipo": "POP"
+ },
+ {
+  "id": "f66bd727-e58d-417a-84a9-193dfedbc53a",
+  "nome": "POP - ELETROESTIMULACAO NEUROMUSCULAR",
+  "tipo": "POP"
+ },
+ {
+  "id": "f6a779e6-fcff-45fe-95d7-191edb2498b1",
+  "nome": "POP - LIPO ENZIMATICA DE PAPADA",
+  "tipo": "POP"
+ }
+]

@@ -1,0 +1,3242 @@
+[
+  {
+    "id": "cmu5ck088000704l5kwarg28o",
+    "nomeAtual": "CHECKLIST DE RECURSOS PARA ATENDIMENTO INICIAL DE EMERGENCIAS",
+    "nomeProposto": "CHECKLIST - Recursos para Atendimento Inicial de Emergências",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pgs0000ewyx1jczx585",
+    "nomeAtual": "Controle Entrega Pos Procedimento",
+    "nomeProposto": "Controle de Entrega Pós-procedimento",
+    "tipoAtual": "PLANILHA",
+    "tipoProposto": "PLANILHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtj3am5k000304kzwh1zeyfj",
+    "nomeAtual": "CONTROLE DE ENVIO E RECEBIMENTO DE MATERIAIS PARA ESTERILIZACAO TERCEIRIZADA",
+    "nomeProposto": "Controle de Envio e Recebimento de Materiais para Esterilização Terceirizada",
+    "tipoAtual": "PLANILHA",
+    "tipoProposto": "PLANILHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161ph60001ewyxkncxttu0",
+    "nomeAtual": "Controle Orientações Pos",
+    "nomeProposto": "Controle de Orientações Pós-procedimento",
+    "tipoAtual": "PLANILHA",
+    "tipoProposto": "PLANILHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161phh0002ewyxeva3jimo",
+    "nomeAtual": "Encaminhamento Profissional",
+    "nomeProposto": "Encaminhamento Profissional",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161phv0003ewyxwhac1oya",
+    "nomeAtual": "Ficha Anamnese Corporal",
+    "nomeProposto": "FICHA - Anamnese Corporal",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pj10006ewyxn93px6up",
+    "nomeAtual": "Ficha Anamnese Injetaveis",
+    "nomeProposto": "FICHA - Anamnese de Injetáveis",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pjh0007ewyx4kbyrkm0",
+    "nomeAtual": "Ficha Anamnese Injetaveis Harmonizacao",
+    "nomeProposto": "FICHA - Anamnese de Injetáveis em Harmonização",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pjy0008ewyxjqzlsvdj",
+    "nomeAtual": "Ficha Anamnese Micropigmentacao Labios",
+    "nomeProposto": "FICHA - Anamnese de Micropigmentação de Lábios",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2jt026000204l16g8ntgpu",
+    "nomeAtual": "FICHA ANAMNESE PROCEDIMENTOS AURICULARES BODY PIERCING",
+    "nomeProposto": "FICHA - Anamnese de Procedimentos Auriculares e Body Piercing",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmrm48z40000104jthl3f4czs",
+    "nomeAtual": "FICHA - ANAMNESE E AVALIACAO TERAPIAS INJETAVEIS E SOROTERAPIA",
+    "nomeProposto": "FICHA - Anamnese e Avaliação de Terapias Injetáveis e Soroterapia",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpwyga80000304l8aldpwbw1",
+    "nomeAtual": "FICHA DE ANAMNESE SAUDE DA MULHER",
+    "nomeProposto": "FICHA - Anamnese em Saúde da Mulher",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqw5wp5n000004l4xt2orcbt",
+    "nomeAtual": "FICHA ANAMNESE ESTETICA INTEGRATIVA",
+    "nomeProposto": "FICHA - Anamnese Estética Integrativa",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pik0005ewyx5xqpp47x",
+    "nomeAtual": "Ficha Anamnese Facial",
+    "nomeProposto": "FICHA - Anamnese Facial",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtvo5av3000004k1ds4o9rrv",
+    "nomeAtual": "FICHA - ATENDIMENTO E EVOLUCAO ENEMA E LAVAGEM INTESTINAL",
+    "nomeProposto": "FICHA - Atendimento e Evolução de Enema e Lavagem Intestinal",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtvo5cxv000104k1co2qax16",
+    "nomeAtual": "FICHA - ATENDIMENTO E EVOLUCAO OZONIOTERAPIA",
+    "nomeProposto": "FICHA - Atendimento e Evolução de Ozonioterapia",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtvo5ec3000204k1yg7xcf5c",
+    "nomeAtual": "FICHA - ATENDIMENTO E EVOLUCAO TERAPIAS INTEGRATIVAS",
+    "nomeProposto": "FICHA - Atendimento e Evolução de Terapias Integrativas",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqzbvspj000004kz741lwnxu",
+    "nomeAtual": "FICHA DE AVALIACAO CORPORAL E POS OPERATORIO",
+    "nomeProposto": "FICHA - Avaliação Corporal e Pós-operatório",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmujm0qcw000304l2rkvl5bvo",
+    "nomeAtual": "FICHA - AVALIACAO E EVOLUCAO CAPILAR E DO COURO CABELUDO",
+    "nomeProposto": "FICHA - Avaliação e Evolução Capilar e do Couro Cabeludo",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "548494ed-3a6a-4c3c-809b-df97037f0ae3",
+    "nomeAtual": "FICHA - AVALIACAO NUTRICIONAL",
+    "nomeProposto": "FICHA - Avaliação Nutricional",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr9dugkr000004kvvp2ux71e",
+    "nomeAtual": "FICHA - AVALIACAO REMOCAO DE PIGMENTACAO ESTETICA",
+    "nomeProposto": "FICHA - Avaliação para Remoção de Pigmentação Estética",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "b12de3f0-1e72-4e74-a1bf-5009b829d05f",
+    "nomeAtual": "FICHA - AVALIACAO PEDIATRICA FURO ORELHA",
+    "nomeProposto": "FICHA - Avaliação Pediátrica para Furo de Orelha",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqw5j7ij000004l5nyup02t2",
+    "nomeAtual": "FICHA DE AVALIACAO PODOLOGICA",
+    "nomeProposto": "FICHA - Avaliação Podológica",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtvo5tru000704k1wo944xiz",
+    "nomeAtual": "FICHA - CADASTRO ANAMNESE E AVALIACAO ESTETICA",
+    "nomeProposto": "FICHA - Cadastro, Anamnese e Avaliação Estética",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5ck182000804l52jxr615a",
+    "nomeAtual": "FICHA - MONITORAMENTO DA TERAPIA INFUSIONAL E DO ACESSO VENOSO PERIFERICO",
+    "nomeProposto": "FICHA - Monitoramento da Terapia Infusional e do Acesso Venoso Periférico",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtvo5qzz000604k1oieb3mwy",
+    "nomeAtual": "FICHA - PERIMETRIA E EVOLUCAO CORPORAL",
+    "nomeProposto": "FICHA - Perimetria e Evolução Corporal",
+    "tipoAtual": "FICHA",
+    "tipoProposto": "FICHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtvo5jgq000404k1d6hhaoh2",
+    "nomeAtual": "FOLHA DE EVOLUCAO CORPORAL",
+    "nomeProposto": "FOLHA - Evolução Corporal",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtvo5gvf000304k1yic60j8m",
+    "nomeAtual": "FOLHA DE EVOLUCAO SOBRANCELHAS E DEPILACAO",
+    "nomeProposto": "FOLHA - Evolução de Sobrancelhas e Depilação",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtvo5o6d000504k1vl6izmlr",
+    "nomeAtual": "FOLHA DE EVOLUCAO FACIAL",
+    "nomeProposto": "FOLHA - Evolução Facial",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pkb0009ewyxjeq9m7pp",
+    "nomeAtual": "FORM EVENTO ADVERSO",
+    "nomeProposto": "FORMULÁRIO - Evento Adverso",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmplfoue6000004kvldy4gsuq",
+    "nomeAtual": "Guia Utilizacao Pasta Sanitaria",
+    "nomeProposto": "Guia de Utilização da Pasta Sanitária",
+    "tipoAtual": "GUIA",
+    "tipoProposto": "GUIA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pl5000bewyxi7p6v4mu",
+    "nomeAtual": "MBP Embelezamento",
+    "nomeProposto": "MBP - Embelezamento",
+    "tipoAtual": "MBP",
+    "tipoProposto": "MBP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpei1399002f3c1omed231l7",
+    "nomeAtual": "MBP Servico Saude",
+    "nomeProposto": "MBP - Serviço de Saúde",
+    "tipoAtual": "MBP",
+    "tipoProposto": "MBP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pm1000dewyxgaofhpd5",
+    "nomeAtual": "PGRSS",
+    "nomeProposto": "PGRSS",
+    "tipoAtual": "PGRSS",
+    "tipoProposto": "PGRSS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pmf000eewyxq25bcmz7",
+    "nomeAtual": "Planilha Controle Temperatura",
+    "nomeProposto": "PLANILHA - Controle de Temperatura",
+    "tipoAtual": "PLANILHA",
+    "tipoProposto": "PLANILHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pms000fewyx8lzh3fvm",
+    "nomeAtual": "Planilha Limpeza Desinfeccao",
+    "nomeProposto": "PLANILHA - Limpeza e Desinfecção",
+    "tipoAtual": "PLANILHA",
+    "tipoProposto": "PLANILHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pn8000gewyxdtqdr60d",
+    "nomeAtual": "PLANILHA RASTREABILIDADE PRODUTOS",
+    "nomeProposto": "PLANILHA - Rastreabilidade de Produtos",
+    "tipoAtual": "PLANILHA",
+    "tipoProposto": "PLANILHA",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pnl000hewyx7grjvyui",
+    "nomeAtual": "Plano Contingencia",
+    "nomeProposto": "Plano de Contingência",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pxd001aewyxziinh88h",
+    "nomeAtual": "POP Acidentes Material Biologico",
+    "nomeProposto": "POP - Acidentes com Material Biológico",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqdshwet000904lata0cef12",
+    "nomeAtual": "POP ACOMPANHAMENTO PRE E POS PROCEDIMENTO ESTETICO",
+    "nomeProposto": "POP - Acompanhamento Pré e Pós-procedimento Estético",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5cjq4l000004l5do17k9pv",
+    "nomeAtual": "POP - ACUPUNTURA",
+    "nomeProposto": "POP - Acupuntura",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr6b3yxv000004ky1egw11a2",
+    "nomeAtual": "ADMINISTRAÇÃO DE ANESTÉSICO LOCAL",
+    "nomeProposto": "POP - Administração de Anestésico Local",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "ATENÇÃO, conferir antes de mudar o tipo: o arquivo tem 635 KB, tamanho típico de TCLE/FICHA com cabeçalho em imagem (POPs têm 30-80 KB), e foi enviado no mesmo minuto (04/07 11:56) que 'TCLE - Administração de Anestésico Local' (635 KB, 122 bytes de diferença). Pode ser cópia do TCLE ou um registro, não um POP. Nome e tipo POP aplicados por decisão da Ester."
+  },
+  {
+    "id": "cmr6b41xo000304kykyndukaj",
+    "nomeAtual": "POP ADMINISTRACAO ANESTESICO LOCAL SAUDE REPRODUTIVA",
+    "nomeProposto": "POP - Administração de Anestésico Local em Saúde Reprodutiva",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "POP de verdade (40 KB), lote de 04/07 de Saúde da Mulher. Escopo específico (saúde reprodutiva)."
+  },
+  {
+    "id": "cmp161pnx000iewyxks69yjao",
+    "nomeAtual": "POP - AFERICAO E MONITORAMENTO DE SINAIS VITAIS",
+    "nomeProposto": "POP - Aferição e Monitoramento de Sinais Vitais",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "038c1c9a-2065-4b04-8d8b-cd22e9027716",
+    "nomeAtual": "POP - ALTA FREQUENCIA",
+    "nomeProposto": "POP - Alta Frequência",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqr7bibe000d04l1fy5tsxly",
+    "nomeAtual": "POP APLICACAO DE ENZIMAS",
+    "nomeProposto": "POP - Aplicação de Enzimas",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmrdf1bp7000004l2hqf4yage",
+    "nomeAtual": "POP - APLICACAO DE MEDICACAO IM E EV",
+    "nomeProposto": "POP - Aplicação de Medicação IM e EV",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpeo7zwy0000t81ocm7pk6bt",
+    "nomeAtual": "POP - AROMATERAPIA",
+    "nomeProposto": "POP - Aromaterapia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161po8000jewyxaumjz98k",
+    "nomeAtual": "POP - ASPIRACAO DE VIAS AEREAS",
+    "nomeProposto": "POP - Aspiração de Vias Aéreas",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pol000kewyxt9ea0vbo",
+    "nomeAtual": "POP - ATENDIMENTO DOMICILIAR",
+    "nomeProposto": "POP - Atendimento Domiciliar",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpwygd8t000804l8hl084lsx",
+    "nomeAtual": "POP ATENDIMENTOS E PROCEDIMENTOS EM SAUDE DA MULHER",
+    "nomeProposto": "POP - Atendimentos e Procedimentos em Saúde da Mulher",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hyhaf000j04jrvpchocsz",
+    "nomeAtual": "POP - AURICULOTERAPIA",
+    "nomeProposto": "POP - Auriculoterapia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5ck5wk000b04l5d6wu72di",
+    "nomeAtual": "POP - AVALIACAO CAPILAR",
+    "nomeProposto": "POP - Avaliação Capilar",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpei0mu9002b3c1oghqxgm7q",
+    "nomeAtual": "POP - AVALIACAO E ANALISE DE PELE",
+    "nomeProposto": "POP - Avaliação e Análise de Pele",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpwyg9i9000104l8iz76nvvv",
+    "nomeAtual": "POP AVALIACAO FISIOTERAPEUTICA DERMATOFUNCIONAL",
+    "nomeProposto": "POP - Avaliação Fisioterapêutica Dermatofuncional",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpei0mug002c3c1od7u4w5ug",
+    "nomeAtual": "POP - AVALIACAO NUTRICIONAL E DIETETICA",
+    "nomeProposto": "POP - Avaliação Nutricional e Dietética",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu2mbvi7000104la7hsebxnn",
+    "nomeAtual": "POP - AVALIACAO POR BIOIMPEDANCIA",
+    "nomeProposto": "POP - Avaliação por Bioimpedância",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pyf001bewyxc1g96y2g",
+    "nomeAtual": "POP BB Glow",
+    "nomeProposto": "POP - BB Glow",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hygeb000i04jr00byip2c",
+    "nomeAtual": "POP - BIOESTIMULACAO AUTOLOGA",
+    "nomeProposto": "POP - Bioestimulação Autóloga",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq7woc1z000104js0hbtg86v",
+    "nomeAtual": "POP BIOESTIMULADORES DE COLAGENO FACIAL E CORPORAL",
+    "nomeProposto": "POP - Bioestimuladores de Colágeno Facial e Corporal",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hyecf000g04jr4v3vt1ws",
+    "nomeAtual": "POP - BIORREMODELADORES TECIDUAIS",
+    "nomeProposto": "POP - Biorremodeladores Teciduais",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hyc48000e04jr0z0cmd4l",
+    "nomeAtual": "POP - BODY PIERCING",
+    "nomeProposto": "POP - Body Piercing",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqzbvtrj000104kz99t1kftb",
+    "nomeAtual": "POP BOTA COMPRESSIVA PRESSOTERAPIA",
+    "nomeProposto": "POP - Bota Compressiva (Pressoterapia)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmszzcvl9000104lcfpjr37lt",
+    "nomeAtual": "POP - BROW LAMINATION",
+    "nomeProposto": "POP - Brow Lamination",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqr7bgi6000b04l1zkv2syrk",
+    "nomeAtual": "POP CARBOXITERAPIA",
+    "nomeProposto": "POP - Carboxiterapia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqdshw4b000804lah1j4gtol",
+    "nomeAtual": "POP CAVITACAO LIPO SEM CORTE",
+    "nomeProposto": "POP - Cavitação (Lipo sem Corte)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): possível sobreposição com 'POP - Cavitação Ultrassônica' (lipo sem corte costuma ser cavitação). Os dois têm TCLE próprio. Conferir."
+  },
+  {
+    "id": "cmr2jswld000004l14kt1tf5y",
+    "nomeAtual": "POP - CAVITACAO ULTRASSONICA",
+    "nomeProposto": "POP - Cavitação Ultrassônica",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): ver 'POP - Cavitação (Lipo sem Corte)'."
+  },
+  {
+    "id": "cmqfohttz000g04kwszs0e6pz",
+    "nomeAtual": "POP CLAREAMENTO DE MELASMA MELANOSE E MANCHAS SENIS",
+    "nomeProposto": "POP - Clareamento de Melasma, Melanose e Manchas Senis",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "a631286d-6405-44bd-bf64-133edc4ac6a3",
+    "nomeAtual": "POP - CLAREAMENTO INTIMO",
+    "nomeProposto": "POP - Clareamento Íntimo",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pow000lewyxsrto6zwx",
+    "nomeAtual": "POP - COLETA DE AMOSTRAS LABORATORIAIS E FLEBOTOMIA",
+    "nomeProposto": "POP - Coleta de Amostras Laboratoriais e Flebotomia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr6b40sn000204kye3b5g8c3",
+    "nomeAtual": "POP COLETA CITOPATOLOGICO MEIO LIQUIDO DNA HPV",
+    "nomeProposto": "POP - Coleta de Citopatológico em Meio Líquido e DNA-HPV",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pp6000mewyxy4nmic1v",
+    "nomeAtual": "POP - CONSULTA DE ENFERMAGEM",
+    "nomeProposto": "POP - Consulta de Enfermagem",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5ck3sr000904l5vso6ri35",
+    "nomeAtual": "POP - CONSULTA E ACOMPANHAMENTO FARMACEUTICO",
+    "nomeProposto": "POP - Consulta e Acompanhamento Farmacêutico",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpei0mul002d3c1ob6gyc4pk",
+    "nomeAtual": "POP - CONSULTA E PRONTUARIO",
+    "nomeProposto": "POP - Consulta e Prontuário",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmrdf1csg000104l25fr6hb26",
+    "nomeAtual": "POP - CONTROLE DA GLICEMIA",
+    "nomeProposto": "POP - Controle da Glicemia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pz9001dewyx6ajrhui5",
+    "nomeAtual": "POP CONTROLE POTABILIDADE AGUA",
+    "nomeProposto": "POP - Controle de Potabilidade da Água",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pzp001eewyxyuapwezx",
+    "nomeAtual": "POP Controle Vetores Pragas",
+    "nomeProposto": "POP - Controle de Vetores e Pragas",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq86v34c000604l4bf2zrm0c",
+    "nomeAtual": "POP CORRENTE AUSSIE E CORRENTE RUSSA FORTALECIMENTO MUSCULAR",
+    "nomeProposto": "POP - Corrente Aussie e Corrente Russa para Fortalecimento Muscular",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "5d64a035-e784-4cc7-9241-3bbd3104ce48",
+    "nomeAtual": "POP - CRIOLIPOLISE",
+    "nomeProposto": "POP - Criolipólise",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161ppg000newyx63w06pgz",
+    "nomeAtual": "POP - CUIDADOS COM ESTOMIAS",
+    "nomeProposto": "POP - Cuidados com Estomias",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161ppu000oewyxg6vbdybj",
+    "nomeAtual": "POP - CUIDADOS COM SONDA ENTERAL",
+    "nomeProposto": "POP - Cuidados com Sonda Enteral",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pq6000pewyx84u53fma",
+    "nomeAtual": "POP - CUIDADOS COM SONDA VESICAL",
+    "nomeProposto": "POP - Cuidados com Sonda Vesical",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pqg000qewyx68dnvcg8",
+    "nomeAtual": "POP - CUIDADOS COM TRAQUEOSTOMIA",
+    "nomeProposto": "POP - Cuidados com Traqueostomia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pqq000rewyxypnwxnn1",
+    "nomeAtual": "POP - CURATIVO E CUIDADOS COM FERIDAS",
+    "nomeProposto": "POP - Curativo e Cuidados com Feridas",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfohw9s000j04kwagueylj8",
+    "nomeAtual": "POP DEPILACAO A LASER",
+    "nomeProposto": "POP - Depilação a Laser",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfohvh5000i04kwldpd6jkc",
+    "nomeAtual": "POP DEPILACAO A LUZ PULSADA",
+    "nomeProposto": "POP - Depilação à Luz Pulsada",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmquuqj1h000504k1n59lbf0k",
+    "nomeAtual": "POP DEPILACAO ROLL ON",
+    "nomeProposto": "POP - Depilação com Roll-on",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpeo7zxb0001t81oy4pu6a7u",
+    "nomeAtual": "POP - DERMAPLANING",
+    "nomeProposto": "POP - Dermaplaning",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmquuqi4d000404k1m1g1hkhx",
+    "nomeAtual": "POP DESIGN DE SOBRANCELHAS",
+    "nomeProposto": "POP - Design de Sobrancelhas",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqdshva8000604la72623yqg",
+    "nomeAtual": "POP DETOX CORPORAL",
+    "nomeProposto": "POP - Detox Corporal",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpeo7zxe0002t81oso9hbzn4",
+    "nomeAtual": "POP - DRENAGEM FACIAL E CORPORAL",
+    "nomeProposto": "POP - Drenagem Facial e Corporal",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): possível sobreposição com 'POP - Drenagem Linfática' (01/07). Ambos com 2 usos. Conferir."
+  },
+  {
+    "id": "cmr2hyd2b000f04jrvilf2uou",
+    "nomeAtual": "POP - DRENAGEM LINFATICA",
+    "nomeProposto": "POP - Drenagem Linfática",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): ver 'POP - Drenagem Facial e Corporal'."
+  },
+  {
+    "id": "f66bd727-e58d-417a-84a9-193dfedbc53a",
+    "nomeAtual": "POP - ELETROESTIMULACAO NEUROMUSCULAR",
+    "nomeProposto": "POP - Eletroestimulação Neuromuscular",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmujm0okl000204l2l9w4iula",
+    "nomeAtual": "POP - ELETROLIFTING",
+    "nomeProposto": "POP - Eletrolifting",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5ck6pm000c04l5xyckpg0z",
+    "nomeAtual": "POP - ELETROPORACAO ESTETICA FACIAL CORPORAL E CAPILAR",
+    "nomeProposto": "POP - Eletroporação Estética Facial, Corporal e Capilar",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqdshvtn000704lawckwq96z",
+    "nomeAtual": "POP ELETROTERAPIA ESTETICA CORPORAL",
+    "nomeProposto": "POP - Eletroterapia Estética Corporal",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu2mbx4e000204lam51hl2tp",
+    "nomeAtual": "POP - ENCAMINHAMENTO E TRANSFERENCIA DO PACIENTE",
+    "nomeProposto": "POP - Encaminhamento e Transferência do Paciente",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "388c4a6f-d62a-41ee-b512-4a3461110834",
+    "nomeAtual": "POP - ENDERMOTERAPIA",
+    "nomeProposto": "POP - Endermoterapia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtj3akc5000104kz4hfyi481",
+    "nomeAtual": "POP - ENVIO RECEBIMENTO E RASTREABILIDADE DE MATERIAIS SUBMETIDOS A ESTERILIZACAO TERCEIRIZADA",
+    "nomeProposto": "POP - Envio, Recebimento e Rastreabilidade de Materiais Submetidos à Esterilização Terceirizada",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5ekvth000004l6zf837w02",
+    "nomeAtual": "POP - EPILACAO A CERA",
+    "nomeProposto": "POP - Epilação à Cera",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q03001fewyxl6ljyc8h",
+    "nomeAtual": "POP Estrias Plasma Bioestimulador",
+    "nomeProposto": "POP - Estrias com Plasma Bioestimulador",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpwyg9wo000204l8v2xxlqws",
+    "nomeAtual": "POP EXTENSAO DE CILIOS",
+    "nomeProposto": "POP - Extensão de Cílios",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmppjpqop000404kv2rtqdooa",
+    "nomeAtual": "POP - FIOS DE PDO",
+    "nomeProposto": "POP - Fios de PDO",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): conferir. Criado 28/05, 40 KB, 1 uso; faz par com 'TCLE - Fios de PDO' (mesma data). Nome já se distingue de 'Fios de Sustentação'. Se o texto tratar só de fios de sustentação/tração, é duplicata: desativar o mais antigo (Sustentação)."
+  },
+  {
+    "id": "cmp161pr1000sewyxw82gjq0w",
+    "nomeAtual": "POP - FIOS DE SUSTENTACAO PDO",
+    "nomeProposto": "POP - Fios de Sustentação de PDO",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): conferir. Criado 11/05, 80 KB (o dobro do outro; provavelmente mais completo), 1 uso. Ver 'POP - Fios de PDO'."
+  },
+  {
+    "id": "cmp161prd000tewyx2xwsryxm",
+    "nomeAtual": "POP - FOTOBIOMODULACAO",
+    "nomeProposto": "POP - Fotobiomodulação",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hyi6x000k04jrxecft9tl",
+    "nomeAtual": "POP FOTOTERAPIA LEDTERAPIA",
+    "nomeProposto": "POP - Fototerapia (Ledterapia)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "desativar",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): mesmo procedimento de 'POP - Fototerapia com LED'. Criado 01/07, menor (30 KB), 1 uso, sem TCLE próprio. Conferir antes: se tiver algo que o outro não tem, manter como variante."
+  },
+  {
+    "id": "cmqr7bem3000904l10wwsnubc",
+    "nomeAtual": "POP FOTOTERAPIA COM LED",
+    "nomeProposto": "POP - Fototerapia com LED",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): fica como POP de LED: o mais usado (2 documentos), tem versão revisada e faz par com 'TCLE - Fototerapia com LED e Luz Intensa Pulsada' (mesma data, 23/06)."
+  },
+  {
+    "id": "92b17d96-4bc8-4315-8ed2-7097460e5c0d",
+    "nomeAtual": "POP - FURO DE ORELHA CRIANCAS ADULTOS",
+    "nomeProposto": "POP - Furo de Orelha em Crianças e Adultos",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): conferir. Criado no mesmo dia (25/05) 4 h depois de 'POP - Furo de Orelha Humanizado', junto com a 'FICHA - Avaliação Pediátrica'. Pode ser a revisão do outro; se o texto for o mesmo, desativar o 'Humanizado'."
+  },
+  {
+    "id": "cmplfq58b000204kvg89jipfh",
+    "nomeAtual": "POP - FURO DE ORELHA HUMANIZADO",
+    "nomeProposto": "POP - Furo de Orelha Humanizado",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): conferir contra 'POP - Furo de Orelha em Crianças e Adultos' (25/05, ambos 0 usos, ~41 KB). Se cobrir bebês, renomear para 'POP - Furo de Orelha Humanizado em Bebês' (casa com 'TCLE - Furo de Orelha em Bebês')."
+  },
+  {
+    "id": "cmp161q0d001gewyx28kwh3ak",
+    "nomeAtual": "POP Gerenciamento Residuos",
+    "nomeProposto": "POP - Gerenciamento de Resíduos",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmplfpr0k000104kvix8itpa7",
+    "nomeAtual": "POP - GESTAO DE EQUIPAMENTOS",
+    "nomeProposto": "POP - Gestão de Equipamentos",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161prp000uewyxfxo5v54u",
+    "nomeAtual": "POP - GESTAO DE SEGURANCA LASER E LED",
+    "nomeProposto": "POP - Gestão de Segurança em Laser e LED",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu2mbulv000004la67t1vkvo",
+    "nomeAtual": "POP - GESTAO DO PRONTUARIO IDENTIFICACAO DO PACIENTE E REGISTROS ASSISTENCIAIS MULTIPROFISSIONAIS",
+    "nomeProposto": "POP - Gestão do Prontuário, Identificação do Paciente e Registros Assistenciais Multiprofissionais",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q1b001jewyxg7zhlmb8",
+    "nomeAtual": "POP Harmonizacao Plasma Gel",
+    "nomeProposto": "POP - Harmonização com Plasma Gel",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq7u02z1000004kzq67xm1bd",
+    "nomeAtual": "POP Harmonizacao Corporal Glutea",
+    "nomeProposto": "POP - Harmonização Corporal Glútea",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q10001iewyxyewulz86",
+    "nomeAtual": "POP Harmonizacao Facial Global",
+    "nomeProposto": "POP - Harmonização Facial Global",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq86v3s0000804l4dl20w895",
+    "nomeAtual": "POP HARMONIZACAO INTIMA FEMININA",
+    "nomeProposto": "POP - Harmonização Íntima Feminina",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q1p001kewyxs4bijhlf",
+    "nomeAtual": "POP Hemoderivados PRP PRF",
+    "nomeProposto": "POP - Hemoderivados (PRP e PRF)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpeo7zxj0003t81oe0gjjf77",
+    "nomeAtual": "POP - HIDRATACAO FACIAL",
+    "nomeProposto": "POP - Hidratação Facial",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "8702dbce-c8f3-4702-a85e-d69f05d21c61",
+    "nomeAtual": "POP - HIDROLIPOCLASIA NAO ASPIRATIVA",
+    "nomeProposto": "POP - Hidrolipoclasia Não Aspirativa",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq86v1rb000204l4lskxbqu7",
+    "nomeAtual": "POP HIFU INTIMO ULTRASSOM MICRO E MACROFOCADO INTIMO",
+    "nomeProposto": "POP - HIFU Íntimo (Ultrassom Micro e Macrofocado)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q21001lewyx90fz1f0v",
+    "nomeAtual": "POP Higienizacao Maos",
+    "nomeProposto": "POP - Higienização das Mãos",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu2mbzkw000404la1s3s51dl",
+    "nomeAtual": "POP - INFILTRACAO INTRA ARTICULAR E PERIARTICULAR",
+    "nomeProposto": "POP - Infiltração Intra-articular e Periarticular",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr6b3zy9000104kyup5fmicg",
+    "nomeAtual": "POP INSERCAO DISPOSITIVO INTRAUTERINO DIU",
+    "nomeProposto": "POP - Inserção de Dispositivo Intrauterino (DIU)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr6d7njo000104jmsp9x4bnn",
+    "nomeAtual": "POP INSERCAO IMPLANTE CONTRACEPTIVO SUBDERMICO IMPLANON NXT",
+    "nomeProposto": "POP - Inserção de Implante Contraceptivo Subdérmico (Implanon NXT)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q2f001mewyxd0zzrh2m",
+    "nomeAtual": "POP Intercorrencias Emergencias",
+    "nomeProposto": "POP - Intercorrências e Emergências",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "c5a9108a-51bb-4ab4-a40a-49d281b27173",
+    "nomeAtual": "POP - INTRADERMOTERAPIA CAPILAR",
+    "nomeProposto": "POP - Intradermoterapia Capilar",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161ps1000vewyx8xs9hbag",
+    "nomeAtual": "POP - INTRADERMOTERAPIA PRESSURIZADA",
+    "nomeProposto": "POP - Intradermoterapia Pressurizada",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161psc000wewyxjbysy1lc",
+    "nomeAtual": "POP - JATO DE PLASMA",
+    "nomeProposto": "POP - Jato de Plasma",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqr7bfia000a04l1hrb1x07y",
+    "nomeAtual": "POP LASER CO2 E LASER CO2 FRACIONADO",
+    "nomeProposto": "POP - Laser CO2 e Laser CO2 Fracionado",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqr7bhho000c04l1zj84wuqs",
+    "nomeAtual": "POP LASER DE TULIO 1927NM LAVIEEN",
+    "nomeProposto": "POP - Laser de Túlio 1927 nm (Lavieen)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq86v4jb000a04l4d6exl4ku",
+    "nomeAtual": "POP LASERTERAPIA LEDTERAPIA MASCARA",
+    "nomeProposto": "POP - Laserterapia e Ledterapia com Máscara",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "Variante real (máscara de LED/laser), não é duplicata dos POPs de LED."
+  },
+  {
+    "id": "cmp2wj96k0000vkyx8kvf7dtn",
+    "nomeAtual": "POP - LASERTERAPIA EM AFECCOES",
+    "nomeProposto": "POP - Laserterapia em Afecções",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "efc1eea5-bd23-46e2-ad49-77a10ea49a6b",
+    "nomeAtual": "POP - LASERTERAPIA POS CIRURGICA",
+    "nomeProposto": "POP - Laserterapia Pós-cirúrgica",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "10cc6598-dd9b-442e-b3e6-fddf08e1f340",
+    "nomeAtual": "POP - LASERTERAPIA POS FURO E PIERCING",
+    "nomeProposto": "POP - Laserterapia Pós-furo e Piercing",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmszzcshy000204i5yav6l3gb",
+    "nomeAtual": "POP - LASH LIFTING",
+    "nomeProposto": "POP - Lash Lifting",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpei0mut002e3c1ocq9qt2c1",
+    "nomeAtual": "POP - LEDTERAPIA",
+    "nomeProposto": "POP - Ledterapia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "desativar",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): mesmo procedimento de 'POP - Fototerapia com LED'. Mais antigo (20/05), nunca usado."
+  },
+  {
+    "id": "cmqdshwph000a04lak632ab5x",
+    "nomeAtual": "POP LIBERACAO MIOFASCIAL COM VENTOSA",
+    "nomeProposto": "POP - Liberação Miofascial com Ventosa",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q2s001newyxjjc9uwsd",
+    "nomeAtual": "POP Limpeza Pele",
+    "nomeProposto": "POP - Limpeza de Pele",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfohumr000h04kw2s92z431",
+    "nomeAtual": "POP LIMPEZA DE PELE COM RECURSOS ELETROTERAPEUTICOS",
+    "nomeProposto": "POP - Limpeza de Pele com Recursos Eletroterapêuticos",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q40001qewyxqabai1xm",
+    "nomeAtual": "POP Limpeza Superficies",
+    "nomeProposto": "POP - Limpeza de Superfícies",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q3f001oewyxhg8dyoek",
+    "nomeAtual": "POP LIMPEZA PURIFICADOR AGUA",
+    "nomeProposto": "POP - Limpeza do Purificador de Água",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q3p001pewyxcbvkcczz",
+    "nomeAtual": "POP Limpeza Refrigerador",
+    "nomeProposto": "POP - Limpeza do Refrigerador",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp2wj96z0001vkyx4fy7m6q1",
+    "nomeAtual": "POP - LIMPEZA E MANUTENCAO CLIMATIZACAO",
+    "nomeProposto": "POP - Limpeza e Manutenção da Climatização",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q4c001rewyx2nmpuu5o",
+    "nomeAtual": "POP Lip Glow",
+    "nomeProposto": "POP - Lip Glow",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq86v3hq000704l4kzazwpik",
+    "nomeAtual": "POP LIPO ENZIMATICA GORDURA LOCALIZADA E GLUTEOS",
+    "nomeProposto": "POP - Lipo Enzimática de Gordura Localizada e Glúteos",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "f6a779e6-fcff-45fe-95d7-191edb2498b1",
+    "nomeAtual": "POP - LIPO ENZIMATICA DE PAPADA",
+    "nomeProposto": "POP - Lipo Enzimática de Papada",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpwygcco000704l8us9yj8go",
+    "nomeAtual": "POP LOBULOMODELACAO LOBULOPLASTIA NAO CIRURGICA",
+    "nomeProposto": "POP - Lobulomodelação (Lobuloplastia Não Cirúrgica)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmrdf1dx4000204l2l959l97v",
+    "nomeAtual": "POP - MANEJO DE BOLSA DE COLOSTOMIA",
+    "nomeProposto": "POP - Manejo de Bolsa de Colostomia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5ck4xy000a04l5rag44gb4",
+    "nomeAtual": "POP - MANICURE E PEDICURE",
+    "nomeProposto": "POP - Manicure e Pedicure",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "69fdbffd-85b2-4ea9-9db7-db3dcf6c0607",
+    "nomeAtual": "POP - MANTA TERMICA",
+    "nomeProposto": "POP - Manta Térmica",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q4m001sewyxhx0onogt",
+    "nomeAtual": "POP Manutencao Equipamentos",
+    "nomeProposto": "POP - Manutenção de Equipamentos",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpeo7zxn0004t81ooulynw2a",
+    "nomeAtual": "POP - MASSAGEM MODELADORA",
+    "nomeProposto": "POP - Massagem Modeladora",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmquuqg8y000204k11duvxp3i",
+    "nomeAtual": "POP MASSAGEM TERAPEUTICA RELAXANTE E REDUTORA",
+    "nomeProposto": "POP - Massagem Terapêutica Relaxante e Redutora",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pt0000yewyx4gt1q8kn",
+    "nomeAtual": "POP - MESOTERAPIA E INTRADERMOTERAPIA",
+    "nomeProposto": "POP - Mesoterapia e Intradermoterapia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp2wj97d0002vkyx2439a39d",
+    "nomeAtual": "POP - MICROAGULHAMENTO",
+    "nomeProposto": "POP - Microagulhamento",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmquuqffh000104k13kszlidc",
+    "nomeAtual": "POP MICROPIGMENTACAO COM DERMOGRAFO",
+    "nomeProposto": "POP - Micropigmentação com Dermógrafo",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q4y001tewyx15y9rhuc",
+    "nomeAtual": "POP Micropigmentacao Labial",
+    "nomeProposto": "POP - Micropigmentação Labial",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "765724f8-419d-41b9-a206-3ffbb770b46e",
+    "nomeAtual": "POP - MICROTOX",
+    "nomeProposto": "POP - Microtox",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtcu43vr000204l1rssnyjmu",
+    "nomeAtual": "POP - NEBULIZACAO E INALOTERAPIA",
+    "nomeProposto": "POP - Nebulização e Inaloterapia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "d74334d3-19f8-477d-91e0-1c59eaf5864b",
+    "nomeAtual": "POP - ONDAS DE CHOQUE",
+    "nomeProposto": "POP - Ondas de Choque",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmppjpr9o000504kvg7r3bhmz",
+    "nomeAtual": "POP - OTOMODELACAO",
+    "nomeProposto": "POP - Otomodelação",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmppgtqev000104jy0qs5wcqa",
+    "nomeAtual": "POP - OZONIOTERAPIA",
+    "nomeProposto": "POP - Ozonioterapia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu4onq9o000104jtr7hrl8yi",
+    "nomeAtual": "POP - PEELING DE DIAMANTE MICRODERMOABRASAO",
+    "nomeProposto": "POP - Peeling de Diamante (Microdermoabrasão)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): fica: mais recente (16/09), revisado, faz par com 'TCLE - Peeling Físico (Microdermoabrasão)' do mesmo dia."
+  },
+  {
+    "id": "cmq86v0x5000104l489ej011q",
+    "nomeAtual": "POP PEELING ELETRICO FACIAL E CORPORAL",
+    "nomeProposto": "POP - Peeling Elétrico Facial e Corporal",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq86v0li000004l4aags3wr0",
+    "nomeAtual": "POP PEELING ELETRICO INTIMO",
+    "nomeProposto": "POP - Peeling Elétrico Íntimo",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqr7azx5000004l12gv8tvky",
+    "nomeAtual": "POP PEELING ENZIMATICO",
+    "nomeProposto": "POP - Peeling Enzimático",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpeo7zxs0005t81o0i48a0fj",
+    "nomeAtual": "POP - PEELING FISICO",
+    "nomeProposto": "POP - Peeling Físico",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "desativar",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): provável versão antiga de 'POP - Peeling de Diamante (Microdermoabrasão)' (20/05, 1 uso). Conferir: se descrever outros métodos físicos (cristal, esfoliação manual), manter e renomear 'POP - Peeling Físico (Geral)'."
+  },
+  {
+    "id": "cmq86v2fh000404l45c2ao1is",
+    "nomeAtual": "POP PEELING QUIMICO FACIAL E CORPORAL RETINOL 10 E MANDELICO 30",
+    "nomeProposto": "POP - Peeling Químico Facial e Corporal com Retinol 10% e Mandélico 30%",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq86v227000304l429k6svq0",
+    "nomeAtual": "POP PEELING QUIMICO INTIMO",
+    "nomeProposto": "POP - Peeling Químico Íntimo",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmujm0m39000004l23955rpio",
+    "nomeAtual": "POP - PEELING ULTRASSONICO",
+    "nomeProposto": "POP - Peeling Ultrassônico",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pta000zewyx2k0hr7sj",
+    "nomeAtual": "POP - PEELINGS QUIMICOS",
+    "nomeProposto": "POP - Peelings Químicos",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161ptm0010ewyx50a2lou0",
+    "nomeAtual": "POP - PEELINGS QUIMICOS ACIDO TRICLOROACETICO",
+    "nomeProposto": "POP - Peelings Químicos com Ácido Tricloroacético",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pu30011ewyxm4pts5jd",
+    "nomeAtual": "POP - PEIM ESCLEROTERAPIA",
+    "nomeProposto": "POP - PEIM (Escleroterapia)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hy8zo000b04jrc79rsabx",
+    "nomeAtual": "POP - PERFURACAO AURICULAR HUMANIZADA",
+    "nomeProposto": "POP - Perfuração Auricular Humanizada",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "Faz parte do conjunto de piercing de 01/07 (com Perfuração de Lóbulo e Cartilagem e Revitalização de Lóbulo, e o TCLE correspondente). Escopo de estúdio/perfuração, não do furo de orelha infantil."
+  },
+  {
+    "id": "cmr2hyb4w000d04jrdd1uqvsb",
+    "nomeAtual": "POP - PERFURACAO DE LOBULO E CARTILAGEM AURICULAR",
+    "nomeProposto": "POP - Perfuração de Lóbulo e Cartilagem Auricular",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hyfet000h04jrrt85fwvs",
+    "nomeAtual": "POP - PLASMA GEL AUTOLOGO",
+    "nomeProposto": "POP - Plasma Gel Autólogo",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmquuqhbm000304k1odtm2ipp",
+    "nomeAtual": "POP PODOLOGIA",
+    "nomeProposto": "POP - Podologia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqwf7ygg000304jsme9ash0z",
+    "nomeAtual": "POP POS OPERATORIO ESTETICO PROTOCOLO COMBINADO",
+    "nomeProposto": "POP - Pós-operatório Estético (Protocolo Combinado)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q58001uewyx1i1ynivc",
+    "nomeAtual": "POP Preenchimento Acido Hialuronico",
+    "nomeProposto": "POP - Preenchimento com Ácido Hialurônico",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "desativar",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): duplicata provável de 'POP - Preenchimento Dérmico com Ácido Hialurônico'. Mais antigo (11/05), nunca usado (0 documentos). Abrir os dois antes de desativar: o antigo tem 57 KB x 48 KB do novo."
+  },
+  {
+    "id": "cmqzcsi5u000004jygm3wudhg",
+    "nomeAtual": "POP PREENCHIMENTO DERMICO ACIDO HIALURONICO",
+    "nomeProposto": "POP - Preenchimento Dérmico com Ácido Hialurônico",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): mesmo procedimento do 'POP - Preenchimento com Ácido Hialurônico'. Este é o mais recente (29/06) e o que está em uso (3 documentos); casa com 'TCLE - Preenchimento Dérmico'."
+  },
+  {
+    "id": "cmp161q5h001vewyxqmx1hiy4",
+    "nomeAtual": "POP Preenchimento Labial",
+    "nomeProposto": "POP - Preenchimento Labial",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pug0012ewyx97y76yyf",
+    "nomeAtual": "POP - PRESCRICAO DE ENFERMAGEM",
+    "nomeProposto": "POP - Prescrição de Enfermagem",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q5w001wewyxfpgqldks",
+    "nomeAtual": "POP Prevencao Oclusao Vascular",
+    "nomeProposto": "POP - Prevenção de Oclusão Vascular",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pur0013ewyxnwx0fwih",
+    "nomeAtual": "POP - PREVENCAO E TRATAMENTO DE INTERCORRENCIAS VENOSAS",
+    "nomeProposto": "POP - Prevenção e Tratamento de Intercorrências Venosas",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q67001xewyx7jfnabtn",
+    "nomeAtual": "POP Processamento Materiais",
+    "nomeProposto": "POP - Processamento de Materiais",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pv20014ewyxqaqvnbw3",
+    "nomeAtual": "POP - PROCESSO DE ENFERMAGEM",
+    "nomeProposto": "POP - Processo de Enfermagem",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq882dsh000004l54szqp7wj",
+    "nomeAtual": "POP PUMP UP NOS GLUTEOS COM RADIOFREQUENCIA",
+    "nomeProposto": "POP - Pump Up nos Glúteos com Radiofrequência",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5ck8lt000d04l5wgcc04rw",
+    "nomeAtual": "POP - PUNCAO MANUTENCAO E RETIRADA DE ACESSO VENOSO PERIFERICO",
+    "nomeProposto": "POP - Punção, Manutenção e Retirada de Acesso Venoso Periférico",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "4ebd051a-b820-4ae8-b897-37b1308ee357",
+    "nomeAtual": "POP - RADIOFREQUÊNCIA",
+    "nomeProposto": "POP - Radiofrequência",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq86v487000904l40l7sw5ph",
+    "nomeAtual": "POP RADIOFREQUENCIA INTIMA ULTRAMED INTIMY",
+    "nomeProposto": "POP - Radiofrequência Íntima (Ultramed Intimy)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq86v2t5000504l4dmnc6ji4",
+    "nomeAtual": "POP RASTREABILIDADE DE INJETAVEIS LOTES E INSUMOS",
+    "nomeProposto": "POP - Rastreabilidade de Injetáveis, Lotes e Insumos",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q6j001yewyxw13n0ta2",
+    "nomeAtual": "POP Recebimento Armazenamento",
+    "nomeProposto": "POP - Recebimento e Armazenamento",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqwf7zcy000404jsvzk0smzr",
+    "nomeAtual": "POP REDUCAO DE MEDIDAS PROTOCOLO COMBINADO",
+    "nomeProposto": "POP - Redução de Medidas (Protocolo Combinado)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqwf7uc8000004jszk9voo9m",
+    "nomeAtual": "POP REDUCAO DE MEDIDAS RADIOFREQUENCIA BOTA COMPRESSIVA E MANTA TERMICA",
+    "nomeProposto": "POP - Redução de Medidas com Radiofrequência, Bota Compressiva e Manta Térmica",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtu623zf000404ie3trkp9cz",
+    "nomeAtual": "POP - REFLEXOTERAPIA PODAL",
+    "nomeProposto": "POP - Reflexoterapia Podal",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfohs1f000e04kw7z2uq6ax",
+    "nomeAtual": "POP REJUVENESCIMENTO FACIAL",
+    "nomeProposto": "POP - Rejuvenescimento Facial",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hy7t0000a04jrn8go1jo7",
+    "nomeAtual": "POP - REJUVENESCIMENTO INTIMO EXTERNO",
+    "nomeProposto": "POP - Rejuvenescimento Íntimo Externo",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr9dujbr000204kva1xu38vf",
+    "nomeAtual": "POP - REMOCAO DE PIGMENTACAO ESTETICA",
+    "nomeProposto": "POP - Remoção de Pigmentação Estética",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pve0015ewyxhgwqo0je",
+    "nomeAtual": "POP - RETIRADA DE PONTOS CIRURGICOS",
+    "nomeProposto": "POP - Retirada de Pontos Cirúrgicos",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hy9ws000c04jrymnzc6cu",
+    "nomeAtual": "POP - REVITALIZACAO CORRECAO E FECHAMENTO DE LOBULO AURICULAR",
+    "nomeProposto": "POP - Revitalização, Correção e Fechamento de Lóbulo Auricular",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q6u001zewyxw9b8mfc1",
+    "nomeAtual": "POP Rinomodelacao",
+    "nomeProposto": "POP - Rinomodelação",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pvw0016ewyxkr7ck2ko",
+    "nomeAtual": "POP - SKINBOOSTER",
+    "nomeProposto": "POP - Skinbooster",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5el171000404l6jcwhroti",
+    "nomeAtual": "POP - SPA DOS PES PLASTICA DOS PES",
+    "nomeProposto": "POP - Spa dos Pés (Plástica dos Pés)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmsvr27ya000004l1fns0zo3s",
+    "nomeAtual": "POP - SUBCISAO",
+    "nomeProposto": "POP - Subcisão",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "c1e8e472-6991-4bc1-bf8b-12b167395802",
+    "nomeAtual": "POP - TAPING POS CIRURGICO",
+    "nomeProposto": "POP - Taping Pós-cirúrgico",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtu61zt5000204ie0kgf8mwa",
+    "nomeAtual": "POP - TECARTERAPIA",
+    "nomeProposto": "POP - Tecarterapia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtj3al6i000204kzayi37e38",
+    "nomeAtual": "POP - TENS",
+    "nomeProposto": "POP - TENS",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfohr5q000d04kw0is67ivp",
+    "nomeAtual": "POP TERAPIA CAPILAR ALOPECIA E CALVICIE",
+    "nomeProposto": "POP - Terapia Capilar para Alopecia e Calvície",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtu61x72000004ie3383fgm8",
+    "nomeAtual": "POP - TERAPIA DE FLORAIS",
+    "nomeProposto": "POP - Terapia de Florais",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pwb0017ewyx34fnr8sc",
+    "nomeAtual": "POP - TERAPIA INJETAVEL E ADMINISTRACAO DE MEDICAMENTOS",
+    "nomeProposto": "POP - Terapia Injetável e Administração de Medicamentos",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161pwp0018ewyxol384zt4",
+    "nomeAtual": "POP - TERAPIA ORTOMOLECULAR INTRAVENOSA",
+    "nomeProposto": "POP - Terapia Ortomolecular Intravenosa",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "f3262c11-f384-4f55-9e6e-bc741d5f972c",
+    "nomeAtual": "POP - TERAPIAS COMBINADAS",
+    "nomeProposto": "POP - Terapias Combinadas",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqdshx01000b04laubauv4rq",
+    "nomeAtual": "POP TERAPIAS MANUAIS CORPORAIS",
+    "nomeProposto": "POP - Terapias Manuais Corporais",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq9g7aj1000004kyqyt2nhoo",
+    "nomeAtual": "POP TERAPIAS REGENERATIVAS PDRN EXOSSOMOS E REGENERADORES CELULARES",
+    "nomeProposto": "POP - Terapias Regenerativas (PDRN, Exossomos e Regeneradores Celulares)",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161px00019ewyx47a5of41",
+    "nomeAtual": "POP - TESTES RAPIDOS DIAGNOSTICOS",
+    "nomeProposto": "POP - Testes Rápidos Diagnósticos",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q740020ewyxqkaghz6k",
+    "nomeAtual": "POP Toxina Botulinica",
+    "nomeProposto": "POP - Toxina Botulínica",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfohsxq000f04kwcit46o3f",
+    "nomeAtual": "POP TRATAMENTO DE CICATRIZES DE ACNE",
+    "nomeProposto": "POP - Tratamento de Cicatrizes de Acne",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqdshuzp000504lakvglzkwr",
+    "nomeAtual": "POP TRATAMENTO DE ESTRIAS",
+    "nomeProposto": "POP - Tratamento de Estrias",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "1d96937f-ad1e-4935-80c5-cd313e7ffce9",
+    "nomeAtual": "POP - ULTRASSOM",
+    "nomeProposto": "POP - Ultrassom",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpwygc2f000604l8tb5emmk9",
+    "nomeAtual": "POP ULTRASSOM MICROFOCADO E MACROFOCADO",
+    "nomeProposto": "POP - Ultrassom Microfocado e Macrofocado",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q7f0021ewyxofpalfjd",
+    "nomeAtual": "POP Uso EPIs",
+    "nomeProposto": "POP - Uso de EPIs",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq7wob8k000004jsl9bklv8e",
+    "nomeAtual": "POP VALIDACAO E MONITORAMENTO DA ESTERILIZACAO",
+    "nomeProposto": "POP - Validação e Monitoramento da Esterilização",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqsguajl000004k1tdyx5btm",
+    "nomeAtual": "POP VAPOR DE OZONIO",
+    "nomeProposto": "POP - Vapor de Ozônio",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5ekyci000204l6ar2tibbz",
+    "nomeAtual": "POP - VENTOSATERAPIA",
+    "nomeProposto": "POP - Ventosaterapia",
+    "tipoAtual": "POP",
+    "tipoProposto": "POP",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqwblueb000004ju1e68qbxp",
+    "nomeAtual": "PROTOCOLO INTERCORRENCIAS SERVICO NAO INVASIVO",
+    "nomeProposto": "PROTOCOLO - Intercorrências em Serviço Não Invasivo",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q860023ewyxrstkcldn",
+    "nomeAtual": "PSP",
+    "nomeProposto": "PSP",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q8w0025ewyxb0mx8je4",
+    "nomeAtual": "Receituario Pos Procedimento",
+    "nomeProposto": "Receituário Pós-procedimento",
+    "tipoAtual": "RECEITUARIO",
+    "tipoProposto": "RECEITUARIO",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q980026ewyx541gd3lt",
+    "nomeAtual": "REGISTRO ESTERILIZACAO",
+    "nomeProposto": "REGISTRO - Esterilização",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtj3ajgs000004kz0bqt8hja",
+    "nomeAtual": "REGISTRO DE MANUTENCAO CALIBRACAO E SEGURANCA ELETRICA DOS EQUIPAMENTOS",
+    "nomeProposto": "REGISTRO - Manutenção, Calibração e Segurança Elétrica dos Equipamentos",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu2mc0ka000504la0e7vpmox",
+    "nomeAtual": "REGISTRO DO PROCEDIMENTO DE INFILTRACAO INTRA E PERIARTICULAR",
+    "nomeProposto": "REGISTRO - Procedimento de Infiltração Intra e Periarticular",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmszzcumm000004lck8vymyn9",
+    "nomeAtual": "REGISTRO TREINAMENTO INTERNO E CIENCIA DA EQUIPE",
+    "nomeProposto": "REGISTRO - Treinamento Interno e Ciência da Equipe",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr3d2mzx000004jrc6k3w8nb",
+    "nomeAtual": "REGULAMENTO INTERNO PROFISSIONAIS PARCEIROS E USO COMPARTILHADO DO ESPACO",
+    "nomeProposto": "Regulamento Interno de Profissionais Parceiros e Uso Compartilhado do Espaço",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmszzcwgl000204lcw16snhy1",
+    "nomeAtual": "Relacao Profissionais Atuantes",
+    "nomeProposto": "Relação de Profissionais Atuantes",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q9i0027ewyxpo1yo4o5",
+    "nomeAtual": "Relacao Servicos Equipamentos",
+    "nomeProposto": "Relação de Serviços e Equipamentos",
+    "tipoAtual": "OUTROS",
+    "tipoProposto": "OUTROS",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5ckacz000e04l5q3sxhoqd",
+    "nomeAtual": "TCLE - ACUPUNTURA",
+    "nomeProposto": "TCLE - Acupuntura",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr6b49cv000704kyar6g0xuq",
+    "nomeAtual": "TCLE ADMINISTRACAO ANESTESICO LOCAL",
+    "nomeProposto": "TCLE - Administração de Anestésico Local",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmrdf1uzf000304l2g4q47bf3",
+    "nomeAtual": "TCLE - ADMINISTRACAO DE MEDICAMENTOS IM E EV",
+    "nomeProposto": "TCLE - Administração de Medicamentos IM e EV",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqr7b8lr000504l1ydnuradh",
+    "nomeAtual": "TCLE ALTA FREQUENCIA",
+    "nomeProposto": "TCLE - Alta Frequência",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqr7bby3000704l11yy7nyib",
+    "nomeAtual": "TCLE APLICACAO DE ENZIMAS",
+    "nomeProposto": "TCLE - Aplicação de Enzimas",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hy4yo000804jruopqkbzb",
+    "nomeAtual": "TCLE - AROMATERAPIA",
+    "nomeProposto": "TCLE - Aromaterapia",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hy2yt000704jrkanyf2j6",
+    "nomeAtual": "TCLE - AURICULOTERAPIA",
+    "nomeProposto": "TCLE - Auriculoterapia",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5cjw83000404l547nez901",
+    "nomeAtual": "TCLE - AVALIACAO CAPILAR",
+    "nomeProposto": "TCLE - Avaliação Capilar",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161q9v0028ewyxl3074ll5",
+    "nomeAtual": "TCLE BB Glow",
+    "nomeProposto": "TCLE - BB Glow",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qa80029ewyxvnqy5mri",
+    "nomeAtual": "TCLE Bioestimuladores Colageno",
+    "nomeProposto": "TCLE - Bioestimuladores de Colágeno",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hy6vv000904jrsbjkkxec",
+    "nomeAtual": "TCLE - BIORREMODELADORES TECIDUAIS",
+    "nomeProposto": "TCLE - Biorremodeladores Teciduais",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hy1bz000604jr81liouvo",
+    "nomeAtual": "TCLE - BODY PIERCING",
+    "nomeProposto": "TCLE - Body Piercing",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqzbym5g000204kzxgqj5t56",
+    "nomeAtual": "TCLE BOTA COMPRESSIVA PRESSOTERAPIA",
+    "nomeProposto": "TCLE - Bota Compressiva (Pressoterapia)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmszzcrij000104i5ldt9p18h",
+    "nomeAtual": "TCLE - BROW LAMINATION",
+    "nomeProposto": "TCLE - Brow Lamination",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqr7b6u2000404l119z4h3d3",
+    "nomeAtual": "TCLE CARBOXITERAPIA",
+    "nomeProposto": "TCLE - Carboxiterapia",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfohor3000b04kwzv158vws",
+    "nomeAtual": "TCLE CAVITACAO LIPO SEM CORTE",
+    "nomeProposto": "TCLE - Cavitação (Lipo sem Corte)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2jsyee000104l1tp3g4kgh",
+    "nomeAtual": "TCLE - CAVITACAO ULTRASSONICA",
+    "nomeProposto": "TCLE - Cavitação Ultrassônica",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfoh9a1000104kwvm274tc8",
+    "nomeAtual": "TCLE CLAREAMENTO DE MELASMA MELANOSE E MANCHAS SENIS",
+    "nomeProposto": "TCLE - Clareamento de Melasma, Melanose e Manchas Senis",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqr7b1gi000104l1r5j5pdhk",
+    "nomeAtual": "TCLE CLAREAMENTO INTIMO",
+    "nomeProposto": "TCLE - Clareamento Íntimo",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr6d77j8000004jm0zr3db21",
+    "nomeAtual": "TCLE COLETA CITOPATOLOGICO MEIO LIQUIDO DNA HPV",
+    "nomeProposto": "TCLE - Coleta de Citopatológico em Meio Líquido e DNA-HPV",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr6b47la000604ky7akti3gr",
+    "nomeAtual": "TCLE CONSULTA ENFERMAGEM SAUDE MULHER SAUDE REPRODUTIVA",
+    "nomeProposto": "TCLE - Consulta de Enfermagem em Saúde da Mulher e Saúde Reprodutiva",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5cjt8e000204l5hs54kxtd",
+    "nomeAtual": "TCLE - CONSULTA E ACOMPANHAMENTO FARMACEUTICO",
+    "nomeProposto": "TCLE - Consulta e Acompanhamento Farmacêutico",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5cjurv000304l5a8v5xjvf",
+    "nomeAtual": "TCLE - CONSULTA E ACOMPANHAMENTO NUTRICIONAL",
+    "nomeProposto": "TCLE - Consulta e Acompanhamento Nutricional",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfohn4h000a04kwl55tx3ni",
+    "nomeAtual": "TCLE CORRENTE RUSSA ELETROESTIMULACAO",
+    "nomeProposto": "TCLE - Corrente Russa (Eletroestimulação)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "edbc23c5-f11d-403d-978e-1231b5abfee4",
+    "nomeAtual": "TCLE - CRIOLIPOLISE",
+    "nomeProposto": "TCLE - Criolipólise",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtcu41g3000004l1cqblai1e",
+    "nomeAtual": "TCLE - CURATIVO E CUIDADOS COM FERIDAS",
+    "nomeProposto": "TCLE - Curativo e Cuidados com Feridas",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmquuqm7s000704k1c0ge3nfq",
+    "nomeAtual": "TCLE DEPILACAO A CERA",
+    "nomeProposto": "TCLE - Depilação à Cera",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "desativar",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): mesmo procedimento de 'TCLE - Epilação à Cera'. Mais antigo (26/06), 1 uso. Não existe POP de 'Depilação à Cera'; o POP atual é 'Epilação à Cera'."
+  },
+  {
+    "id": "cmqfohito000704kwwt46c4ug",
+    "nomeAtual": "TCLE DEPILACAO A LASER",
+    "nomeProposto": "TCLE - Depilação a Laser",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfohh2b000604kwm5z1pb89",
+    "nomeAtual": "TCLE DEPILACAO A LUZ PULSADA",
+    "nomeProposto": "TCLE - Depilação à Luz Pulsada",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfohfnf000504kwmb813x44",
+    "nomeAtual": "TCLE DERMAPLANING",
+    "nomeProposto": "TCLE - Dermaplaning",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmquuqegr000004k1swor0ccb",
+    "nomeAtual": "TCLE DESIGN DE SOBRANCELHAS",
+    "nomeProposto": "TCLE - Design de Sobrancelhas",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hxznz000504jrcogz1yfp",
+    "nomeAtual": "TCLE - DRENAGEM LINFATICA",
+    "nomeProposto": "TCLE - Drenagem Linfática",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmquwt2q0000004jvt68d8qqb",
+    "nomeAtual": "TCLE DRENAGEM LINFATICA POS OPERATORIO ESTETICA",
+    "nomeProposto": "TCLE - Drenagem Linfática no Pós-operatório Estético",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmujm0ngv000104l25ax7l8v0",
+    "nomeAtual": "TCLE - ELETROLIFTING",
+    "nomeProposto": "TCLE - Eletrolifting",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5cjzcs000604l5pnu3974k",
+    "nomeAtual": "TCLE - ELETROPORACAO ESTETICA FACIAL CORPORAL E CAPILAR",
+    "nomeProposto": "TCLE - Eletroporação Estética Facial, Corporal e Capilar",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqsizf5m000004lbc6pg3bbu",
+    "nomeAtual": "TCLE ENDERMOTERAPIA",
+    "nomeProposto": "TCLE - Endermoterapia",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5el2is000504l6duxghul6",
+    "nomeAtual": "TCLE - EPILACAO A CERA",
+    "nomeProposto": "TCLE - Epilação à Cera",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): fica: mais recente (17/09), faz par com 'POP - Epilação à Cera' (mesmo lote)."
+  },
+  {
+    "id": "b6c08559-7933-43b7-89e0-fc4c7be7e727",
+    "nomeAtual": "TCLE - ESTETICA INTIMA",
+    "nomeProposto": "TCLE - Estética Íntima",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qan002aewyxj8lz6ajs",
+    "nomeAtual": "TCLE Estrias Plasma Bioestimulador",
+    "nomeProposto": "TCLE - Estrias com Plasma Bioestimulador",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpwyg973000004l8l6uog4zt",
+    "nomeAtual": "TCLE EXTENSAO DE CILIOS",
+    "nomeProposto": "TCLE - Extensão de Cílios",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmppjksvl000004kvgmzbhjc9",
+    "nomeAtual": "TCLE - FIOS DE PDO",
+    "nomeProposto": "TCLE - Fios de PDO",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): conferir junto com o POP de mesmo nome (28/05, 1 uso)."
+  },
+  {
+    "id": "cmp2wj98w0003vkyx94n04afb",
+    "nomeAtual": "TCLE Fios de Sustentacao de PDO",
+    "nomeProposto": "TCLE - Fios de Sustentação de PDO",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): conferir junto com o POP de mesmo nome (12/05, 1 uso)."
+  },
+  {
+    "id": "cmp2wj9990004vkyx1mvom0x9",
+    "nomeAtual": "TCLE Fotobiomodulacao Laserterapia",
+    "nomeProposto": "TCLE - Fotobiomodulação (Laserterapia)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqr7baio000604l1ayo2z8g9",
+    "nomeAtual": "TCLE FOTOTERAPIA COM LED E LUZ INTENSA PULSADA",
+    "nomeProposto": "TCLE - Fototerapia com LED e Luz Intensa Pulsada",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmppjkuw6000304kvn5pre4qu",
+    "nomeAtual": "TCLE - FURO DE ORELHA BEBES",
+    "nomeProposto": "TCLE - Furo de Orelha em Bebês",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmppjku31000204kv0eq3e7e3",
+    "nomeAtual": "TCLE - FURO HUMANIZADO E PIERCING ADULTOS",
+    "nomeProposto": "TCLE - Furo Humanizado e Piercing em Adultos",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qbw002dewyxhbmoeiw7",
+    "nomeAtual": "TCLE Harmonizacao Plasma Gel",
+    "nomeProposto": "TCLE - Harmonização com Plasma Gel",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qbe002cewyxu5n0k1i0",
+    "nomeAtual": "TCLE Harmonizacao Gluteos",
+    "nomeProposto": "TCLE - Harmonização de Glúteos",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qaz002bewyx22jtfb3y",
+    "nomeAtual": "TCLE Harmonizacao Facial",
+    "nomeProposto": "TCLE - Harmonização Facial",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qc8002eewyxxuj1xfn7",
+    "nomeAtual": "TCLE Hemoderivados PRP PRF",
+    "nomeProposto": "TCLE - Hemoderivados (PRP e PRF)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "36b1d393-1b1f-49c3-9624-9c5fb14e6964",
+    "nomeAtual": "TCLE - HIDROLIPOCLASIA",
+    "nomeProposto": "TCLE - Hidrolipoclasia",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq9g7ccu000304kyk01gm9dh",
+    "nomeAtual": "TCLE HIFU ULTRASSOM MACRO E MICROFOCADO",
+    "nomeProposto": "TCLE - HIFU (Ultrassom Macro e Microfocado)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu2mbypa000304la1lu6p3x8",
+    "nomeAtual": "TCLE - INFILTRACAO INTRA ARTICULAR E PERIARTICULAR",
+    "nomeProposto": "TCLE - Infiltração Intra-articular e Periarticular",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr6b45sz000504kyy897g0iv",
+    "nomeAtual": "TCLE INSERCAO DISPOSITIVO INTRAUTERINO DIU",
+    "nomeProposto": "TCLE - Inserção de Dispositivo Intrauterino (DIU)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr6b43tf000404kymgsq34w8",
+    "nomeAtual": "TCLE INSERCAO IMPLANTE CONTRACEPTIVO SUBDERMICO IMPLANON NXT",
+    "nomeProposto": "TCLE - Inserção de Implante Contraceptivo Subdérmico (Implanon NXT)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp2wj99o0005vkyxuwavrjnf",
+    "nomeAtual": "TCLE Jato de Plasma",
+    "nomeProposto": "TCLE - Jato de Plasma",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": "Genérico; faz par com 'POP - Jato de Plasma'. As variantes Blefaroplastia e Remoção de Sinais têm escopo próprio."
+  },
+  {
+    "id": "cmqfoheba000404kwhq4e7a32",
+    "nomeAtual": "TCLE JATO DE PLASMA BLEFAROPLASTIA SEM CORTE",
+    "nomeProposto": "TCLE - Jato de Plasma para Blefaroplastia sem Corte",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": "Variante específica."
+  },
+  {
+    "id": "cmqfohcti000304kw0027ivb0",
+    "nomeAtual": "TCLE JATO DE PLASMA REMOCAO DE SINAIS E PEQUENAS VERRUGAS",
+    "nomeProposto": "TCLE - Jato de Plasma para Remoção de Sinais e Pequenas Verrugas",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": "Variante específica."
+  },
+  {
+    "id": "cmqr7b57t000304l14ol2bdti",
+    "nomeAtual": "TCLE LASER CO2 E LASER CO2 FRACIONADO",
+    "nomeProposto": "TCLE - Laser CO2 e Laser CO2 Fracionado",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqr7b3bb000204l1z86e8fzb",
+    "nomeAtual": "TCLE LASER LAVIEEN LASER DE TULIO 1927NM",
+    "nomeProposto": "TCLE - Laser Lavieen (Laser de Túlio 1927 nm)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmppjwnsb000604kv9hvo2xhr",
+    "nomeAtual": "TCLE - LASERTERAPIA POS PROCEDIMENTO",
+    "nomeProposto": "TCLE - Laserterapia Pós-procedimento",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmszzcq2m000004i5p3ns3jpw",
+    "nomeAtual": "TCLE - LASH LIFTING",
+    "nomeProposto": "TCLE - Lash Lifting",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmszzcyd6000304lch02qcrg4",
+    "nomeAtual": "TCLE LIBERACAO MIOFASCIAL COM VENTOSA",
+    "nomeProposto": "TCLE - Liberação Miofascial com Ventosa",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qcj002fewyx9xqf2m2v",
+    "nomeAtual": "TCLE Limpeza Pele",
+    "nomeProposto": "TCLE - Limpeza de Pele",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq9g7dma000604kyntf9fy3v",
+    "nomeAtual": "TCLE LIPO ENZIMATICA",
+    "nomeProposto": "TCLE - Lipo Enzimática de Gordura Localizada e Glúteos",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "renomear variante",
+    "justificativa": "PROVISÓRIO (DOCX não lido; só metadados): o 'TCLE Lipo Enzimática' genérico foi criado em 11/06, um dia depois de 'POP - Lipo Enzimática de Gordura Localizada e Glúteos', no mesmo lote dos TCLEs que fecham os POPs de 10/06. Renomeado para casar com o POP e se separar do de Papada. Conferir no texto."
+  },
+  {
+    "id": "932cee71-0b75-45b9-bf3d-d745179a6e26",
+    "nomeAtual": "TCLE - LIPO ENZIMATICA PAPADA",
+    "nomeProposto": "TCLE - Lipo Enzimática de Papada",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": "Variante específica (papada); faz par com 'POP - Lipo Enzimática de Papada'."
+  },
+  {
+    "id": "cmpwygaso000404l8ydm1wr1l",
+    "nomeAtual": "TCLE LOBULOMODELACAO LOBULOPLASTIA NAO CIRURGICA",
+    "nomeProposto": "TCLE - Lobulomodelação (Lobuloplastia Não Cirúrgica)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5cjy0b000504l56c48hwbe",
+    "nomeAtual": "TCLE - MANICURE E PEDICURE",
+    "nomeProposto": "TCLE - Manicure e Pedicure",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfohlua000904kw0u63354d",
+    "nomeAtual": "TCLE MANTA TERMICA E PROTOCOLOS CORPORAIS ASSOCIADOS",
+    "nomeProposto": "TCLE - Manta Térmica e Protocolos Corporais Associados",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hxy66000404jrtn3zhe6p",
+    "nomeAtual": "TCLE - MASSAGEM MODELADORA",
+    "nomeProposto": "TCLE - Massagem Modeladora",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmquvp85q000004jrpz8d8pvy",
+    "nomeAtual": "TCLE MASSAGEM TERAPEUTICA RELAXANTE E REDUTOR",
+    "nomeProposto": "TCLE - Massagem Terapêutica Relaxante e Redutora",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmrm48x0i000004jt8ysu9ojy",
+    "nomeAtual": "TCLE - MESOTERAPIA E INTRADERMOTERAPIA CAPILAR",
+    "nomeProposto": "TCLE - Mesoterapia e Intradermoterapia Capilar",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmrm491ox000204jt5hplu9y6",
+    "nomeAtual": "TCLE - MESOTERAPIA E INTRADERMOTERAPIA FACIAL E CORPORAL",
+    "nomeProposto": "TCLE - Mesoterapia e Intradermoterapia Facial e Corporal",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp2wj9a00006vkyxetf0k89r",
+    "nomeAtual": "TCLE Mesoterapia Intradermoterapia Skinbooster",
+    "nomeProposto": "TCLE - Mesoterapia, Intradermoterapia e Skinbooster",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qcv002gewyxhq5w9g6t",
+    "nomeAtual": "TCLE MICROAGULHAMENTO DRUG",
+    "nomeProposto": "TCLE - Microagulhamento com Drug Delivery",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qd7002hewyxysmkhnsg",
+    "nomeAtual": "TCLE Micropigmentacao",
+    "nomeProposto": "TCLE - Micropigmentação",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": "Genérico antigo (11/05) e o mais usado (3 documentos); do mesmo lote de 'POP - Micropigmentação Labial' e da ficha de lábios. Variante distinta do Facial pelo nome; conferir se o texto é só labial (aí renomear 'TCLE - Micropigmentação Labial')."
+  },
+  {
+    "id": "cmquuqkvy000604k12v894ccy",
+    "nomeAtual": "TCLE MICROPIGMENTACAO FACIAL",
+    "nomeProposto": "TCLE - Micropigmentação Facial",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": "Faz par com 'POP - Micropigmentação com Dermógrafo' (mesmo lote 26/06). Escopo facial."
+  },
+  {
+    "id": "2397a209-63d4-418d-a20d-2dac399a5e4f",
+    "nomeAtual": "TCLE - MICROTOX",
+    "nomeProposto": "TCLE - Microtox",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtcu430u000104l1o9rv6dsu",
+    "nomeAtual": "TCLE - NEBULIZACAO E INALOTERAPIA",
+    "nomeProposto": "TCLE - Nebulização e Inaloterapia",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "05b5689d-fd81-4b48-9106-b7e7dc6a6292",
+    "nomeAtual": "TCLE - ONDAS DE CHOQUE",
+    "nomeProposto": "TCLE - Ondas de Choque",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmpwygbrg000504l8wdkr9e4t",
+    "nomeAtual": "TCLE OTOMODELACAO",
+    "nomeProposto": "TCLE - Otomodelação",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmppgtdtv000004jy4rl55egl",
+    "nomeAtual": "TCLE - OZONIOTERAPIA",
+    "nomeProposto": "TCLE - Ozonioterapia",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqsizkhq000304lbncvqnpon",
+    "nomeAtual": "TCLE PEELING ENZIMATICO",
+    "nomeProposto": "TCLE - Peeling Enzimático",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu4onpb4000004jtctyd4hd8",
+    "nomeAtual": "TCLE - PEELING FISICO MICRODERMOABRASAO",
+    "nomeProposto": "TCLE - Peeling Físico (Microdermoabrasão)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmujm0rr8000404l26cdy4ebk",
+    "nomeAtual": "TCLE - PEELING ULTRASSONICO",
+    "nomeProposto": "TCLE - Peeling Ultrassônico",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq9g7bgz000104kylmzq003v",
+    "nomeAtual": "TCLE PEELINGS ELETRICOS",
+    "nomeProposto": "TCLE - Peelings Elétricos",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp2wj9af0007vkyxo6t4qujh",
+    "nomeAtual": "TCLE Peelings Quimicos",
+    "nomeProposto": "TCLE - Peelings Químicos",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp2wj9at0008vkyxt3q0p19g",
+    "nomeAtual": "TCLE PEIM Escleroterapia",
+    "nomeProposto": "TCLE - PEIM (Escleroterapia)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hxw5m000304jr9jeufxtn",
+    "nomeAtual": "TCLE - PERFURACAO AURICULAR HUMANIZADA LOBULO E CARTILAGEM",
+    "nomeProposto": "TCLE - Perfuração Auricular Humanizada de Lóbulo e Cartilagem",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmt00mcoa000004iamgjvvq2w",
+    "nomeAtual": "TCLE PLASTICA DOS PES",
+    "nomeProposto": "TCLE - Plástica dos Pés",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "desativar",
+    "justificativa": "Duplicata: arquivo quase idêntico (24 bytes de diferença) ao 'TCLE - Spa dos Pés (Plástica dos Pés)', que é mais recente e casa com o POP. 0 usos. Mesmo assim, abrir os dois antes de desativar."
+  },
+  {
+    "id": "cmquuqnj2000804k1kmd93wkd",
+    "nomeAtual": "TCLE PODOLOGIA",
+    "nomeProposto": "TCLE - Podologia",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "07396008-ec7e-4b88-a770-4c5cb6523bb5",
+    "nomeAtual": "TCLE - PREENCHIMENTO DERMICO",
+    "nomeProposto": "TCLE - Preenchimento Dérmico",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qdk002iewyxi40mvnv2",
+    "nomeAtual": "TCLE Preenchimento Labial",
+    "nomeProposto": "TCLE - Preenchimento Labial",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqwf7xf8000204jsty4u8wi7",
+    "nomeAtual": "TCLE PROTOCOLO POS OPERATORIO ESTETICO",
+    "nomeProposto": "TCLE - Protocolo Pós-operatório Estético",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hxudo000204jrjnznkwis",
+    "nomeAtual": "TCLE - PRP PLASMA GEL E BIOESTIMULACAO AUTOLOGA",
+    "nomeProposto": "TCLE - PRP, Plasma Gel e Bioestimulação Autóloga",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq9g7d7z000504ky6yt4q94e",
+    "nomeAtual": "TCLE PUMP UP NOS GLUTEOS",
+    "nomeProposto": "TCLE - Pump Up nos Glúteos",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqsizh2w000104lba42h1tqu",
+    "nomeAtual": "TCLE RADIOFREQUENCIA",
+    "nomeProposto": "TCLE - Radiofrequência",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": "Genérico, o mais usado (4 documentos); faz par com 'POP - Radiofrequência'."
+  },
+  {
+    "id": "cmqfohqd5000c04kwjc7vvkqk",
+    "nomeAtual": "TCLE RADIOFREQUENCIA CORPORAL ENDERMOTERAPIA FLACIDEZ CELULITE E LIPEDEMA",
+    "nomeProposto": "TCLE - Radiofrequência Corporal e Endermoterapia para Flacidez, Celulite e Lipedema",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": "Variante específica (corporal + endermoterapia)."
+  },
+  {
+    "id": "cmq9g7byy000204ky3rww2v7g",
+    "nomeAtual": "TCLE RADIOFREQUENCIA INTIMA",
+    "nomeProposto": "TCLE - Radiofrequência Íntima",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": "Variante específica; faz par com 'POP - Radiofrequência Íntima (Ultramed Intimy)'."
+  },
+  {
+    "id": "cmqwf7vv1000104jsesb1gj30",
+    "nomeAtual": "TCLE REDUCAO DE MEDIDAS PROTOCOLO COMBINADO",
+    "nomeProposto": "TCLE - Redução de Medidas (Protocolo Combinado)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtu622ch000304ie0yogpnod",
+    "nomeAtual": "TCLE - REFLEXOTERAPIA PODAL",
+    "nomeProposto": "TCLE - Reflexoterapia Podal",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hxqlz000004jrndndi222",
+    "nomeAtual": "TCLE - REJUVENESCIMENTO INTIMO EXTERNO",
+    "nomeProposto": "TCLE - Rejuvenescimento Íntimo Externo",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr9duihf000104kvdmjma16f",
+    "nomeAtual": "TCLE - REMOCAO DE PIGMENTACAO ESTETICA",
+    "nomeProposto": "TCLE - Remoção de Pigmentação Estética",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmr2hxskr000104jr1oz5lrb0",
+    "nomeAtual": "TCLE - REVITALIZACAO CORRECAO E FECHAMENTO DE LOBULO AURICULAR",
+    "nomeProposto": "TCLE - Revitalização, Correção e Fechamento de Lóbulo Auricular",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qe0002jewyx49u3o31n",
+    "nomeAtual": "TCLE Rinomodelacao",
+    "nomeProposto": "TCLE - Rinomodelação",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqr7bdqa000804l1lmt9xfwu",
+    "nomeAtual": "TCLE SKINBOOSTER",
+    "nomeProposto": "TCLE - Skinbooster",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5el09x000304l6f1ujtlys",
+    "nomeAtual": "TCLE - SPA DOS PES PLASTICA DOS PES",
+    "nomeProposto": "TCLE - Spa dos Pés (Plástica dos Pés)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": "Fica: mais recente (17/09), faz par com 'POP - Spa dos Pés (Plástica dos Pés)'. Arquivo só 24 bytes maior que o 'TCLE - Plástica dos Pés' (596.804 x 596.780): praticamente o mesmo documento."
+  },
+  {
+    "id": "cmsvr29sq000104l1bab1m8kg",
+    "nomeAtual": "TCLE - SUBCISAO",
+    "nomeProposto": "TCLE - Subcisão",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmppjkth1000104kv1dol5vom",
+    "nomeAtual": "TCLE - TAPING POS CIRURGICO",
+    "nomeProposto": "TCLE - Taping Pós-cirúrgico",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtu61yv0000104ieicr97yv8",
+    "nomeAtual": "TCLE - TECARTERAPIA",
+    "nomeProposto": "TCLE - Tecarterapia",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfoh52e000004l5wy3t3bhw",
+    "nomeAtual": "TCLE TERAPIA CAPILAR ALOPECIA E CALVICIE",
+    "nomeProposto": "TCLE - Terapia Capilar para Alopecia e Calvície",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmtu6269b000504ieo6gnn3g2",
+    "nomeAtual": "TCLE - TERAPIA DE FLORAIS",
+    "nomeProposto": "TCLE - Terapia de Florais",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp2wj9b70009vkyxejr51jle",
+    "nomeAtual": "TCLE Terapia Injetavel Administracao Medicamentos",
+    "nomeProposto": "TCLE - Terapia Injetável e Administração de Medicamentos",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp2wj9bl000avkyxgx8limsk",
+    "nomeAtual": "TCLE Terapia Ortomolecular Suplementacao Intravenosa",
+    "nomeProposto": "TCLE - Terapia Ortomolecular e Suplementação Intravenosa",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfohkfj000804kw3jbuk9im",
+    "nomeAtual": "TCLE TERAPIAS MANUAIS CORPORAIS MASSAGEM DRENAGEM LINFATICA E VENTOSATERAPIA",
+    "nomeProposto": "TCLE - Terapias Manuais Corporais (Massagem, Drenagem Linfática e Ventosaterapia)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmq9g7cr1000404kytnld2faf",
+    "nomeAtual": "TCLE TERAPIAS REGENERATIVAS PDRN EXOSSOMOS",
+    "nomeProposto": "TCLE - Terapias Regenerativas (PDRN e Exossomos)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qed002kewyx5hmufepz",
+    "nomeAtual": "TCLE TOXINA BOTULINICA",
+    "nomeProposto": "TCLE - Toxina Botulínica",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfoh7kp000004kwxfr1cojd",
+    "nomeAtual": "TCLE TRATAMENTO DE CICATRIZES DE ACNE",
+    "nomeProposto": "TCLE - Tratamento de Cicatrizes de Acne",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqfohb1g000204kwmlac6h4l",
+    "nomeAtual": "TCLE TRATAMENTO DE ESTRIAS",
+    "nomeProposto": "TCLE - Tratamento de Estrias",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqux05ko000104jvcnnusw0q",
+    "nomeAtual": "TCLE ULTRASSOM ESTETICO",
+    "nomeProposto": "TCLE - Ultrassom Estético",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qen002lewyxe61mu2gt",
+    "nomeAtual": "TCLE Uso Imagem LGPD",
+    "nomeProposto": "TCLE - Uso de Imagem (LGPD)",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmqsiziqf000204lb21sgmhfq",
+    "nomeAtual": "TCLE VAPOR DE OZONIO",
+    "nomeProposto": "TCLE - Vapor de Ozônio",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5ekxic000104l6vqdut9pt",
+    "nomeAtual": "TCLE - VENTOSATERAPIA",
+    "nomeProposto": "TCLE - Ventosaterapia",
+    "tipoAtual": "TCLE",
+    "tipoProposto": "TCLE",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmu5cjrmx000104l520ft5yjl",
+    "nomeAtual": "TERMO DE CIENCIA E CONSENTIMENTO PARA AVALIACAO POR BIOIMPEDANCIA",
+    "nomeProposto": "TERMO - Ciência e Consentimento para Avaliação por Bioimpedância",
+    "tipoAtual": "TERMO",
+    "tipoProposto": "TERMO",
+    "acao": "manter",
+    "justificativa": ""
+  },
+  {
+    "id": "cmp161qez002mewyxcmsyv3h2",
+    "nomeAtual": "Termo Renuncia Recusa Tratamento",
+    "nomeProposto": "TERMO - Renúncia e Recusa de Tratamento",
+    "tipoAtual": "TERMO",
+    "tipoProposto": "TERMO",
+    "acao": "manter",
+    "justificativa": ""
+  }
+]
