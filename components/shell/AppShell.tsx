@@ -53,7 +53,9 @@ function NavigationLinks({ compact = false }: { compact?: boolean }) {
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-surface-page lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)]">
-      <aside className="hidden min-h-screen flex-col border-r border-shell-border bg-shell-bg px-5 py-6 lg:flex">
+      {/* Fixo na altura da janela: o menu, o tema e o Sair ficam sempre à mão,
+          sem acompanhar a rolagem do conteúdo. */}
+      <aside className="sticky top-0 hidden h-screen flex-col self-start overflow-y-auto border-r border-shell-border bg-shell-bg px-5 py-6 lg:flex">
         <Link href="/" aria-label="TreinaVISA, Pastas Sanitárias" className="mb-10 block rounded-md">
           <BrandLogo priority />
           <span className="mt-4 block font-display text-base text-shell-text">Pasta Sanitária</span>
