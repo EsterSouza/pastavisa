@@ -59,8 +59,26 @@ model Pasta {
   versaoPasta              String?
   prazosLidosEm            DateTime?
 
+  // Vão nos e-mails para a cliente (lib/emails): pasta digital no Drive e PDFs da apreciação no OneDrive.
+  linkDrive                String?
+  linkOneDrive             String?
+  senhaOneDrive            String?
+
   documentos               DocumentoGerado[]
   documentosUpload         DocumentoUpload[]
+  emailsEnviados           EmailEnviado[]
+}
+
+model EmailEnviado {
+  id        String   @id @default(cuid())
+  pastaId   String
+  pasta     Pasta    @relation(fields: [pastaId], references: [id], onDelete: Cascade)
+  tipo      String
+  para      String
+  assunto   String
+  enviadoEm DateTime @default(now())
+
+  @@index([pastaId, enviadoEm])
 }
 
 model DocumentoGerado {

@@ -53,6 +53,9 @@ interface FormData {
   apreciacaoFim: string;
   entregaFinal: string;
   versaoPasta: string;
+  linkDrive: string;
+  linkOneDrive: string;
+  senhaOneDrive: string;
 }
 
 // O banco guarda as datas de prazo ao meio-dia UTC; o input date quer AAAA-MM-DD.
@@ -203,6 +206,9 @@ export default function EditarPasta() {
           apreciacaoFim: diaDoBanco(pasta.apreciacaoFim),
           entregaFinal: diaDoBanco(pasta.entregaFinal),
           versaoPasta: pasta.versaoPasta || "",
+          linkDrive: pasta.linkDrive || "",
+          linkOneDrive: pasta.linkOneDrive || "",
+          senhaOneDrive: pasta.senhaOneDrive || "",
         };
         setForm(nextForm);
         setInitialPayload(JSON.stringify(buildPatchPayload(nextForm)));
@@ -546,6 +552,31 @@ export default function EditarPasta() {
               value={form.versaoPasta}
               onChange={(v) => set("versaoPasta", v)}
             />
+          </FormSection>
+
+          <FormSection
+            title="Links da pasta"
+            description="Entram nos e-mails para a cliente: o Drive nas boas-vindas e na entrega, o OneDrive na apreciação."
+          >
+            <TextField
+              label="Pasta digital da cliente (Google Drive)"
+              placeholder="https://drive.google.com/drive/folders/..."
+              value={form.linkDrive}
+              onChange={(v) => set("linkDrive", v)}
+            />
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_16rem]">
+              <TextField
+                label="Pasta dos PDFs (OneDrive)"
+                placeholder="https://..."
+                value={form.linkOneDrive}
+                onChange={(v) => set("linkOneDrive", v)}
+              />
+              <TextField
+                label="Senha do link do OneDrive"
+                value={form.senhaOneDrive}
+                onChange={(v) => set("senhaOneDrive", v)}
+              />
+            </div>
           </FormSection>
 
           <FormSection

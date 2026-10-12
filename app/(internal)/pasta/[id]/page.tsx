@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
+import { EmailsCliente } from "@/components/pasta/EmailsCliente";
 import { PastaHeader } from "@/components/pasta/PastaHeader";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 import { Button, buttonClass } from "@/components/ui/Button";
@@ -35,6 +36,13 @@ interface Pasta {
   clienteRtNome: string | null;
   clienteLogoPath: string | null;
   legislacaoIds: string | null;
+  clienteProprietarioNome: string | null;
+  clienteEmail: string | null;
+  inicioProjeto: string | null;
+  versaoPasta: string | null;
+  linkDrive: string | null;
+  linkOneDrive: string | null;
+  senhaOneDrive: string | null;
   documentos: Array<{
     id: string;
     nomeArquivo: string;
@@ -559,6 +567,8 @@ export default function PastaDetalhe() {
               </ul>
             </Card>
           )}
+
+          <EmailsCliente pastaId={id} pasta={pasta} documentosGerados={gerados} />
 
           <Card className="p-4">
             <h2 className="font-display text-base text-ink">Dados da cliente</h2>

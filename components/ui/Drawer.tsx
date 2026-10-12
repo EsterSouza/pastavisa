@@ -4,6 +4,8 @@ import { useRef, type ReactNode } from "react";
 import { buttonClass } from "@/components/ui/Button";
 import { useDialogKeyboard } from "@/components/ui/useDialogKeyboard";
 
+const LARGURAS = { md: "max-w-xl", lg: "max-w-3xl", xl: "max-w-6xl" } as const;
+
 /**
  * Painel lateral para tarefas de apoio (revisar legislações, importar). A tela
  * principal continua visível atrás, e o painel não empurra a lista para baixo.
@@ -23,8 +25,8 @@ export function Drawer({
   onClose: () => void;
   children: ReactNode;
   rodape?: ReactNode;
-  /** "lg" para conteúdo em grade, como a biblioteca de variáveis. */
-  largura?: "md" | "lg";
+  /** "lg" para conteúdo em grade, como a biblioteca de variáveis; "xl" para formulário com prévia ao lado. */
+  largura?: "md" | "lg" | "xl";
 }) {
   const painelRef = useRef<HTMLDivElement>(null);
   const fecharRef = useRef<HTMLButtonElement>(null);
@@ -45,7 +47,7 @@ export function Drawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="drawer-titulo"
-        className={`flex h-full w-full ${largura === "lg" ? "max-w-3xl" : "max-w-xl"} flex-col border-l border-gray-200 bg-surface-card shadow-lg`}
+        className={`flex h-full w-full ${LARGURAS[largura]} flex-col border-l border-gray-200 bg-surface-card shadow-lg`}
       >
         <div className="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-4">
           <div className="min-w-0">

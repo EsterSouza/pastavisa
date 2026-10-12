@@ -43,6 +43,9 @@ const PASTA_EDIT_FIELDS = [
   "docAno",
   "legislacaoIds",
   "versaoPasta",
+  "linkDrive",
+  "linkOneDrive",
+  "senhaOneDrive",
 ] as const;
 
 // Chegam como AAAA-MM-DD (input date) ou vazias.
