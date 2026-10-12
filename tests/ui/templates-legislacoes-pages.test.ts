@@ -62,6 +62,18 @@ function rotear(rotas: Rota[]) {
   });
 }
 
+/** As ações secundárias de cada template ficam no menu "⋯" da linha. */
+function escolherNoMenu(nomeTemplate: string, acao: string) {
+  fireEvent.click(screen.getByRole("button", { name: `Mais ações de ${nomeTemplate}` }));
+  fireEvent.click(screen.getByRole("menuitem", { name: acao }));
+}
+
+/** A importação e o formulário manual moram no painel "Importar templates". */
+function abrirImportacao() {
+  fireEvent.click(screen.getByRole("button", { name: "+ Importar templates" }));
+  return screen.getByRole("dialog", { name: "Importar templates" });
+}
+
 beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
@@ -105,9 +117,11 @@ describe("página de templates", () => {
     render(createElement(Templates));
     await screen.findByText(/Nenhum template cadastrado/);
 
-    fireEvent.click(screen.getByRole("button", { name: "Adicionar template" }));
+    const painel = abrirImportacao();
+    fireEvent.click(within(painel).getByText("Adicionar um template escolhendo tipo e cabeçalho"));
+    fireEvent.click(within(painel).getByRole("button", { name: "Adicionar template" }));
 
-    expect(await screen.findByText("Nome e arquivo são obrigatórios.")).toBeInTheDocument();
+    expect(await within(painel).findByText("Nome e arquivo são obrigatórios.")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalledWith("/api/templates", expect.objectContaining({ method: "POST" }));
   });
 
@@ -120,15 +134,28 @@ describe("página de templates", () => {
         body: { results: [{ nome: "POP Novo", status: "importado", tipo: "POP", variaveis: 3, errosValidacao: 0 }] },
       },
     ]);
+    // Os arquivos sobem um por vez: o segundo volta com erro do servidor.
+    const rotas = fetchMock.getMockImplementation()!;
+    let enviados = 0;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (String(url).endsWith("/bulk-import") && ++enviados === 2) {
+        return jsonResponse(400, { error: "DOCX corrompido." });
+      }
+      return rotas(url, init);
+    });
     render(createElement(Templates));
     await screen.findByText(/Nenhum template cadastrado/);
 
-    const arquivo = new File(["conteudo"], "POP Novo.docx", { type: "application/vnd.openxmlformats" });
-    fireEvent.change(screen.getByLabelText("Selecionar arquivos DOCX para importação em lote"), { target: { files: [arquivo] } });
-    fireEvent.click(screen.getByRole("button", { name: /Importar\/atualizar 1 template/ }));
+    const painel = abrirImportacao();
+    const tipo = { type: "application/vnd.openxmlformats" };
+    const arquivos = [new File(["conteudo"], "POP Novo.docx", tipo), new File(["x"], "POP Quebrado.docx", tipo)];
+    fireEvent.change(within(painel).getByLabelText(/Arraste os arquivos \.docx/), { target: { files: arquivos } });
+    fireEvent.click(within(painel).getByRole("button", { name: "Importar ou atualizar 2 templates" }));
 
-    expect(await screen.findByText(/1 novo\(s\), 0 atualizado\(s\), 0 com erro/)).toBeInTheDocument();
-    expect(screen.getByText("importado")).toBeInTheDocument();
+    expect(await within(painel).findByText(/1 novo\(s\), 0 atualizado\(s\), 1 com erro/)).toBeInTheDocument();
+    expect(within(painel).getByText("importado")).toBeInTheDocument();
+    expect(within(painel).getByText("POP Quebrado")).toBeInTheDocument();
+    expect(within(painel).getByText("DOCX corrompido.")).toBeInTheDocument();
   });
 
   it("duplica um template existente", async () => {
@@ -139,7 +166,7 @@ describe("página de templates", () => {
     render(createElement(Templates));
     await screen.findByText("MBP Clínica Aurora");
 
-    fireEvent.click(screen.getByTitle("Duplicar template"));
+    escolherNoMenu("MBP Clínica Aurora", "Duplicar");
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith("/api/templates/t1/duplicar", expect.objectContaining({ method: "POST" }))
@@ -154,9 +181,9 @@ describe("página de templates", () => {
     render(createElement(Templates));
     await screen.findByText("MBP Clínica Aurora");
 
-    fireEvent.click(screen.getByTitle("Excluir template"));
+    escolherNoMenu("MBP Clínica Aurora", "Excluir…");
 
-    const dialogo = screen.getByRole("dialog");
+    const dialogo = screen.getByRole("dialog", { name: "Excluir template?" });
     expect(within(dialogo).getByText("MBP Clínica Aurora")).toBeInTheDocument();
 
     fireEvent.click(within(dialogo).getByRole("button", { name: "Excluir" }));
@@ -210,7 +237,7 @@ describe("página de templates", () => {
     render(createElement(Templates));
     await screen.findByText("MBP Clínica Aurora");
 
-    fireEvent.click(screen.getByTitle("Validar variáveis do template"));
+    escolherNoMenu("MBP Clínica Aurora", "Validar variáveis");
 
     expect(await screen.findByText("Tag desconhecida encontrada.")).toBeInTheDocument();
     expect(screen.getByText("{tag_inexistente}")).toBeInTheDocument();
@@ -240,10 +267,10 @@ describe("página de templates", () => {
     render(createElement(Templates));
     await screen.findByText("MBP Clínica Aurora");
 
-    fireEvent.click(screen.getByTitle("Ver e restaurar versões anteriores"));
-    await screen.findByText("Versões do template");
+    escolherNoMenu("MBP Clínica Aurora", "Versões anteriores");
+    const versoes = await screen.findByRole("dialog", { name: "Versões do template" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Restaurar" }));
+    fireEvent.click(within(versoes).getByRole("button", { name: "Restaurar" }));
     const dialogo = await screen.findByRole("dialog", { name: "Restaurar esta versão?" });
     fireEvent.click(within(dialogo).getByRole("button", { name: "Restaurar versão" }));
 

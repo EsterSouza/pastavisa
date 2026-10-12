@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import Dashboard from "@/app/(internal)/page";
 import NovaPasta from "@/app/(internal)/pasta/nova/page";
 import PastaDetalhe from "@/app/(internal)/pasta/[id]/page";
@@ -42,22 +42,50 @@ const PAGINAS_INTERNAS = [
   "app/(internal)/pasta/[id]/corrigir-lote/page.tsx",
 ];
 
+/** Dia no formato do banco (meio-dia UTC), contado a partir de hoje no fuso local. */
+function diaDaqui(dias: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  return `${new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)}T12:00:00.000Z`;
+}
+
+// `prazosLidosEm` preenchido: sem ele a lista relê o Documentos em Elaboração
+// em segundo plano, o que não é o assunto destes testes.
 const PASTAS = [
   {
     id: "p1",
     status: "concluida",
     criadaEm: "2026-08-10T12:00:00.000Z",
+    concluidaEm: null,
     clienteNomeFantasia: "Clínica Aurora",
     clienteEstado: "PA",
+    apreciacaoInicio: diaDaqui(-20),
+    apreciacaoFim: diaDaqui(-15),
+    prazosLidosEm: "2026-10-12T12:00:00.000Z",
     documentos: [{ id: "d1", status: "gerado" }],
   },
   {
     id: "p2",
     status: "rascunho",
     criadaEm: "2026-08-15T12:00:00.000Z",
+    concluidaEm: null,
     clienteNomeFantasia: "Estética Bela Vida",
     clienteEstado: "SP",
+    apreciacaoInicio: null,
+    prazosLidosEm: "2026-10-12T12:00:00.000Z",
     documentos: [],
+  },
+  {
+    id: "p3",
+    status: "rascunho",
+    criadaEm: "2026-08-01T12:00:00.000Z",
+    concluidaEm: null,
+    clienteNomeFantasia: "Odonto Sorriso",
+    clienteEstado: "RJ",
+    apreciacaoInicio: diaDaqui(2),
+    apreciacaoFim: diaDaqui(4),
+    prazosLidosEm: "2026-10-12T12:00:00.000Z",
+    documentos: [{ id: "d2", status: "pendente" }],
   },
 ];
 
@@ -79,17 +107,36 @@ async function renderDashboard() {
   await screen.findByText("Clínica Aurora");
 }
 
+/** Nomes das pastas na ordem em que a lista mostra. */
+function ordemDasPastas(): string[] {
+  const lista = screen.getByRole("region", { name: "Lista de pastas" });
+  return within(lista)
+    .getAllByRole("link")
+    .map((link) => link.textContent ?? "");
+}
+
+/** Excluir, concluir e reabrir ficam no menu "⋯" de cada linha. */
+function escolherNoMenu(menu: string, acao: string) {
+  fireEvent.click(screen.getByRole("button", { name: menu }));
+  fireEvent.click(screen.getByRole("menuitem", { name: acao }));
+}
+
 describe("dashboard de pastas", () => {
-  it("lista as pastas com as mais recentes primeiro", async () => {
+  it("ordena pelo prazo mais próximo, com sem prazo e concluídas no fim", async () => {
     await renderDashboard();
 
-    const nomes = screen.getAllByRole("link").map((link) => link.textContent);
-    const bela = nomes.findIndex((nome) => nome?.includes("Estética Bela Vida"));
-    const aurora = nomes.findIndex((nome) => nome?.includes("Clínica Aurora"));
+    // p3 é a mais antiga, mas a apreciação dela começa em 2 dias.
+    expect(ordemDasPastas()).toEqual(["Odonto Sorriso", "Estética Bela Vida", "Clínica Aurora"]);
+    expect(screen.getByText("Apreciação em 2 dias")).toBeInTheDocument();
+    expect(screen.getByText("Sem prazo")).toBeInTheDocument();
+  });
 
-    // p2 foi criada depois de p1.
-    expect(bela).toBeLessThan(aurora);
-    expect(screen.getByRole("heading", { name: "Recentes" })).toBeInTheDocument();
+  it("ordena pelas criadas por último quando pedido", async () => {
+    await renderDashboard();
+
+    fireEvent.change(screen.getByLabelText("Ordenar pastas"), { target: { value: "recentes" } });
+
+    expect(ordemDasPastas()).toEqual(["Estética Bela Vida", "Clínica Aurora", "Odonto Sorriso"]);
   });
 
   it("filtra por busca ignorando acento e caixa", async () => {
@@ -99,13 +146,15 @@ describe("dashboard de pastas", () => {
 
     expect(screen.queryByText("Clínica Aurora")).not.toBeInTheDocument();
     expect(screen.getByText("Estética Bela Vida")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Resultados" })).toBeInTheDocument();
+    expect(screen.getByText("Cliente · 1 de 3")).toBeInTheDocument();
   });
 
-  it("filtra por status e mostra a contagem de cada um", async () => {
+  it("filtra por situação e mostra a contagem de cada uma", async () => {
     await renderDashboard();
 
-    const concluidas = screen.getByRole("button", { name: /concluída: 1 pasta/i });
+    const filtros = screen.getByRole("group", { name: "Filtrar por situação" });
+    expect(within(filtros).getByRole("button", { name: /^Em produção\s*2$/ })).toBeInTheDocument();
+    const concluidas = within(filtros).getByRole("button", { name: /^Concluídas\s*1$/ });
     expect(concluidas).toHaveAttribute("aria-pressed", "false");
 
     fireEvent.click(concluidas);
@@ -148,7 +197,7 @@ describe("dashboard de pastas", () => {
   it("pede confirmação antes de excluir, com foco preso no diálogo", async () => {
     await renderDashboard();
 
-    fireEvent.click(screen.getAllByRole("button", { name: /excluir/i })[0]);
+    escolherNoMenu("Mais ações de Clínica Aurora", "Excluir pasta…");
 
     const dialogo = screen.getByRole("dialog");
     expect(dialogo).toHaveAttribute("aria-modal", "true");
@@ -208,8 +257,14 @@ describe("as seis páginas internas usam o mesmo kit de UI", () => {
 
   it("mantém as rotas e ações do fluxo em cada página", () => {
     const detalhe = read("app/(internal)/pasta/[id]/page.tsx");
-    for (const rota of ["/editar", "/processar", "/corrigir-lote", "/duplicar", "/download"]) {
+    for (const rota of ["/editar", "/processar", "/duplicar", "/download"]) {
       expect(detalhe).toContain(rota);
+    }
+
+    // As abas de uma pasta ficam no cabeçalho comum às telas dela.
+    const cabecalho = read("components/pasta/PastaHeader.tsx");
+    for (const rota of ["/editar", "/processar", "/varredura", "/corrigir-lote"]) {
+      expect(cabecalho).toContain(rota);
     }
 
     const processar = read("app/(internal)/pasta/[id]/processar/page.tsx");
@@ -255,7 +310,10 @@ const PASTA_COMPLETA = {
   ],
 };
 
-/** Devolve o payload da primeira chave que casa com a URL pedida. */
+const EMAILS_VAZIO = { smtpConfigurado: false, remetente: "", enviados: [] };
+
+/** Devolve o payload da primeira chave que casa com a URL pedida. A ordem
+ * importa: `/api/pastas/p1/emails` também contém `/api/pastas/p1`. */
 function rotearFetch(rotas: Array<[string, unknown]>) {
   fetchMock.mockImplementation(async (url: string) => {
     const rota = rotas.find(([chave]) => String(url).includes(chave));
@@ -271,25 +329,64 @@ function rotearFetch(rotas: Array<[string, unknown]>) {
 
 describe("detalhe da pasta", () => {
   it("mostra resumo, pendências acionáveis e o erro com a origem nomeada", async () => {
-    rotearFetch([["/api/pastas/p1", PASTA_COMPLETA]]);
+    rotearFetch([
+      ["/api/pastas/p1/emails", EMAILS_VAZIO],
+      ["/api/pastas/p1", PASTA_COMPLETA],
+    ]);
     render(createElement(PastaDetalhe));
 
     await screen.findByRole("heading", { name: "Clínica Aurora", level: 1 });
 
     // Resumo
-    expect(screen.getByText("Belém / PA")).toBeInTheDocument();
-    expect(screen.getByText("0 de 1")).toBeInTheDocument();
+    expect(screen.getByText("Belém / PA · 1 documento")).toBeInTheDocument();
+    expect(screen.getByText("0 de 1 gerados")).toBeInTheDocument();
 
-    // Pendências nomeiam o que falta e levam para onde resolver.
-    expect(screen.getByText(/Dados do cliente faltando: responsável técnico/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /completar cadastro/i })).toHaveAttribute(
+    // A conferência de entrega nomeia o que falta e leva para onde resolver.
+    const conferencia = screen.getByRole("region", { name: "Conferência de entrega" });
+    expect(within(conferencia).getByText("Dados da cliente incompletos")).toBeInTheDocument();
+    expect(within(conferencia).getByText("Falta: responsável técnico.")).toBeInTheDocument();
+    expect(within(conferencia).getByRole("link", { name: "Completar dados" })).toHaveAttribute(
       "href",
       "/pasta/p1/editar"
     );
-    expect(screen.getByText(/1 documento\(s\) terminaram com erro/i)).toBeInTheDocument();
+    expect(within(conferencia).getByText("1 documento(s) com erro na geração")).toBeInTheDocument();
+    expect(within(conferencia).getByRole("link", { name: "Regerar" })).toHaveAttribute(
+      "href",
+      "/pasta/p1/processar"
+    );
 
     // O erro do documento diz qual subsistema falhou.
-    expect(screen.getByText("Falha no template")).toBeInTheDocument();
+    expect(screen.getByText("Falha no template:")).toBeInTheDocument();
+  });
+
+  it("mostra as etapas de e-mail para a cliente com o que já foi enviado", async () => {
+    rotearFetch([
+      [
+        "/api/pastas/p1/emails",
+        {
+          ...EMAILS_VAZIO,
+          enviados: [
+            { id: "e1", tipo: "boas-vindas", para: "cliente@exemplo.com", assunto: "Boas-vindas", enviadoEm: "2026-10-01T13:00:00.000Z" },
+          ],
+        },
+      ],
+      ["/api/pastas/p1", PASTA_COMPLETA],
+    ]);
+    render(createElement(PastaDetalhe));
+
+    const titulo = await screen.findByRole("heading", { name: "E-mails para a cliente" });
+    const card = titulo.parentElement as HTMLElement;
+
+    const etapas = within(card).getAllByRole("listitem");
+    expect(etapas.map((etapa) => etapa.querySelector("p")?.textContent)).toEqual([
+      "Boas-vindas",
+      "Período de apreciação",
+      "Entrega final",
+    ]);
+    await waitFor(() => expect(within(etapas[0]).getByText(/^Enviado em /)).toBeInTheDocument());
+    expect(within(etapas[0]).getByRole("button", { name: "Reenviar" })).toBeInTheDocument();
+    expect(within(etapas[1]).getByText("Não enviado")).toBeInTheDocument();
+    expect(within(etapas[1]).getByRole("button", { name: "Preparar" })).toBeInTheDocument();
   });
 
   it("não fica carregando para sempre quando o banco falha", async () => {
@@ -338,9 +435,11 @@ describe("geração de documentos", () => {
 
     await screen.findByText("POP - Limpeza de pele.docx");
 
-    expect(screen.getByRole("heading", { name: "Gerar documentos", level: 1 })).toBeInTheDocument();
+    // O título é o nome da cliente; a tela é a aba "Gerar documentos" do cabeçalho.
+    expect(await screen.findByRole("heading", { name: "Clínica Aurora", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Gerar documentos" })).toHaveAttribute("href", "/pasta/p1/processar");
     expect(screen.getByLabelText(/Template de POP - Limpeza de pele/i)).toBeInTheDocument();
-    expect(screen.getByText("Falha no template")).toBeInTheDocument();
+    expect(screen.getByText("Falha no template:")).toBeInTheDocument();
     expect(screen.getAllByText("Erro").length).toBeGreaterThan(0);
   });
 
@@ -381,8 +480,14 @@ describe("geração de documentos", () => {
       ["/api/pastas/p1", PASTA_COMPLETA],
     ]);
     render(createElement(ProcessarPasta));
+    await screen.findByText("POP - Limpeza de pele.docx");
 
-    expect(await screen.findByText(new RegExp(urlLonga.slice(0, 40)))).toBeInTheDocument();
+    // A lista completa de legislações abre no painel "Revisar legislações". O
+    // `overflow-wrap` do body (app/globals.css) quebra o token longo.
+    fireEvent.click(screen.getByRole("button", { name: "Revisar legislações" }));
+    const painel = await screen.findByRole("dialog");
+    expect(within(painel).getByText(new RegExp(urlLonga.slice(0, 40)))).toBeInTheDocument();
+    expect(read("app/globals.css")).toMatch(/body\s*\{[^}]*overflow-wrap:\s*break-word/);
 
     // O checkbox do documento fica dentro de um label com padding: sem ele o alvo
     // clicavel volta a ser a caixa nativa de 16px.
