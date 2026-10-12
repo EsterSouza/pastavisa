@@ -1,6 +1,7 @@
 ﻿<#
   Põe "Gerar PDFs (Word)" no botão direito das pastas (só para este usuário do
-  Windows). No Windows 11 a opção fica em "Mostrar mais opções".
+  Windows). No Windows 11 a opção fica em "Mostrar mais opções", e também em
+  botão direito > "Enviar para".
 
   Instalar: powershell -ExecutionPolicy Bypass -File instalar-menu.ps1
   Remover:  powershell -ExecutionPolicy Bypass -File instalar-menu.ps1 -Remover
@@ -15,11 +16,15 @@ $chaves = @(
   "HKCU:\Software\Classes\Directory\shell\PastaVISA.GerarPDFs",
   "HKCU:\Software\Classes\Directory\Background\shell\PastaVISA.GerarPDFs"
 )
+# Também em "Enviar para", que o Explorer sempre mostra (o botão direito já sumiu
+# da tela mesmo com a chave gravada).
+$atalho = Join-Path ([Environment]::GetFolderPath("SendTo")) "Gerar PDFs (Word).lnk"
 
 if ($Remover) {
   foreach ($chave in $chaves) {
     if (Test-Path $chave) { Remove-Item $chave -Recurse -Force }
   }
+  if (Test-Path $atalho) { Remove-Item $atalho -Force }
   Write-Host "Opção ""Gerar PDFs (Word)"" removida do botão direito."
   exit 0
 }
@@ -36,5 +41,12 @@ foreach ($chave in $chaves) {
   Set-ItemProperty -Path "$chave\command" -Name "(default)" -Value $comando
 }
 
+# O Explorer acrescenta o caminho da pasta escolhida no fim, e ele vira o -Pasta.
+$lnk = (New-Object -ComObject WScript.Shell).CreateShortcut($atalho)
+$lnk.TargetPath = "powershell.exe"
+$lnk.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$script`""
+if ($word) { $lnk.IconLocation = "$word,0" }
+$lnk.Save()
+
 Write-Host "Pronto: botão direito na pasta da cliente > ""Gerar PDFs (Word)""."
-Write-Host "No Windows 11 a opção fica em ""Mostrar mais opções""."
+Write-Host "No Windows 11 a opção fica em ""Mostrar mais opções"", e também em ""Enviar para""."
