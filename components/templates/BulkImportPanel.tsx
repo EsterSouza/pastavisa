@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import type { BulkImportResult } from "@/components/templates/constants";
 
@@ -19,18 +20,33 @@ const RESULTADO_COR: Record<string, string> = {
 
 /** Importação em lote, mostrada dentro do painel "Importar templates". */
 export function BulkImportPanel({ bulkFiles, onFilesChange, onImport, importing, importResults }: BulkImportPanelProps) {
+  const [arrastando, setArrastando] = useState(false);
+
   return (
     <div className="space-y-3">
       <label
         htmlFor="importar-docx"
-        className={`flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border-2 border-dashed border-gray-400 px-4 py-6 text-center focus-within:ring-2 focus-within:ring-brand-focus hover:bg-surface-subtle ${
-          importing ? "pointer-events-none opacity-60" : ""
-        }`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setArrastando(true);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setArrastando(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setArrastando(false);
+          if (importing) return;
+          onFilesChange(Array.from(e.dataTransfer.files).filter((f) => /\.docx$/i.test(f.name)));
+        }}
+        className={`flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border-2 border-dashed px-4 py-6 text-center focus-within:ring-2 focus-within:ring-brand-focus hover:bg-surface-subtle ${
+          arrastando ? "border-brand-accent bg-surface-subtle" : "border-gray-400"
+        } ${importing ? "pointer-events-none opacity-60" : ""}`}
       >
-        <span className="font-semibold text-ink">Escolher arquivos .docx</span>
+        <span className="font-semibold text-ink">Arraste os arquivos .docx para cá ou clique para escolher</span>
         <span className="text-sm text-ink-muted">
-          Pode selecionar vários. Se o nome já existir, o template ativo é atualizado e a versão anterior fica no
-          histórico.
+          Pode mandar vários. Se o arquivo já existir no acervo, o template é atualizado (nome revisado mantido) e a
+          versão anterior fica no histórico.
         </span>
         <input
           id="importar-docx"

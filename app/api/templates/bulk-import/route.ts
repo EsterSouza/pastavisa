@@ -25,6 +25,17 @@ function normalizeTemplateName(value: string): string {
     .trim();
 }
 
+// Os nomes do acervo foram revisados (acentos, "POP - ..."), então o nome não serve mais
+// para achar o template. O nome do arquivo original continua no arquivoPath:
+// "storage/templates/<timestamp>_[bulk_<n>_]TEMPLATE_X.docx".
+function fileKey(fileName: string): string {
+  return safeStorageFileName(fileName.split("/").pop() || "")
+    .replace(/^\d+_/, "")
+    .replace(/^bulk_\d+_/i, "")
+    .replace(/[^a-zA-Z0-9]+/g, "")
+    .toUpperCase();
+}
+
 function displayName(fileName: string): string {
   return fileName
     .replace(/^bulk_\d+_/i, "")
@@ -67,6 +78,7 @@ export async function POST(req: NextRequest) {
   const existingByName = new Map(
     existentes.map((template) => [normalizeTemplateName(template.nome), template])
   );
+  const existingByFile = new Map(existentes.map((template) => [fileKey(template.arquivoPath), template]));
 
   const results: Array<{
     nome: string;
@@ -101,22 +113,16 @@ export async function POST(req: NextRequest) {
       );
 
       const key = normalizeTemplateName(nome);
-      const existente = existingByName.get(key);
+      const existente = existingByFile.get(fileKey(file.name)) || existingByName.get(key);
       if (existente) {
         await snapshotTemplateVersion(existente.id, "Antes da atualizacao por importacao em lote");
+        // Só troca o arquivo: nome, tipo e cabeçalho já foram revisados no acervo.
         await prisma.template.update({
           where: { id: existente.id },
-          data: {
-            nome,
-            tipo: meta.tipo,
-            padraoHeader: meta.padraoHeader,
-            processingType,
-            arquivoPath,
-            ativo: true,
-          },
+          data: { processingType, arquivoPath, ativo: true },
         });
         results.push({
-          nome,
+          nome: existente.nome,
           status: "atualizado",
           tipo: meta.tipo,
           variaveis: report.variaveis.length,
@@ -134,6 +140,7 @@ export async function POST(req: NextRequest) {
           },
         });
         existingByName.set(key, created);
+        existingByFile.set(fileKey(file.name), created);
         results.push({
           nome,
           status: "importado",
