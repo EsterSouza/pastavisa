@@ -113,6 +113,35 @@ describe("lista de documentos lida do docx", () => {
     const docs = extrairDocumentosDoTextoElaboracao("4. POP — Microagulhamento\n\n5 POP – Massagem redutora");
     expect(docs.map((d) => d.nome)).toEqual(["POP — Microagulhamento", "POP – Massagem redutora"]);
   });
+
+  it("não lê a relação de serviços e procedimentos, o registro informado nem o título POP", () => {
+    const docs = extrairDocumentosDoTextoElaboracao(
+      [
+        "RELAÇÃO GERAL DE SERVIÇOS E PROCEDIMENTOS INFORMADOS",
+        "1. Limpeza de Pele",
+        "I. DOCUMENTOS",
+        "Registro informado para Terapias Integrativas: RT/BR 9096919",
+        "PROCEDIMENTO OPERACIONAL PADRÃO",
+        "1. POP — Limpeza de Pele",
+      ].join("\n")
+    );
+    expect(docs.map((d) => d.nome)).toEqual(["POP — Limpeza de Pele"]);
+  });
+
+  it("fica só com o que tem o tipo quando o mesmo documento vem com e sem ele", () => {
+    const docs = mesclarDocumentosExtraidos(
+      [],
+      [
+        { nome: "Controle integrado de vetores e pragas urbanas", tipo: "OUTROS" },
+        { nome: "POP - Controle Integrado de Vetores e Pragas Urbanas", tipo: "POP" },
+        { nome: "Controle de Temperatura", tipo: "OUTROS" },
+      ]
+    );
+    expect(docs.map((d) => d.nome)).toEqual([
+      "POP - Controle Integrado de Vetores e Pragas Urbanas",
+      "Controle de Temperatura",
+    ]);
+  });
 });
 
 describe("referências lidas do docx", () => {

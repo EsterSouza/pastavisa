@@ -41,6 +41,8 @@ const EXCLUDED_LINE_PATTERNS = [
   /^PORTARIA\b/i,
   /^NR[-\s]?\d+/i,
   /^REGISTRO\s+ANVISA\b/i,
+  // "Registro informado: Processo 45480/26..." é dado da cliente, não documento.
+  /^REGISTRO\s+INFORMADO\b/i,
   /^BRASIL\./i,
   /^DISTRITO\s+FEDERAL\./i,
   /https?:\/\//i,
@@ -53,11 +55,11 @@ const EXCLUDED_LINE_PATTERNS = [
 // Lá dentro "Procedimento" é cabeçalho de coluna e "Controle da Glicemia" é o
 // nome de um procedimento, e nenhum dos dois é documento a gerar.
 const SECOES_SEM_DOCUMENTO =
-  /^(RELACAO GERAL DE PROCEDIMENTOS|RELACAO DE EQUIPAMENTO|TABELA\b|MATRIZ\b|LEGISLACAO|LEGISLACOES|REFERENCIA|BASE LEGAL|IDENTIDADE VISUAL|ESTRUTURA FISICA|INFRAESTRUTURA)/;
+  /^(RELACAO GERAL DE (SERVICOS E )?PROCEDIMENTOS|RELACAO DE EQUIPAMENTO|TABELA\b|MATRIZ\b|LEGISLACAO|LEGISLACOES|REFERENCIA|BASE LEGAL|IDENTIDADE VISUAL|ESTRUTURA FISICA|INFRAESTRUTURA)/;
 
 // Nomes que só existem como título de seção ou cabeçalho de tabela.
 const NOMES_GENERICOS =
-  /^(PROCEDIMENTOS?( INFORMADOS?| VINCULADOS?| REALIZADOS?)?|RELACAO GERAL DE PROCEDIMENTOS\b.*|RELACAO DE EQUIPAMENTOS?( INFORMADOS?)?)$/;
+  /^(PROCEDIMENTOS?( INFORMADOS?| VINCULADOS?| REALIZADOS?| OPERACIONA(L|IS) PADR(AO|OES|AO POP|OES POPS?))?|RELACAO GERAL DE (SERVICOS E )?PROCEDIMENTOS\b.*|RELACAO DE EQUIPAMENTOS?( INFORMADOS?)?)$/;
 
 function stripListMarker(line: string): string {
   return line
@@ -182,6 +184,23 @@ export function extrairDocumentosDoTextoElaboracao(text: string): DocumentoExtra
   return Array.from(encontrados.values());
 }
 
+// Tipo no começo do nome ("POP - ...", "Formulário de ..."), para achar o mesmo
+// documento listado com e sem o tipo.
+const PREFIXO_DE_TIPO =
+  /^(POP|TCLE|PLANILHA|FICHA|TERMO|FORMULARIO|REGISTRO|PROTOCOLO|MANUAL|PLANO|GUIA|CHECKLIST)( (DE|DA|DO|PARA))? /;
+
+/**
+ * "Controle integrado de vetores" e "POP - Controle Integrado de Vetores" são o
+ * mesmo documento: fica só o que tem o tipo no nome, para não gerar duas vezes.
+ */
+function semDuplicadoSemTipo(docs: DocumentoExtraido[]): DocumentoExtraido[] {
+  const chaves = docs.map((doc) => normalizeForComparison(doc.nome));
+  const comTipo = new Set(
+    chaves.filter((chave) => PREFIXO_DE_TIPO.test(chave)).map((chave) => chave.replace(PREFIXO_DE_TIPO, ""))
+  );
+  return docs.filter((_, i) => PREFIXO_DE_TIPO.test(chaves[i]) || !comTipo.has(chaves[i]));
+}
+
 export function mesclarDocumentosExtraidos(
   aiDocs: DocumentoExtraido[] | undefined,
   fallbackDocs: DocumentoExtraido[]
@@ -196,5 +215,5 @@ export function mesclarDocumentosExtraidos(
     merged.set(key, { nome, tipo: doc.tipo || inferirTipoDocumento(nome) });
   }
 
-  return Array.from(merged.values());
+  return semDuplicadoSemTipo(Array.from(merged.values()));
 }

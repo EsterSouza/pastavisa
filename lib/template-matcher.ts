@@ -40,6 +40,16 @@ const STOP_WORDS = new Set([
   "pop",
   "tcle",
   "termo",
+  // Aparecem em quase todo nome e não dizem qual é o documento: deixavam "PEIM -
+  // Procedimento Estético Injetável" casar com "Acompanhamento Pré e Pós-procedimento Estético".
+  "procedimento",
+  "estetico",
+  "estetica",
+  "aplicacao",
+  "fins",
+  "tecnica",
+  "tratamento",
+  "nao",
 ]);
 
 const SYNONYMS: Record<string, string> = {
@@ -57,11 +67,59 @@ const SYNONYMS: Record<string, string> = {
   ambientes: "desinfeccao",
   ambiente: "desinfeccao",
   artigos: "materiais",
-  procedimento: "tratamento",
-  procedimentos: "tratamento",
   manutencao: "equipamentos",
+  endermologia: "endermoterapia",
+  podologico: "podologia",
+  podologica: "podologia",
+  dermopigmentacao: "micropigmentacao",
+  lipocavitacao: "cavitacao",
+  endovenosa: "intravenosa",
+  endovenoso: "intravenosa",
+  intravenoso: "intravenosa",
+  preenchedor: "preenchimento",
+  preenchedores: "preenchimento",
+  capacitacao: "treinamento",
+  capacitacoes: "treinamento",
+  bebedouro: "purificador",
+  bebedouros: "purificador",
+  // Planilha de registro e de controle são a mesma coisa no acervo.
+  registro: "controle",
+  registros: "controle",
 };
 
+/**
+ * Nomes que o planejamento usa para um documento que no acervo tem outro nome.
+ * Cada troca gera mais uma versão do nome do documento para comparar; a original
+ * continua valendo.
+ */
+const APELIDOS: Array<[RegExp, string]> = [
+  [/limpeza concorrente( e terminal)?/, "limpeza e desinfeccao"],
+  [/\bskin booster\b/, "skinbooster"],
+  [/procedimento estetico injetavel (para|em) micro ?vasos|procedimento estetico para micro ?vasos/, "peim"],
+  [/plasma rico em plaquetas( e fibrina rica em plaquetas)?|concentrados sanguineos autologos( nao transfusionais)?/, "hemoderivados prp e prf"],
+  [/suplementacao (injetavel|endovenosa|intravenosa)|terapia infusional( endovenosa| intravenosa)?|soroterapia|vitaminas injetaveis/, "terapia ortomolecular intravenosa"],
+  [/aplicacao de brincos? (em )?adultos?/, "furo humanizado e piercing em adultos"],
+  [/aplicacao de brincos?/, "furo de orelha"],
+  [/\bhifu\b.*|ultrassom (micro\w* e macro|macro\w* e micro)\w*( focado)?/, "hifu ultrassom macro e microfocado"],
+  [/\bpeelings? (de |com )?(ata|acido tricloroacetico)\b.*/, "peelings quimicos com acido tricloroacetico"],
+  [/glicemia capilar/, "controle da glicemia"],
+  [/(manejo|descarte) de residuos/, "gerenciamento de residuos"],
+  [/(limpeza do )?bebedouros?( e troca de filtros?)?|filtros? e bebedouros?/, "limpeza do purificador de agua"],
+  [/caixa d ?agua|limpeza de reservatorio( de agua)?|qualidade da agua( e da limpeza do reservatorio)?/, "controle de potabilidade da agua"],
+  [/(autorizacao (para|de) )?(uso de imagem|registro fotografico)( e voz| e registro fotografico| e uso de imagem)?/, "uso de imagem lgpd"],
+  [/\b(recusa|renuncia|interrupcao|encerramento)\b.*$/, "renuncia e recusa de tratamento"],
+  [/epilacao a laser/, "depilacao a laser"],
+  // POP de manutenção/gestão de equipamentos é o "Gestão de Equipamentos". O
+  // "Manutenção de Equipamentos" junta climatização e fica para quando o nome fala
+  // dos dois; só ar-condicionado é o "Limpeza e Manutenção da Climatização".
+  [/^pop (?!.*\b(climatizacao|ar condicionado)\b).*\b(gestao|manutencao|calibracao)\b.*\bequipamentos?\b.*$/, "pop gestao de equipamentos"],
+  [/^planilha .*rastreabilidade.*$/, "planilha rastreabilidade de produtos"],
+];
+
+// Qualificam o procedimento sem mudar qual é ele ("Microagulhamento Facial").
+const QUALIFICADORES = new Set(["facial", "corporal", "capilar", "intimo", "intima", "labial", "pele"]);
+
+const REGIOES = new Set(["facial", "corporal", "capilar", "intimo", "intima", "labial"]);
 const TYPE_ALIASES: Record<string, string[]> = {
   mbp: ["manual boas praticas"],
   pgrss: ["plano gerenciamento residuos servicos saude"],
@@ -80,6 +138,18 @@ const PRIORITY_TOKENS = new Set([
   "labial",
   "plasma",
   "rinomodelacao",
+  "glicemia",
+  "microagulhamento",
+  "peim",
+  "podologia",
+  "intradermoterapia",
+  "nutricional",
+  "farmaceutico",
+  "prp",
+  "tens",
+  "hifu",
+  "hiperpigmentacao",
+  "power",
 ]);
 
 function normalize(text: string): string {
@@ -187,7 +257,9 @@ function scoreCandidate(docName: string, candidate: string): number {
   }
 
   if (candPhrase.length >= 4 && docPhrase.includes(candPhrase)) score = Math.max(score, 92);
-  if (docPhrase.length >= 4 && candPhrase.includes(docPhrase)) score = Math.max(score, 88);
+  // O nome todo dentro do template: quanto menos sobra no template, mais é ele.
+  const sobraNoTemplate = candTokens.filter((token) => !docTokens.includes(token)).length;
+  if (docPhrase.length >= 4 && candPhrase.includes(docPhrase)) score = Math.max(score, 88 - 2 * sobraNoTemplate);
 
   const contiguous = longestContiguousOverlap(docTokens, candTokens);
   if (contiguous >= 2) score += Math.min(12, contiguous * 3);
@@ -196,6 +268,42 @@ function scoreCandidate(docName: string, candidate: string): number {
     (token) => token.length >= 5 && docTokens.includes(token)
   ).length;
   score += Math.min(10, distinctiveMatches * 2);
+
+  // Tirando facial/corporal/capilar, o que sobra do nome está todo no template:
+  // "TCLE - Microagulhamento Facial" é o TCLE de microagulhamento.
+  const nucleo = docTokens.filter((token) => !QUALIFICADORES.has(token));
+  // Com uma palavra só ("Avaliação Facial e Corporal"), o template não pode ter
+  // outra que mude o assunto ("Avaliação por Bioimpedância").
+  const sobraQueMudaOAssunto = candTokens.filter(
+    (token) => !docTokens.includes(token) && !QUALIFICADORES.has(token)
+  ).length;
+  const regiaoDoc = docTokens.filter((token) => REGIOES.has(token));
+  const regiaoTemplate = candTokens.filter((token) => REGIOES.has(token));
+  if (
+    nucleo.length > 0 &&
+    nucleo.every((token) => candTokens.includes(token)) &&
+    (nucleo.length >= 2 ||
+      sobraQueMudaOAssunto === 0 ||
+      PRIORITY_TOKENS.has(nucleo[0]) ||
+      regiaoDoc.some((token) => regiaoTemplate.includes(token)))
+  ) {
+    score = Math.max(score, 70 + Math.round(diceScore(docTokens, candTokens) * 20) - 3 * sobraNoTemplate);
+  }
+  // Só "facial e corporal" em comum não faz "Avaliação Facial e Corporal" virar
+  // "Drenagem Facial e Corporal".
+  // Já "Estética Íntima" é só a região mesmo, e vale para "Estética Íntima Não Cirúrgica".
+  const assuntoDoTemplate = candTokens.filter((token) => !QUALIFICADORES.has(token));
+  if (
+    nucleo.length > 0 &&
+    assuntoDoTemplate.length > 0 &&
+    !nucleo.some((token) => candTokens.includes(token))
+  ) {
+    score = Math.min(score, 40);
+  }
+  // "Avaliação Facial e Corporal" não é a "Avaliação Capilar".
+  if (regiaoDoc.length > 0 && regiaoTemplate.length > 0 && !regiaoTemplate.some((token) => regiaoDoc.includes(token))) {
+    score = Math.min(score, 50);
+  }
 
   const missingPriority = docTokens.filter(
     (token) => PRIORITY_TOKENS.has(token) && !candTokens.includes(token)
@@ -229,6 +337,39 @@ function expandedCandidates(candidate: string): string[] {
   return Array.from(expansions);
 }
 
+/**
+ * O nome como veio e versões limpas dele: sem as anotações do planejamento
+ * ("(Contempla IV.29)", "(personalizar ...)", ": Documento formal ...") e com os
+ * APELIDOS trocados pelo nome do acervo. Vale a que der a melhor nota.
+ */
+function variantesDoNome(docName: string): Array<{ nome: string; desconto: number }> {
+  const semParenteses = docName.replace(/\([^)]*\)/g, " ");
+  // O que vem entre parênteses costuma ser equipamento ou detalhe ("Pós-Operatório
+  // (Fotobiomodulação; Bota compressiva)"): ajuda a achar, mas vale um pouco menos
+  // que o nome em si.
+  const desconto = semParenteses === docName ? 0 : 6;
+  const variantes = new Map<string, number>([[docName, desconto]]);
+  variantes.set(semParenteses, 0);
+
+  const doisPontos = semParenteses.indexOf(":");
+  if (doisPontos > 0 && tokenize(semParenteses.slice(0, doisPontos)).length >= 2) {
+    variantes.set(semParenteses.slice(0, doisPontos), 0);
+  }
+
+  for (const [variante, descontoDaVariante] of Array.from(variantes)) {
+    let trocado = normalize(variante);
+    for (const [padrao, nomeNoAcervo] of APELIDOS) trocado = trocado.replace(padrao, nomeNoAcervo);
+    if (!variantes.has(trocado)) variantes.set(trocado, descontoDaVariante);
+  }
+  return Array.from(variantes, ([nome, descontoDaVariante]) => ({ nome, desconto: descontoDaVariante }));
+}
+
+// TCLE é um termo: "Termo de Autorização de Uso de Imagem" pode ser o "TCLE - Uso de Imagem".
+function tiposCompativeis(esperado: string, doTemplate: string): boolean {
+  if (esperado === doTemplate) return true;
+  return (esperado === "termo" && doTemplate === "tcle") || (esperado === "tcle" && doTemplate === "termo");
+}
+
 export function findBestTemplateMatch(
   docName: string,
   templates: MatchableTemplate[],
@@ -240,6 +381,7 @@ export function findBestTemplateMatch(
     ["tcle", "pop", "planilha", "ficha", "termo", "mbp", "pgrss"].find((type) =>
       docTokensWithTypes.has(type)
     ) || (docTokensWithTypes.has("psp") ? "psp" : null);
+  const variantes = variantesDoNome(docName);
 
   for (const template of templates) {
     const templateType = normalize(template.tipo);
@@ -247,7 +389,7 @@ export function findBestTemplateMatch(
     if (
       expectedType &&
       expectedType !== "psp" &&
-      templateType !== expectedType
+      !tiposCompativeis(expectedType, templateType)
     ) {
       continue;
     }
@@ -256,7 +398,11 @@ export function findBestTemplateMatch(
     const baseCandidates = [template.nome, templateFileName(template)];
     if (["mbp", "pgrss"].includes(templateType)) baseCandidates.push(template.tipo);
     const nameCandidates = baseCandidates.flatMap(expandedCandidates);
-    const nameScore = Math.max(...nameCandidates.map((candidate) => scoreCandidate(docName, candidate)));
+    const nameScore = Math.max(
+      ...variantes.flatMap((variante) =>
+        nameCandidates.map((candidate) => scoreCandidate(variante.nome, candidate) - variante.desconto)
+      )
+    );
     const score = nameScore;
     const specificity = Math.max(
       tokenize(template.nome).length,
