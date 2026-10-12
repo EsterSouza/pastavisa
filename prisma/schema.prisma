@@ -51,6 +51,14 @@ model Pasta {
   documentosElaboracaoPath String?
   legislacaoIds            String?
 
+  // Lidos do "Documentos em Elaboração" (lib/elaboracao-prazos.ts).
+  inicioProjeto            DateTime?
+  apreciacaoInicio         DateTime?
+  apreciacaoFim            DateTime?
+  entregaFinal             DateTime?
+  versaoPasta              String?
+  prazosLidosEm            DateTime?
+
   documentos               DocumentoGerado[]
   documentosUpload         DocumentoUpload[]
 }

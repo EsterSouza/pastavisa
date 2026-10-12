@@ -18,6 +18,7 @@ import {
   UPLOAD_STATUS,
 } from "@/components/ui/Status";
 import { normalizeForMatch } from "@/components/ui/text";
+import { detectarFundoLogo } from "@/components/pasta/detectarFundoLogo";
 
 interface DocumentoUploadVersao {
   id: string;
@@ -149,6 +150,7 @@ export default function CorrigirLotePasta() {
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const [pares, setPares] = useState<Par[]>([{ de: "", para: "" }]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [fundoDetectado, setFundoDetectado] = useState<string | null | undefined>(undefined);
   const [logoBgHex, setLogoBgHex] = useState("");
 
   const [analises, setAnalises] = useState<Record<string, AnaliseEntrada>>({});
@@ -1073,12 +1075,23 @@ export default function CorrigirLotePasta() {
                 id="logo-nova"
                 type="file"
                 accept="image/png,image/jpeg"
-                onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                onChange={(e) => {
+                  const arquivo = e.target.files?.[0] || null;
+                  setLogoFile(arquivo);
+                  setFundoDetectado(undefined);
+                  if (!arquivo) return;
+                  void detectarFundoLogo(arquivo).then((hex) => {
+                    setFundoDetectado(hex);
+                    if (hex) setLogoBgHex(hex);
+                  });
+                }}
                 className="block w-full rounded-md border border-gray-300 bg-surface-card p-1 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface-subtle file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-accent"
               />
               {logoFile && (
                 <p className="mt-1 text-sm text-ink-muted">
                   Logo selecionada: <span className="font-semibold text-ink">{logoFile.name}</span>
+                  {fundoDetectado && `. Fundo detectado na imagem: ${fundoDetectado}, já preenchido abaixo.`}
+                  {fundoDetectado === null && ". A imagem não tem fundo de cor única; a cor abaixo não foi mexida."}
                 </p>
               )}
             </div>

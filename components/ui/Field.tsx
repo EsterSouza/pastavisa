@@ -102,3 +102,29 @@ export function SelectField({ label, value, onChange, options, hint, id }: Selec
     </Field>
   );
 }
+
+interface DateFieldProps {
+  label: string;
+  /** AAAA-MM-DD ou vazio. */
+  value: string;
+  onChange: (value: string) => void;
+  hint?: ReactNode;
+  id?: string;
+}
+
+export function DateField({ label, value, onChange, hint, id }: DateFieldProps) {
+  const gerado = useId();
+  const fieldId = id || gerado;
+  return (
+    <Field id={fieldId} label={label} hint={hint}>
+      <input
+        id={fieldId}
+        type="date"
+        value={value}
+        aria-describedby={hint ? `${fieldId}-hint` : undefined}
+        onChange={(event) => onChange(event.target.value)}
+        className={fieldClass}
+      />
+    </Field>
+  );
+}

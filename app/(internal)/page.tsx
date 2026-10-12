@@ -23,8 +23,14 @@ interface Pasta {
   clienteCnpj: string | null;
   clienteCidade: string | null;
   clienteEstado: string | null;
+  apreciacaoInicio: string | null;
+  apreciacaoFim: string | null;
+  entregaFinal: string | null;
+  prazosLidosEm: string | null;
   documentos: Array<{ id: string; status: string }>;
 }
+
+type Ordem = "prazo" | "recentes";
 
 // Situação de trabalho, derivada dos documentos: diz o que a pasta pede agora,
 // não só o status gravado no banco.
@@ -47,6 +53,56 @@ function dataCurta(value: string | Date): string {
 function exclusaoEm(pasta: Pasta): Date | null {
   if (pasta.status !== "concluida" || !pasta.concluidaEm) return null;
   return new Date(new Date(pasta.concluidaEm).getTime() + DIAS_RETENCAO * 24 * 60 * 60 * 1000);
+}
+
+// As datas de prazo ficam no banco ao meio-dia UTC (lib/elaboracao-prazos.ts): o dia é o AAAA-MM-DD.
+function dia(value: string): string {
+  return value.slice(0, 10);
+}
+
+function diaCurto(value: string): string {
+  const [, mes, d] = dia(value).split("-");
+  return `${d}/${mes}`;
+}
+
+function hojeLocal(): string {
+  const agora = new Date();
+  return new Date(agora.getTime() - agora.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+function diasAte(alvo: string, hoje: string): number {
+  return Math.round((Date.parse(dia(alvo)) - Date.parse(hoje)) / 86400000);
+}
+
+const PRAZO_COR: Record<Tone, string> = {
+  neutro: "text-ink-muted",
+  info: "text-brand-accent",
+  sucesso: "text-status-success",
+  atencao: "text-status-warning",
+  erro: "text-status-danger",
+};
+
+/** O que o prazo pede agora, e a data que ordena a lista ("prazo mais próximo"). */
+function prazoDa(pasta: Pasta, hoje: string): { periodo: string; aviso: string; tone: Tone; chave: string } | null {
+  if (!pasta.apreciacaoInicio) return null;
+  const inicio = pasta.apreciacaoInicio;
+  const fim = pasta.apreciacaoFim || inicio;
+  const periodo = dia(inicio) === dia(fim) ? diaCurto(inicio) : `${diaCurto(inicio)} a ${diaCurto(fim)}`;
+  if (pasta.status === "concluida") return { periodo, aviso: "", tone: "neutro", chave: "9999" };
+
+  const ate = diasAte(inicio, hoje);
+  if (ate > 0) {
+    const quando = ate === 1 ? "amanhã" : `em ${ate} dias`;
+    return { periodo, aviso: `Apreciação ${quando}`, tone: ate <= 3 ? "atencao" : "neutro", chave: dia(inicio) };
+  }
+  if (diasAte(fim, hoje) >= 0) return { periodo, aviso: `Em apreciação até ${diaCurto(fim)}`, tone: "info", chave: dia(fim) };
+
+  const entrega = pasta.entregaFinal || fim;
+  const faltam = diasAte(entrega, hoje);
+  if (faltam >= 0) {
+    return { periodo, aviso: faltam === 0 ? "Entrega final hoje" : `Entrega final ${diaCurto(entrega)}`, tone: "atencao", chave: dia(entrega) };
+  }
+  return { periodo, aviso: `Entrega final venceu ${diaCurto(entrega)}`, tone: "erro", chave: dia(entrega) };
 }
 
 function situacaoDa(pasta: Pasta): { id: Situacao; label: string; tone: Tone } {
@@ -73,16 +129,43 @@ export default function Dashboard() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [statusError, setStatusError] = useState("");
+  const [ordem, setOrdem] = useState<Ordem>("prazo");
+  const [lendoPrazos, setLendoPrazos] = useState(false);
+
+  async function carregarPastas(): Promise<Pasta[]> {
+    const r = await fetch("/api/pastas");
+    if (!r.ok) throw new Error(`O banco não respondeu a lista de pastas (HTTP ${r.status}).`);
+    const data = await r.json();
+    return Array.isArray(data) ? data : [];
+  }
+
+  // Pastas criadas antes da leitura automática ainda não têm prazo: relê o
+  // "Documentos em Elaboração" delas em lotes e recarrega a lista no fim.
+  async function lerPrazosPendentes() {
+    setLendoPrazos(true);
+    try {
+      let restantes = Infinity;
+      for (let rodada = 0; rodada < 50 && restantes > 0; rodada++) {
+        const r = await fetch("/api/pastas/prazos", { method: "POST" });
+        if (!r.ok) break;
+        const data: { lidas: number; restantes: number } = await r.json();
+        if (data.lidas === 0 || data.restantes >= restantes) break;
+        restantes = data.restantes;
+      }
+      setPastas(await carregarPastas());
+    } catch {
+      // Sem os prazos a lista continua funcionando; tenta de novo na próxima visita.
+    } finally {
+      setLendoPrazos(false);
+    }
+  }
 
   useEffect(() => {
-    fetch("/api/pastas")
-      .then((r) => {
-        if (!r.ok) throw new Error(`O banco não respondeu a lista de pastas (HTTP ${r.status}).`);
-        return r.json();
-      })
-      .then((data) => {
-        setPastas(Array.isArray(data) ? data : []);
+    carregarPastas()
+      .then((lista) => {
+        setPastas(lista);
         setLoading(false);
+        if (lista.some((p) => !p.prazosLidosEm)) void lerPrazosPendentes();
       })
       .catch((error: unknown) => {
         setLoadError(
@@ -90,6 +173,7 @@ export default function Dashboard() {
         );
         setLoading(false);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleDelete() {
@@ -132,7 +216,10 @@ export default function Dashboard() {
     }
   }
 
-  const comSituacao = useMemo(() => pastas.map((pasta) => ({ pasta, situacao: situacaoDa(pasta) })), [pastas]);
+  const comSituacao = useMemo(() => {
+    const hoje = hojeLocal();
+    return pastas.map((pasta) => ({ pasta, situacao: situacaoDa(pasta), prazo: prazoDa(pasta, hoje) }));
+  }, [pastas]);
 
   const contagens = useMemo(() => {
     const base: Record<FiltroId, number> = { todas: pastas.length, producao: 0, erro: 0, pronta: 0, concluida: 0 };
@@ -142,7 +229,8 @@ export default function Dashboard() {
     return base;
   }, [comSituacao, pastas.length]);
 
-  // Recentes primeiro: a pasta mexida por último é quase sempre a próxima a abrir.
+  // "Prazo mais próximo": vencidas e em apreciação primeiro, depois as próximas;
+  // sem prazo e concluídas no fim. "Criadas por último": a mais nova primeiro.
   const visiveis = useMemo(() => {
     const termo = normalizeForMatch(busca.trim());
     return comSituacao
@@ -160,8 +248,14 @@ export default function Dashboard() {
           ].filter(Boolean).join(" ")
         ).includes(termo);
       })
-      .sort((a, b) => new Date(b.pasta.criadaEm).getTime() - new Date(a.pasta.criadaEm).getTime());
-  }, [comSituacao, busca, filtro]);
+      .sort((a, b) => {
+        const recentes = new Date(b.pasta.criadaEm).getTime() - new Date(a.pasta.criadaEm).getTime();
+        if (ordem === "recentes") return recentes;
+        const chaveA = a.prazo?.chave ?? "9998";
+        const chaveB = b.prazo?.chave ?? "9998";
+        return chaveA === chaveB ? recentes : chaveA < chaveB ? -1 : 1;
+      });
+  }, [comSituacao, busca, filtro, ordem]);
 
   const filtrando = filtro !== "todas" || busca.trim().length > 0;
 
@@ -250,6 +344,20 @@ export default function Dashboard() {
                 className={fieldClass}
               />
             </div>
+            <div className="w-56">
+              <label htmlFor="ordem-pastas" className="sr-only">
+                Ordenar pastas
+              </label>
+              <select
+                id="ordem-pastas"
+                value={ordem}
+                onChange={(event) => setOrdem(event.target.value as Ordem)}
+                className={fieldClass}
+              >
+                <option value="prazo">Prazo mais próximo</option>
+                <option value="recentes">Criadas por último</option>
+              </select>
+            </div>
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por situação">
               {FILTROS.map((item) => {
                 const ativo = filtro === item.id;
@@ -273,13 +381,13 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-[minmax(0,1.6fr)_12rem_minmax(9rem,1fr)_7rem_2.75rem] items-center gap-4 border-y border-gray-200 bg-surface-subtle px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-ink-muted">
+          <div className="grid grid-cols-[minmax(0,1.6fr)_12rem_minmax(9rem,1fr)_12rem_2.75rem] items-center gap-4 border-y border-gray-200 bg-surface-subtle px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-ink-muted">
             <span aria-live="polite">
               Cliente · {visiveis.length} de {pastas.length}
             </span>
             <span>Situação</span>
             <span>Progresso</span>
-            <span>Criada em</span>
+            <span>{lendoPrazos ? "Lendo prazos..." : "Apreciação"}</span>
             <span className="sr-only">Ações</span>
           </div>
 
@@ -300,7 +408,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <ul className="divide-y divide-gray-200">
-              {visiveis.map(({ pasta, situacao }) => {
+              {visiveis.map(({ pasta, situacao, prazo }) => {
                 const docsGerados = pasta.documentos.filter((d) => d.status === "gerado").length;
                 const docsTotal = pasta.documentos.length;
                 const pct = docsTotal > 0 ? Math.round((docsGerados / docsTotal) * 100) : 0;
@@ -310,7 +418,7 @@ export default function Dashboard() {
                 return (
                   <li
                     key={pasta.id}
-                    className="relative grid grid-cols-[minmax(0,1.6fr)_12rem_minmax(9rem,1fr)_7rem_2.75rem] items-center gap-4 px-4 py-3 hover:bg-surface-subtle"
+                    className="relative grid grid-cols-[minmax(0,1.6fr)_12rem_minmax(9rem,1fr)_12rem_2.75rem] items-center gap-4 px-4 py-3 hover:bg-surface-subtle"
                   >
                     {/* O link cobre a linha inteira; o menu ⋯ fica por cima dele. */}
                     <div className="min-w-0">
@@ -340,7 +448,16 @@ export default function Dashboard() {
                         />
                       </span>
                     </div>
-                    <span className="text-sm text-ink-muted">{dataCurta(pasta.criadaEm)}</span>
+                    <div className="text-sm" title={`Criada em ${dataCurta(pasta.criadaEm)}`}>
+                      {prazo ? (
+                        <>
+                          <span className="block tabular-nums text-ink">{prazo.periodo}</span>
+                          {prazo.aviso && <span className={`block font-semibold ${PRAZO_COR[prazo.tone]}`}>{prazo.aviso}</span>}
+                        </>
+                      ) : (
+                        <span className="text-ink-subtle">Sem prazo</span>
+                      )}
+                    </div>
                     <div className="relative z-[1]">
                       <ActionMenu
                         label={`Mais ações de ${nome}`}

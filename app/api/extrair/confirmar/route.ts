@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ClienteData } from "@/lib/ai";
 import { findBestTemplateMatch } from "@/lib/template-matcher";
+import { lerPrazosDaPasta } from "@/lib/elaboracao-prazos";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -82,6 +83,9 @@ export async function POST(req: NextRequest) {
         }),
       });
     }
+
+    // A pasta já existe: um erro aqui só deixa os prazos para a lista ler depois.
+    await lerPrazosDaPasta(pasta.id).catch((error) => console.warn("[confirmar] prazos não lidos:", error));
 
     return NextResponse.json({ pastaId: pasta.id });
   } catch (err) {

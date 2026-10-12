@@ -84,12 +84,12 @@ function normalizeCouncil(value: string | undefined): string | undefined {
 
 export function complementarClienteComTextoElaboracao(data: ClienteData, elaboracaoText: string): ClienteData {
   const items = splitDeclarativeItems(elaboracaoText);
-  const endereco = readLabeledValue(items, ["Endereço", "Endereco"]);
+  const endereco = readLabeledValue(items, ["Endereço", "Endereco", "Endereço informado", "Endereco informado"]);
   const local = parseAddress(endereco);
-  const rtNome = readLabeledValue(items, ["Responsável Técnica", "Responsável Técnico", "Responsavel Tecnica", "Responsavel Tecnico"]);
-  const rtProfissao = readLabeledValue(items, ["Profissão", "Profissao"]);
-  const rtConselho = normalizeCouncil(readLabeledValue(items, ["Conselho Profissional", "Conselho", "Registro Profissional"]));
-  const proprietario = readLabeledValue(items, ["Proprietário", "Proprietaria", "Proprietário/Responsável Legal", "Representante Legal"]);
+  const rtNome = readLabeledValue(items, ["Responsável Técnica", "Responsável Técnico", "Responsavel Tecnica", "Responsavel Tecnico", "Responsável técnica e legal"]);
+  const rtProfissao = readLabeledValue(items, ["Profissão", "Profissao", "Formação/área informada", "Formação"]);
+  const rtConselho = normalizeCouncil(readLabeledValue(items, ["Conselho Profissional", "Conselho profissional informado", "Conselho de Classe", "Conselho", "Registro Profissional"]));
+  const proprietario = readLabeledValue(items, ["Proprietário", "Proprietária", "Proprietaria", "Proprietário/Responsável Legal", "Representante Legal", "Titular do estabelecimento", "Titular informada", "Titular informado", "Titular"]);
 
   const next: ClienteData = {
     ...data,
@@ -102,7 +102,7 @@ export function complementarClienteComTextoElaboracao(data: ClienteData, elabora
     clienteEstadoExtenso: valueOrFallback(data.clienteEstadoExtenso, local.estadoExtenso),
     clienteTelefone: valueOrFallback(data.clienteTelefone, readLabeledValue(items, ["Telefone"])),
     clienteEmail: valueOrFallback(data.clienteEmail, readLabeledValue(items, ["E-mail", "Email"])),
-    clienteHorario: valueOrFallback(data.clienteHorario, readLabeledValue(items, ["Horário de Funcionamento", "Horario de Funcionamento"])),
+    clienteHorario: valueOrFallback(data.clienteHorario, readLabeledValue(items, ["Horário de Funcionamento", "Horario de Funcionamento", "Horário de atendimento informado", "Horário de atendimento", "Horario de atendimento"])),
     clienteRtNome: valueOrFallback(data.clienteRtNome, rtNome),
     clienteRtProfissao: valueOrFallback(data.clienteRtProfissao, rtProfissao),
     clienteRtConselho: valueOrFallback(data.clienteRtConselho, rtConselho),

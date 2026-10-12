@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { PastaHeader, usePastaCabecalho } from "@/components/pasta/PastaHeader";
 import { Button } from "@/components/ui/Button";
-import { fieldClass, SelectField, TextField } from "@/components/ui/Field";
+import { DateField, fieldClass, SelectField, TextField } from "@/components/ui/Field";
+import { detectarFundoLogo } from "@/components/pasta/detectarFundoLogo";
 import { FormSection } from "@/components/ui/Surface";
 import { describeErrorOrigin, Feedback } from "@/components/ui/Status";
 
@@ -47,6 +48,16 @@ interface FormData {
   docElaborador: string;
   docMesExtenso: string;
   docAno: string;
+  inicioProjeto: string;
+  apreciacaoInicio: string;
+  apreciacaoFim: string;
+  entregaFinal: string;
+  versaoPasta: string;
+}
+
+// O banco guarda as datas de prazo ao meio-dia UTC; o input date quer AAAA-MM-DD.
+function diaDoBanco(value: string | null | undefined): string {
+  return value ? value.slice(0, 10) : "";
 }
 
 const MESES = [
@@ -142,6 +153,7 @@ export default function EditarPasta() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [fundoDetectado, setFundoDetectado] = useState<string | null | undefined>(undefined);
   const [novoServico, setNovoServico] = useState("");
   const [initialPayload, setInitialPayload] = useState("");
   const cabecalho = usePastaCabecalho(id);
@@ -186,6 +198,11 @@ export default function EditarPasta() {
           docElaborador: pasta.docElaborador || "",
           docMesExtenso: pasta.docMesExtenso || "",
           docAno: pasta.docAno || "",
+          inicioProjeto: diaDoBanco(pasta.inicioProjeto),
+          apreciacaoInicio: diaDoBanco(pasta.apreciacaoInicio),
+          apreciacaoFim: diaDoBanco(pasta.apreciacaoFim),
+          entregaFinal: diaDoBanco(pasta.entregaFinal),
+          versaoPasta: pasta.versaoPasta || "",
         };
         setForm(nextForm);
         setInitialPayload(JSON.stringify(buildPatchPayload(nextForm)));
@@ -514,6 +531,24 @@ export default function EditarPasta() {
           </FormSection>
 
           <FormSection
+            title="Prazos da pasta"
+            description="Lidos do Documentos em Elaboração. A lista de pastas ordena pelo período de apreciação."
+          >
+            <div className="grid gap-4 sm:grid-cols-4">
+              <DateField label="Início do projeto" value={form.inicioProjeto} onChange={(v) => set("inicioProjeto", v)} />
+              <DateField label="Apreciação: início" value={form.apreciacaoInicio} onChange={(v) => set("apreciacaoInicio", v)} />
+              <DateField label="Apreciação: fim" value={form.apreciacaoFim} onChange={(v) => set("apreciacaoFim", v)} />
+              <DateField label="Entrega final" value={form.entregaFinal} onChange={(v) => set("entregaFinal", v)} />
+            </div>
+            <TextField
+              label="Versão da pasta"
+              hint="Ex.: Digital, Digital + Colorida, Digital + Preto e Branco"
+              value={form.versaoPasta}
+              onChange={(v) => set("versaoPasta", v)}
+            />
+          </FormSection>
+
+          <FormSection
             title="Dados do documento"
             description="Preenchidos pela data de criação da pasta, mas podem ser sobrescritos."
           >
@@ -542,13 +577,24 @@ export default function EditarPasta() {
                 id="logo-cliente"
                 type="file"
                 accept=".png,.jpg,.jpeg"
-                onChange={(event) => setLogoFile(event.target.files?.[0] || null)}
+                onChange={(event) => {
+                  const arquivo = event.target.files?.[0] || null;
+                  setLogoFile(arquivo);
+                  setFundoDetectado(undefined);
+                  if (!arquivo) return;
+                  void detectarFundoLogo(arquivo).then((hex) => {
+                    setFundoDetectado(hex);
+                    if (hex) set("clienteLogoBgHex", hex);
+                  });
+                }}
                 className="block w-full rounded-md border border-gray-300 bg-surface-card p-1 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface-subtle file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-accent"
               />
               {logoFile && (
                 <p className="mt-2 text-sm text-ink-muted">
                   Nova logo selecionada: <span className="font-semibold text-ink">{logoFile.name}</span>. Será
                   gravada junto com os dados.
+                  {fundoDetectado && ` Fundo detectado na imagem: ${fundoDetectado}, já preenchido abaixo.`}
+                  {fundoDetectado === null && " A imagem não tem fundo de cor única; a cor abaixo não foi mexida."}
                 </p>
               )}
             </div>

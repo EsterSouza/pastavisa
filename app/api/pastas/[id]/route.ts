@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth/authorization";
 import { excluirPasta } from "@/lib/pasta-exclusao";
+import { dataDoBanco } from "@/lib/elaboracao-prazos";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,7 +42,11 @@ const PASTA_EDIT_FIELDS = [
   "docMesExtenso",
   "docAno",
   "legislacaoIds",
+  "versaoPasta",
 ] as const;
+
+// Chegam como AAAA-MM-DD (input date) ou vazias.
+const PASTA_DATE_FIELDS = ["inicioProjeto", "apreciacaoInicio", "apreciacaoFim", "entregaFinal"] as const;
 
 const PASTA_STATUS = new Set(["rascunho", "processando", "concluida"]);
 
@@ -73,6 +78,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         .filter((field) => Object.prototype.hasOwnProperty.call(body, field))
         .map((field) => [field, body[field]])
     );
+    for (const field of PASTA_DATE_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(body, field)) data[field] = dataDoBanco(body[field]);
+    }
 
     // A retenção conta 30 dias a partir da conclusão. Só a troca de status mexe
     // na data: salvar de novo uma pasta já concluída não pode adiar a exclusão.
