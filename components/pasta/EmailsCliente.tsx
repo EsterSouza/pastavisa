@@ -150,6 +150,7 @@ function PrepararEmail({
   const [erro, setErro] = useState("");
   const [enviadoAgora, setEnviadoAgora] = useState("");
   const [copiado, setCopiado] = useState("");
+  const [semCopia, setSemCopia] = useState(false);
 
   const previa = useMemo(() => montarEmail(tipo, valores, "previa"), [tipo, valores]);
   const problemas = useMemo(() => {
@@ -174,6 +175,7 @@ function PrepararEmail({
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.error || `O envio falhou (HTTP ${r.status}).`);
       setEnviadoAgora(para);
+      setSemCopia(data.copiaEmEnviados === false);
       onEnviado();
     } catch (error) {
       setErro(error instanceof Error ? error.message : "O envio falhou.");
@@ -208,7 +210,7 @@ function PrepararEmail({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-ink-muted" aria-live="polite">
             {enviadoAgora
-              ? `Enviado para ${enviadoAgora}.`
+              ? `Enviado para ${enviadoAgora}.${semCopia ? "" : " A cópia está em Enviados."}`
               : problemas[0] ||
                 (situacao && !situacao.smtpConfigurado
                   ? "Envio pela Hostinger ainda não configurado."
@@ -237,6 +239,12 @@ function PrepararEmail({
           )}
           {erro && <Feedback tone="erro" title="Não enviou">{erro}</Feedback>}
           {copiado && <Feedback tone="info">{copiado}</Feedback>}
+          {semCopia && (
+            <Feedback tone="atencao" title="Enviado, mas sem cópia em Enviados">
+              A cliente recebeu, mas a cópia não ficou na pasta Enviados da sua caixa. O registro do envio está
+              aqui no app.
+            </Feedback>
+          )}
           {anteriores.length > 0 && !enviadoAgora && (
             <Feedback tone="atencao" title="Este e-mail já foi enviado">
               {anteriores.map((enviado) => `${quando(enviado.enviadoEm)} para ${enviado.para}`).join("; ")}.

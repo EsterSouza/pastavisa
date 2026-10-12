@@ -1,4 +1,8 @@
+import { randomUUID } from "crypto";
 import nodemailer from "nodemailer";
+import type Mail from "nodemailer/lib/mailer";
+import MailComposer from "nodemailer/lib/mail-composer";
+import { ImapFlow } from "imapflow";
 import { LOGO_TREINAVISA_PNG_BASE64 } from "./logo-treinavisa";
 
 /**
@@ -6,6 +10,7 @@ import { LOGO_TREINAVISA_PNG_BASE64 } from "./logo-treinavisa";
  * (C:\Saas\App\supabase\functions\_shared\sendMail.ts). A senha fica só nas variáveis
  * de ambiente: SMTP_USER e SMTP_PASS (obrigatórias), SMTP_HOST e SMTP_PORT (padrão
  * smtp.hostinger.com:465), SMTP_FROM (nome do remetente) e SMTP_BCC (cópia oculta).
+ * A cópia em "Enviados" usa IMAP_HOST e IMAP_PORT (padrão imap.hostinger.com:993).
  */
 
 export function smtpConfigurado(): boolean {
@@ -38,7 +43,45 @@ function textoSimples(html: string): string {
     .trim();
 }
 
-export async function enviarEmailHtml({ para, assunto, html }: { para: string; assunto: string; html: string }) {
+/**
+ * O SMTP só entrega; quem põe a mensagem em "Enviados" é o IMAP da mesma caixa
+ * (imap.hostinger.com, mesma senha). Falhar aqui não desfaz o envio: só avisa.
+ */
+async function guardarEmEnviados(mensagem: Buffer, data: Date, user: string, pass: string): Promise<boolean> {
+  const cliente = new ImapFlow({
+    host: process.env.IMAP_HOST || "imap.hostinger.com",
+    port: Number(process.env.IMAP_PORT || "993"),
+    secure: true,
+    auth: { user, pass },
+    logger: false,
+  });
+  try {
+    await cliente.connect();
+    const pastas = await cliente.list();
+    const enviados =
+      pastas.find((p) => p.specialUse === "\\Sent") ||
+      pastas.find((p) => /^(inbox\.)?(sent|enviados|itens enviados)$/i.test(p.path));
+    if (!enviados) throw new Error(`pasta de enviados não encontrada (${pastas.map((p) => p.path).join(", ")})`);
+    await cliente.append(enviados.path, mensagem, ["\\Seen"], data);
+    return true;
+  } catch (error) {
+    console.error("[emails] não guardou em Enviados:", error);
+    return false;
+  } finally {
+    await cliente.logout().catch(() => undefined);
+  }
+}
+
+/** Envia e devolve se a cópia ficou em "Enviados" da caixa. */
+export async function enviarEmailHtml({
+  para,
+  assunto,
+  html,
+}: {
+  para: string;
+  assunto: string;
+  html: string;
+}): Promise<{ copiaEmEnviados: boolean }> {
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   if (!user || !pass) throw new Error("O envio de e-mail não está configurado (faltam SMTP_USER e SMTP_PASS).");
@@ -51,13 +94,16 @@ export async function enviarEmailHtml({ para, assunto, html }: { para: string; a
     auth: { user, pass },
   });
 
-  await transporte.sendMail({
+  const data = new Date();
+  const mensagem: Mail.Options = {
     from: remetente(),
     to: para,
-    bcc: process.env.SMTP_BCC || undefined,
     subject: assunto,
     html,
     text: textoSimples(html),
+    date: data,
+    // Mesmo Message-ID no envio e na cópia de "Enviados".
+    messageId: `<${randomUUID()}@${user.split("@")[1] || "treinavisa"}>`,
     attachments: [
       {
         filename: "treinavisa.png",
@@ -66,5 +112,10 @@ export async function enviarEmailHtml({ para, assunto, html }: { para: string; a
         cid: "logo-treinavisa",
       },
     ],
-  });
+  };
+
+  await transporte.sendMail({ ...mensagem, bcc: process.env.SMTP_BCC || undefined });
+
+  const copia = await new MailComposer(mensagem).compile().build();
+  return { copiaEmEnviados: await guardarEmEnviados(copia, data, user, pass) };
 }

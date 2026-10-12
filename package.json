@@ -39,6 +39,7 @@
         "archiver": "^7.0.1",
         "better-sqlite3": "^12.9.0",
         "docxtemplater": "^3.68.5",
+        "imapflow": "2.1.0",
         "mammoth": "^1.12.0",
         "next": "14.2.35",
         "nodemailer": "^6.9.16",

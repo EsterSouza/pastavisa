@@ -45,8 +45,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const pasta = await prisma.pasta.findUnique({ where: { id: params.id }, select: { id: true } });
   if (!pasta) return NextResponse.json({ error: "Pasta não encontrada." }, { status: 404 });
 
+  let copiaEmEnviados = false;
   try {
-    await enviarEmailHtml({ para: para.join(", "), assunto, html: montarEmail(definicao.tipo, valores, "envio") });
+    ({ copiaEmEnviados } = await enviarEmailHtml({
+      para: para.join(", "),
+      assunto,
+      html: montarEmail(definicao.tipo, valores, "envio"),
+    }));
   } catch (error) {
     console.error("[emails] envio falhou:", error);
     const detalhe = error instanceof Error ? error.message : "erro desconhecido";
@@ -56,5 +61,5 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const enviado = await prisma.emailEnviado.create({
     data: { pastaId: pasta.id, tipo: definicao.tipo, para: para.join(", "), assunto },
   });
-  return NextResponse.json({ enviado });
+  return NextResponse.json({ enviado, copiaEmEnviados });
 }
