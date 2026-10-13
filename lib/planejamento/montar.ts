@@ -90,7 +90,6 @@ export function montarPlanejamento(
     insumos: rascunho.insumos || [],
     matriz: rascunho.matriz || [],
     referencias: [],
-    acessoEm: opcoes.dataPlanejamento,
     cnaes: rascunho.cnaes || [],
   };
 

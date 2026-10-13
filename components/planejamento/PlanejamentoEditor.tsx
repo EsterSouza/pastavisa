@@ -43,7 +43,6 @@ interface Rascunho {
 interface Salvo {
   rascunho: Rascunho;
   plano: Planejamento;
-  usarAcesso: boolean;
   resolvidas: number[];
 }
 
@@ -171,7 +170,6 @@ export function PlanejamentoEditor() {
 
   const [rascunho, setRascunho] = useState<Rascunho | null>(null);
   const [plano, setPlano] = useState<Planejamento | null>(null);
-  const [usarAcesso, setUsarAcesso] = useState(true);
   const [resolvidas, setResolvidas] = useState<number[]>([]);
   const [refsCarregando, setRefsCarregando] = useState(false);
   const [refsErro, setRefsErro] = useState("");
@@ -186,8 +184,8 @@ export function PlanejamentoEditor() {
   }, []);
 
   useEffect(() => {
-    if (fase === "revisao" && rascunho && plano) gravarLocal({ rascunho, plano, usarAcesso, resolvidas });
-  }, [fase, rascunho, plano, usarAcesso, resolvidas]);
+    if (fase === "revisao" && rascunho && plano) gravarLocal({ rascunho, plano, resolvidas });
+  }, [fase, rascunho, plano, resolvidas]);
 
   function iniciarRelogio(texto: string) {
     setEtapa(texto);
@@ -305,7 +303,6 @@ export function PlanejamentoEditor() {
     if (!salvoAnterior) return;
     setRascunho(salvoAnterior.rascunho);
     setPlano(salvoAnterior.plano);
-    setUsarAcesso(salvoAnterior.usarAcesso);
     setResolvidas(salvoAnterior.resolvidas);
     setFase("revisao");
   }
@@ -329,7 +326,6 @@ export function PlanejamentoEditor() {
         ...plano,
         procedimentos: plano.procedimentos.map((p) => p.trim()).filter(Boolean),
         secoes: plano.secoes.map((s) => ({ ...s, itens: s.itens.map((i) => i.trim()).filter(Boolean) })),
-        acessoEm: usarAcesso ? dataPlanejamento || hojeIso() : "",
       };
       const res = await fetch("/api/planejamento/docx", {
         method: "POST",
@@ -688,10 +684,6 @@ export function PlanejamentoEditor() {
               >
                 {refsCarregando ? "Escolhendo no banco…" : plano.referencias.length ? "Escolher de novo" : "Escolher no banco"}
               </Button>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={usarAcesso} onChange={(e) => setUsarAcesso(e.target.checked)} />
-                Pôr &quot;Acesso em:&quot; (a NBR 6023 exige em documento online)
-              </label>
             </div>
             {refsErro && <Feedback tone="erro">{refsErro}</Feedback>}
             {plano.referencias.map((grupo, g) => (

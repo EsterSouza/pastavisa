@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import PizZip from "pizzip";
-import { dataAcesso } from "./referencias";
 import type { Planejamento, ReferenciaPlanejada } from "./tipos";
 
 // Monta o DOCX do planejamento sobre o modelo-base: o pacote do planejamento mais
@@ -118,7 +117,7 @@ class Montagem {
     }
   }
 
-  referencia(ref: ReferenciaPlanejada, acessoEm?: string) {
+  referencia(ref: ReferenciaPlanejada) {
     const texto = ref.texto.trim().replace(/[.]?$/, ".");
     let conteudo = textoAbnt(texto, ref.destaque);
     if (ref.url) {
@@ -127,7 +126,7 @@ class Montagem {
       conteudo +=
         corrida(" Disponível em: ", RPR_11) +
         `<w:hyperlink r:id="${id}">${corrida(ref.url, RPR_11_LINK)}</w:hyperlink>` +
-        corrida(acessoEm ? `. Acesso em: ${dataAcesso(acessoEm)}.` : ".", RPR_11);
+        corrida(".", RPR_11);
     }
     this.add(paragrafo(conteudo, '<w:pStyle w:val="Ref"/>', RPR_11));
   }
@@ -274,7 +273,7 @@ export function montarCorpo(plano: Planejamento, primeiroNum: number) {
     m.add(titulo1("LEGISLAÇÃO E REFERÊNCIAS APLICÁVEIS AO ESTABELECIMENTO"));
     grupos.forEach((grupo, i) => {
       m.add(titulo1(`${i + 1}. ${grupo.titulo}`));
-      for (const ref of grupo.itens) m.referencia(ref, plano.acessoEm || undefined);
+      for (const ref of grupo.itens) m.referencia(ref);
     });
     m.add(vazio());
   }

@@ -48,11 +48,3 @@ export function referenciaDoBanco(e: Entrada): ReferenciaPlanejada {
     naoConferida: e.status === "nao_verificado" || undefined,
   };
 }
-
-const MESES = ["jan.", "fev.", "mar.", "abr.", "maio", "jun.", "jul.", "ago.", "set.", "out.", "nov.", "dez."];
-
-/** "2026-10-13" → "13 out. 2026", como a NBR 6023 abrevia o mês. */
-export function dataAcesso(iso: string): string {
-  const [ano, mes, dia] = iso.split("-").map(Number);
-  return `${dia} ${MESES[mes - 1]} ${ano}`;
-}

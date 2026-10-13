@@ -3,7 +3,7 @@ import PizZip from "pizzip";
 import { LEGISLATION_LIBRARY } from "@visa/legislacao";
 import { gerarDocxPlanejamento } from "@/lib/planejamento/docx";
 import { aplicarRegras, SECAO_ASSISTENCIAL, SECAO_INSTITUCIONAL, SECAO_ROTINAS } from "@/lib/planejamento/regras";
-import { dataAcesso, referenciaDoBanco } from "@/lib/planejamento/referencias";
+import { referenciaDoBanco } from "@/lib/planejamento/referencias";
 import type { Planejamento } from "@/lib/planejamento/tipos";
 
 describe("regras fixas do planejamento", () => {
@@ -49,10 +49,9 @@ describe("DOCX do planejamento", () => {
     const ref = referenciaDoBanco(rdc63);
     expect(ref.texto).not.toMatch(/Dispon[ií]vel em/);
     expect(ref.url).toMatch(/^https:\/\//);
-    expect(dataAcesso("2026-10-13")).toBe("13 out. 2026");
   });
 
-  it("gera um pacote válido com negrito no destaque e Acesso em", async () => {
+  it("gera um pacote válido com negrito no destaque e sem Acesso em", async () => {
     const plano: Planejamento = {
       nomeCliente: "Clínica Exemplo",
       cidadeUf: "Niterói/RJ",
@@ -71,12 +70,12 @@ describe("DOCX do planejamento", () => {
         { titulo: "NORMAS SANITÁRIAS DA ANVISA E GESTÃO DE RESÍDUOS", itens: [referenciaDoBanco(rdc63)] },
         { titulo: "MANUAIS", itens: [{ texto: "SILVA, A. et al. Manual. In: Livro. Rio de Janeiro: X, 2020." }] },
       ],
-      acessoEm: "2026-10-13",
       cnaes: [],
     };
     const zip = new PizZip(await gerarDocxPlanejamento(plano));
     const doc = zip.file("word/document.xml")!.asText();
-    expect(doc).toContain("Acesso em: 13 out. 2026.");
+    expect(doc).toContain("Disponível em: ");
+    expect(doc).not.toContain("Acesso em");
     expect(doc).toContain("Empresa X &amp; Filhos");
     const destaque = (rdc63 as { destaque?: string }).destaque;
     if (destaque) expect(doc).toMatch(new RegExp(`<w:b/>[^]*?${destaque.slice(0, 20).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));

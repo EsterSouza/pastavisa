@@ -82,7 +82,5 @@ export interface Planejamento {
   insumos: InsumoPlanejado[];
   matriz: LinhaMatriz[];
   referencias: GrupoReferencias[];
-  /** Data ISO do "Acesso em:" das referências online (NBR 6023); vazio = sem "Acesso em". */
-  acessoEm?: string;
   cnaes: AtividadeCnae[];
 }
