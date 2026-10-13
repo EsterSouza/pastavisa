@@ -7,6 +7,8 @@ export const dynamic = "force-dynamic";
 interface SignRequest {
   pdfName?: string;
   docxName?: string;
+  /** Planejamento: todos os arquivos que a cliente mandou (formulário, PDFs, fotos, Word). */
+  arquivos?: string[];
 }
 
 export async function POST(req: NextRequest) {
@@ -38,6 +40,24 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as SignRequest;
+    if (Array.isArray(body.arquivos)) {
+      const nomes = body.arquivos.filter((n) => typeof n === "string" && n.trim()).slice(0, 40);
+      if (nomes.length === 0) return NextResponse.json({ error: "Nenhum arquivo." }, { status: 400 });
+      const lote = Date.now().toString();
+      const arquivos = await Promise.all(
+        nomes.map((nome, i) =>
+          createSignedStorageUpload("uploads", `${lote}_planejamento_${i}_${safeStorageFileName(nome)}`)
+        )
+      );
+      return NextResponse.json({
+        mode: "direct",
+        supabaseUrl: publicUrl,
+        supabaseAnonKey: publicKey,
+        bucket: arquivos[0].bucket,
+        arquivos,
+      });
+    }
+
     if (!body.pdfName || !body.docxName) {
       return NextResponse.json({ error: "Nomes dos arquivos ausentes." }, { status: 400 });
     }

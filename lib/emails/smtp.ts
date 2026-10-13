@@ -73,14 +73,23 @@ async function guardarEmEnviados(mensagem: Buffer, data: Date, user: string, pas
 }
 
 /** Envia e devolve se a cópia ficou em "Enviados" da caixa. */
+export interface AnexoEmail {
+  nome: string;
+  conteudo: Buffer;
+  tipo: string;
+}
+
 export async function enviarEmailHtml({
   para,
   assunto,
   html,
+  anexos = [],
 }: {
   para: string;
   assunto: string;
   html: string;
+  /** Ex.: o PDF do planejamento no e-mail de boas-vindas. */
+  anexos?: AnexoEmail[];
 }): Promise<{ copiaEmEnviados: boolean }> {
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
@@ -111,6 +120,7 @@ export async function enviarEmailHtml({
         contentType: "image/png",
         cid: "logo-treinavisa",
       },
+      ...anexos.map((a) => ({ filename: a.nome, content: a.conteudo, contentType: a.tipo })),
     ],
   };
 

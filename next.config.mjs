@@ -9,6 +9,8 @@ const nextConfig = {
         "./public/brand/treinavisa-logo-print.png",
         "./public/brand/fonts/*.ttf",
       ],
+      // O DOCX do planejamento é montado sobre este modelo, lido em disco.
+      "/api/planejamento/docx": ["./assets/planejamento/*.docx"],
     },
   },
 };

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { definicaoEmail, montarEmail, problemasDoEmail } from "@/lib/emails/pasta-emails";
-import { enviarEmailHtml, remetente, smtpConfigurado } from "@/lib/emails/smtp";
+import { enviarEmailHtml, remetente, smtpConfigurado, type AnexoEmail } from "@/lib/emails/smtp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/** O corpo da requisição na Vercel vai até 4,5 MB; o PDF vai em base64 (+33%). */
+const ANEXO_MAXIMO = 3 * 1024 * 1024;
 
 const EMAIL = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
 
@@ -42,6 +45,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const problemas = problemasDoEmail(definicao.tipo, valores);
   if (problemas.length > 0) return NextResponse.json({ error: problemas.join(" ") }, { status: 400 });
 
+  const anexos: AnexoEmail[] = [];
+  if (body?.anexo) {
+    const nome = typeof body.anexo.nome === "string" ? body.anexo.nome.trim() : "";
+    const base64 = typeof body.anexo.base64 === "string" ? body.anexo.base64 : "";
+    if (!/\.pdf$/i.test(nome) || !base64) {
+      return NextResponse.json({ error: "O anexo precisa ser um PDF." }, { status: 400 });
+    }
+    const conteudo = Buffer.from(base64, "base64");
+    if (conteudo.length > ANEXO_MAXIMO) {
+      return NextResponse.json({ error: "O PDF passa de 3 MB. Mande pelo link do Drive." }, { status: 400 });
+    }
+    anexos.push({ nome, conteudo, tipo: "application/pdf" });
+  }
+
   const pasta = await prisma.pasta.findUnique({ where: { id: params.id }, select: { id: true } });
   if (!pasta) return NextResponse.json({ error: "Pasta não encontrada." }, { status: 404 });
 
@@ -51,6 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       para: para.join(", "),
       assunto,
       html: montarEmail(definicao.tipo, valores, "envio"),
+      anexos,
     }));
   } catch (error) {
     console.error("[emails] envio falhou:", error);

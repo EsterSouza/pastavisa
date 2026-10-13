@@ -29,6 +29,18 @@ const ETAPAS: Etapa[] = [
   { chave: "entrega", titulo: "Entrega final", tipos: ["entrega-fisica", "entrega-digital"] },
 ];
 
+/** Mesmo limite de app/api/pastas/[id]/emails: o corpo da requisição na Vercel vai até 4,5 MB. */
+const ANEXO_MAXIMO = 3 * 1024 * 1024;
+
+function paraBase64(arquivo: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onload = () => resolve(String(leitor.result).replace(/^data:[^,]*,/, ""));
+    leitor.onerror = () => reject(new Error("Não deu para ler o PDF."));
+    leitor.readAsDataURL(arquivo);
+  });
+}
+
 function quando(value: string): string {
   return new Date(value).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
@@ -151,14 +163,16 @@ function PrepararEmail({
   const [enviadoAgora, setEnviadoAgora] = useState("");
   const [copiado, setCopiado] = useState("");
   const [semCopia, setSemCopia] = useState(false);
+  const [anexo, setAnexo] = useState<File | null>(null);
 
   const previa = useMemo(() => montarEmail(tipo, valores, "previa"), [tipo, valores]);
   const problemas = useMemo(() => {
     const lista = problemasDoEmail(tipo, valores);
     if (!para.trim()) lista.unshift('Preencha "Para".');
     if (!assunto.trim()) lista.unshift('Preencha "Assunto".');
+    if (anexo && anexo.size > ANEXO_MAXIMO) lista.unshift("O PDF anexado passa de 3 MB.");
     return lista;
-  }, [tipo, valores, para, assunto]);
+  }, [tipo, valores, para, assunto, anexo]);
 
   const anteriores = (situacao?.enviados || []).filter((enviado) => enviado.tipo === tipo);
   const podeEnviar = !!situacao?.smtpConfigurado && problemas.length === 0 && !enviando && !enviadoAgora;
@@ -167,10 +181,12 @@ function PrepararEmail({
     setEnviando(true);
     setErro("");
     try {
+      const corpo: Record<string, unknown> = { tipo, para, assunto, valores };
+      if (anexo) corpo.anexo = { nome: anexo.name, base64: await paraBase64(anexo) };
       const r = await fetch(`/api/pastas/${pastaId}/emails`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tipo, para, assunto, valores }),
+        body: JSON.stringify(corpo),
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.error || `O envio falhou (HTTP ${r.status}).`);
@@ -263,6 +279,28 @@ function PrepararEmail({
             />
           )}
           <TextField label="Para" hint="Mais de um: separe por vírgula." value={para} onChange={setPara} />
+          {tipo === "boas-vindas" && (
+            <div>
+              <label htmlFor="anexo-planejamento" className="mb-1 block text-sm font-semibold text-ink">
+                Anexar o planejamento em PDF (opcional)
+              </label>
+              <input
+                id="anexo-planejamento"
+                type="file"
+                accept=".pdf,application/pdf"
+                disabled={enviando || !!enviadoAgora}
+                onChange={(e) => setAnexo(e.target.files?.[0] || null)}
+                className="block w-full text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface-subtle file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-accent"
+              />
+              <p className="mt-1 text-sm text-ink-muted">
+                {anexo
+                  ? anexo.size > ANEXO_MAXIMO
+                    ? "Passa de 3 MB: mande só pelo link do Drive."
+                    : `Vai anexado: ${anexo.name}`
+                  : "Sem anexo, o planejamento fica só na pasta do Drive."}
+              </p>
+            </div>
+          )}
           <TextField label="Assunto" value={assunto} onChange={setAssunto} />
           {definicao.campos.map((campo) => (
             <TextField

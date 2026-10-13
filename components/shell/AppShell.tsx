@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 const navigation = [
   { href: "/", label: "Pastas", matches: (path: string) => path === "/" || path.startsWith("/pasta/") },
+  { href: "/planejamento", label: "Planejamento", matches: (path: string) => path.startsWith("/planejamento") },
   { href: "/templates", label: "Templates", matches: (path: string) => path.startsWith("/templates") },
   { href: "/legislacoes", label: "Legislações", matches: (path: string) => path.startsWith("/legislacoes") },
 ];

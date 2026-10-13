@@ -272,9 +272,14 @@ export default function Dashboard() {
         title="Pastas sanitárias"
         description="Uma pasta por cliente. Abra para gerar, conferir e entregar."
         actions={
-          <Link href="/pasta/nova" className={buttonClass("primary")}>
-            + Nova pasta
-          </Link>
+          <>
+            <Link href="/planejamento" className={buttonClass("secondary")}>
+              Fazer planejamento
+            </Link>
+            <Link href="/pasta/nova" className={buttonClass("primary")}>
+              + Nova pasta
+            </Link>
+          </>
         }
       />
 
