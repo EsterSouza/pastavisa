@@ -214,11 +214,15 @@ interface NoDeTexto {
  */
 function mapearNosDeTexto(paragrafoXml: string): NoDeTexto[] {
   const nos: NoDeTexto[] = [];
-  const regex = /<w:t\b([^>]*)>([\s\S]*?)<\/w:t>/g;
+  // A primeira alternativa consome o `<w:t/>` vazio que o Word grava em rodapés:
+  // sem ela, `<w:t\b([^>]*)>` aceitava "/" como atributo e ia até o `</w:t>` do
+  // run seguinte, e a reescrita fechava o `<w:r>` com `</w:t>`.
+  const regex = /<w:t\b[^>]*\/>|<w:t\b([^>]*)>([\s\S]*?)<\/w:t>/g;
   let match: RegExpExecArray | null;
   let charStart = 0;
 
   while ((match = regex.exec(paragrafoXml)) !== null) {
+    if (match[0].endsWith("/>")) continue; // vazio: não tem texto a mapear
     const texto = decodeXmlEntities(match[2] ?? "");
     nos.push({
       abre: match.index,

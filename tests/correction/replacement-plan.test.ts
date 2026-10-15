@@ -44,6 +44,20 @@ describe("motor de substituição em .docx", () => {
     expect(xml.match(/<w:r>/g)).toHaveLength(3);
   });
 
+  it("atravessa o <w:t/> vazio do rodapé sem quebrar o XML", async () => {
+    // Rodapé real da Clissia (15/10/2026): runs com `<w:t/>` antes do telefone.
+    const docx = montarDocx({
+      footer1: paragrafo("<w:r><w:t/></w:r>", run("Rio das Ostras/RJ | "), "<w:r><w:t/></w:r>", run("(22) 99255-8373")),
+    });
+
+    const r = await aplicar(docx, [{ de: "(22) 99255-8373", para: "(22) 99247-0404" }]);
+    const xml = r.texto("word/footer1.xml");
+
+    expect(xml.replace(/<[^>]+>/g, "")).toBe("Rio das Ostras/RJ | (22) 99247-0404");
+    expect(xml.match(/<w:t\/>/g)).toHaveLength(2);
+    expect(r.contagens[0]).toMatchObject({ total: 1, rodape: 1 });
+  });
+
   it("preserva a formatação dos runs que o par atravessa", async () => {
     const docx = montarDocx({
       corpo: paragrafo(run("Clinica ", "<w:rPr><w:b/></w:rPr>"), run("Antiga Ltda")),
