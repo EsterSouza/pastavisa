@@ -14,6 +14,14 @@ import type { AtividadeCnae, CampoRotulado, EquipamentoPlanejado, InsumoPlanejad
 
 const MODELO = process.env.PLANEJAMENTO_MODELO || "claude-opus-5-5";
 
+// Do "Regras confirmadas pela usuária" até o fim do SKILL.md (base normativa verificada).
+// A escolha de referências só recebia o arquivo de normas e deixava a RDC 50/2002 de fora.
+const NORMAS_DO_SKILL = (() => {
+  const inicio = REGRAS_SKILL.indexOf("## Regras confirmadas pela usuária");
+  const fim = REGRAS_SKILL.indexOf("<<<ARQUIVO", inicio);
+  return inicio < 0 ? "" : REGRAS_SKILL.slice(inicio, fim < 0 ? undefined : fim);
+})();
+
 /** Igual a lib/ai.ts: o shell de quem roda o app local pode sobrescrever a chave do .env. */
 function chaveDaApi(): string {
   const doAmbiente = process.env.ANTHROPIC_API_KEY ?? "";
@@ -362,6 +370,9 @@ export async function escolherReferencias(params: {
 
 Regras de relevância da Ester:
 ${REGRAS_SKILL.slice(REGRAS_SKILL.indexOf("<<<ARQUIVO references/referencias-normativas.md>>>"))}
+
+Regras fixas e base normativa já verificada (do SKILL.md; ex.: a RDC 50/2002 entra em toda pasta de serviço de saúde):
+${NORMAS_DO_SKILL}
 
 Grupos, nesta ordem, só os que tiverem itens:
 1. "${GRUPOS_REFERENCIAS.federal}" (leis federais, direitos do paciente, LGPD, exercício profissional em lei)
