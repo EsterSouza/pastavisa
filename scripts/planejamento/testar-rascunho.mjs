@@ -52,8 +52,7 @@ const perfil = [
   `Terceirizados e esterilização: ${plano.terceirizados.map((t) => `${t.rotulo}: ${t.valor || "não informado"}`).join("; ")}`,
   `Estrutura física: ${plano.estruturaFisica.join(" ")}`,
   `Documentos planejados: ${plano.secoes.flatMap((s) => s.itens).join("; ")}`,
-].join("
-");
+].join("\n");
 const uf = toUF(rascunho.uf);
 const estado = UF_OPTIONS.find((o) => o.uf === uf)?.name || normalizeStateName(uf);
 const { lista } = candidatasDoBanco(uf, rascunho.cidade);
