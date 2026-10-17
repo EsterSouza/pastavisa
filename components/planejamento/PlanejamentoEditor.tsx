@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { DateField, fieldClass, SelectField, TextField } from "@/components/ui/Field";
@@ -40,10 +41,17 @@ interface Rascunho {
   uf: string;
 }
 
+interface ArquivoEnviado {
+  nome: string;
+  ref: string;
+}
+
 interface Salvo {
   rascunho: Rascunho;
   plano: Planejamento;
   resolvidas: number[];
+  /** Referências no storage dos arquivos lidos (só no envio direto ao Supabase). */
+  enviados?: ArquivoEnviado[];
 }
 
 type Fase = "envio" | "lendo" | "revisao";
@@ -120,6 +128,21 @@ function perfilDaCliente(plano: Planejamento, profissoes: string[]): string {
   ].join("\n");
 }
 
+/** O plano como vai para o DOCX e para a pasta: sem linhas vazias. */
+function planoLimpo(plano: Planejamento): Planejamento {
+  return {
+    ...plano,
+    procedimentos: plano.procedimentos.map((p) => p.trim()).filter(Boolean),
+    secoes: plano.secoes.map((s) => ({ ...s, itens: s.itens.map((i) => i.trim()).filter(Boolean) })),
+  };
+}
+
+/** O Forms entre os arquivos enviados: o PDF com "form" no nome, senão o único PDF. */
+function refDoForms(enviados: ArquivoEnviado[]): string | undefined {
+  const pdfs = enviados.filter((a) => /\.pdf$/i.test(a.nome));
+  return (pdfs.find((a) => /form/i.test(a.nome)) || (pdfs.length === 1 ? pdfs[0] : undefined))?.ref;
+}
+
 function nomeDoArquivo(plano: Planejamento): string {
   const nome = plano.nomeCliente.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
   return `Documentos em elaboração - ${nome.toLocaleUpperCase("pt-BR")}.docx`;
@@ -157,8 +180,11 @@ function TextoReferencia({ referencia }: { referencia: ReferenciaPlanejada }) {
 }
 
 export function PlanejamentoEditor() {
+  const router = useRouter();
   const [fase, setFase] = useState<Fase>("envio");
   const [arquivos, setArquivos] = useState<File[]>([]);
+  const [enviados, setEnviados] = useState<ArquivoEnviado[]>([]);
+  const [criando, setCriando] = useState(false);
   const [observacoes, setObservacoes] = useState("");
   const [dataPlanejamento, setDataPlanejamento] = useState(hojeIso());
   const [versaoPasta, setVersaoPasta] = useState("Digital");
@@ -184,8 +210,8 @@ export function PlanejamentoEditor() {
   }, []);
 
   useEffect(() => {
-    if (fase === "revisao" && rascunho && plano) gravarLocal({ rascunho, plano, resolvidas });
-  }, [fase, rascunho, plano, resolvidas]);
+    if (fase === "revisao" && rascunho && plano) gravarLocal({ rascunho, plano, resolvidas, enviados });
+  }, [fase, rascunho, plano, resolvidas, enviados]);
 
   function iniciarRelogio(texto: string) {
     setEtapa(texto);
@@ -267,6 +293,7 @@ export function PlanejamentoEditor() {
             .uploadToSignedUrl(alvo.path, alvo.token, arquivos[i], { contentType: arquivos[i].type || undefined });
           if (error) throw new Error(`Erro no envio de ${arquivos[i].name}: ${error.message}`);
         }
+        setEnviados(planoUpload.arquivos.map((a, i) => ({ nome: arquivos[i].name, ref: a.ref })));
         iniciarRelogio("Lendo os arquivos e montando o planejamento (leva de 1 a 4 minutos)…");
         res = await fetch("/api/planejamento/rascunho", {
           method: "POST",
@@ -277,6 +304,7 @@ export function PlanejamentoEditor() {
           }),
         });
       } else {
+        setEnviados([]);
         const form = new FormData();
         for (const arquivo of arquivos) form.append("arquivos", arquivo);
         for (const [chave, valor] of Object.entries(opcoes)) form.append(chave, valor);
@@ -304,6 +332,7 @@ export function PlanejamentoEditor() {
     setRascunho(salvoAnterior.rascunho);
     setPlano(salvoAnterior.plano);
     setResolvidas(salvoAnterior.resolvidas);
+    setEnviados(salvoAnterior.enviados || []);
     setFase("revisao");
   }
 
@@ -313,6 +342,7 @@ export function PlanejamentoEditor() {
     setRascunho(null);
     setPlano(null);
     setArquivos([]);
+    setEnviados([]);
     setObservacoes("");
     setFase("envio");
   }
@@ -322,11 +352,7 @@ export function PlanejamentoEditor() {
     setBaixando(true);
     setAviso("");
     try {
-      const corpo: Planejamento = {
-        ...plano,
-        procedimentos: plano.procedimentos.map((p) => p.trim()).filter(Boolean),
-        secoes: plano.secoes.map((s) => ({ ...s, itens: s.itens.map((i) => i.trim()).filter(Boolean) })),
-      };
+      const corpo = planoLimpo(plano);
       const res = await fetch("/api/planejamento/docx", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -351,6 +377,35 @@ export function PlanejamentoEditor() {
     }
   }
 
+  async function criarPasta() {
+    if (!plano || criando) return;
+    setCriando(true);
+    setAviso("");
+    try {
+      const res = await fetch("/api/planejamento/criar-pasta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plano: planoLimpo(plano),
+          formsRef: refDoForms(enviados),
+          templates: Object.fromEntries((rascunho?.itens || []).filter((i) => i.template).map((i) => [i.nome, i.template])),
+        }),
+      });
+      const { pastaId } = await lerResposta<{ pastaId: string }>(res, "Não deu para criar a pasta.");
+      // A logo segue se ainda estiver na tela (some ao recarregar a página).
+      const logo = arquivos.find((a) => /logo/i.test(a.name) && /^image\//.test(a.type));
+      if (logo) {
+        const form = new FormData();
+        form.append("logo", logo);
+        await fetch(`/api/pastas/${pastaId}/logo`, { method: "POST", body: form }).catch(() => undefined);
+      }
+      router.push(`/pasta/${pastaId}/editar`);
+    } catch (error) {
+      setAviso(error instanceof Error ? error.message : "Não deu para criar a pasta.");
+      setCriando(false);
+    }
+  }
+
   const pendencias = useMemo(() => [...(rascunho?.pendencias || []), ...refsPendencias], [rascunho, refsPendencias]);
   const semTemplate = (rascunho?.itens || []).filter((i) => !i.template);
 
@@ -360,7 +415,7 @@ export function PlanejamentoEditor() {
       <div>
         <PageHeader
           title="Planejamento"
-          description="Monte o Documentos em Elaboração a partir do que a cliente mandou. Nada é gravado: no fim você baixa o DOCX."
+          description="Monte o Documentos em Elaboração a partir do que a cliente mandou. No fim você baixa o DOCX ou cria a pasta direto, sem nova leitura."
           actions={
             <Link href="/pasta/nova" className={buttonClass("secondary")}>
               Já tenho o planejamento pronto ›
@@ -503,8 +558,11 @@ export function PlanejamentoEditor() {
             <Button variant="secondary" onClick={recomecar}>
               Começar outro
             </Button>
-            <Button onClick={() => void baixar()} disabled={baixando}>
+            <Button variant="secondary" onClick={() => void baixar()} disabled={baixando}>
               {baixando ? "Gerando…" : "Baixar DOCX"}
+            </Button>
+            <Button onClick={() => void criarPasta()} disabled={criando}>
+              {criando ? "Criando a pasta…" : "Criar pasta"}
             </Button>
           </>
         }
@@ -735,9 +793,12 @@ export function PlanejamentoEditor() {
             />
           </FormSection>
 
-          <div className="flex justify-end">
-            <Button onClick={() => void baixar()} disabled={baixando}>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => void baixar()} disabled={baixando}>
               {baixando ? "Gerando…" : "Baixar DOCX"}
+            </Button>
+            <Button onClick={() => void criarPasta()} disabled={criando}>
+              {criando ? "Criando a pasta…" : "Criar pasta"}
             </Button>
           </div>
         </div>
