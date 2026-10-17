@@ -57,6 +57,9 @@ async function chamarFerramenta<T>(params: {
     ],
   });
   const resposta = await stream.finalMessage();
+  console.info(
+    `[planejamento] ${params.ferramenta.name}: entrada ${resposta.usage.input_tokens}, saída ${resposta.usage.output_tokens}, fim ${resposta.stop_reason}`
+  );
   const bloco = resposta.content.find((b) => b.type === "tool_use");
   if (!bloco || bloco.type !== "tool_use") throw new Error("A IA não devolveu o planejamento. Tente de novo.");
   if (resposta.stop_reason === "max_tokens") {
@@ -298,7 +301,9 @@ export async function lerFormulario(params: {
 
   const { dados, tokens } = await chamarFerramenta<RascunhoIa>({
     sistema: SISTEMA_RASCUNHO,
-    maxTokens: 20000,
+    // O raciocínio do Opus 5.5 (sempre ligado) sai do mesmo teto: com Forms grande e
+    // muitas fotos, 20000 cortava o planejamento no meio.
+    maxTokens: 64000,
     ferramenta: FERRAMENTA_RASCUNHO,
     conteudo: [...params.anexos, { type: "text", text: partes.join("\n\n") }],
   });
@@ -369,7 +374,7 @@ Grupos, nesta ordem, só os que tiverem itens:
 Dentro de cada grupo, ordem cronológica crescente.`;
   const { dados, tokens } = await chamarFerramenta<EscolhaReferencias>({
     sistema,
-    maxTokens: 6000,
+    maxTokens: 32000,
     ferramenta: FERRAMENTA_REFERENCIAS,
     conteudo: [
       {
