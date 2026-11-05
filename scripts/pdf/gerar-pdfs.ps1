@@ -198,4 +198,11 @@ if ($falhas.Count -gt 0 -or $convertidos + $pulados -lt $arquivos.Count) {
   }
   Fim 2
 }
+
+# Com todos os PDFs em dia, conta as páginas e guarda no histórico das clientes.
+# Num teste com -Destino a pasta de saída não é a da cliente, então não conta.
+if (-not $Destino) {
+  Write-Host ""
+  & (Join-Path $PSScriptRoot "contar-paginas.ps1") -Pasta $saida
+}
 Fim 0
