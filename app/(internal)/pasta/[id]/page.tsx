@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import { EmailsCliente } from "@/components/pasta/EmailsCliente";
+import { PaginasPasta } from "@/components/pasta/PaginasPasta";
 import { PastaHeader } from "@/components/pasta/PastaHeader";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 import { Button, buttonClass } from "@/components/ui/Button";
@@ -569,6 +570,8 @@ export default function PastaDetalhe() {
           )}
 
           <EmailsCliente pastaId={id} pasta={pasta} documentosGerados={gerados} />
+
+          <PaginasPasta pastaId={id} />
 
           <Card className="p-4">
             <h2 className="font-display text-base text-ink">Dados da cliente</h2>

@@ -175,3 +175,18 @@ model Legislacao {
   chaveReferencia String? @unique
   ativo          Boolean @default(true)
 }
+
+// Páginas dos PDFs de cada pasta, contadas no navegador pela tela da pasta.
+// Sem relação com Pasta de propósito: a pasta é excluída 30 dias depois de
+// concluída (cron de retenção) e o histórico de impressão precisa ficar.
+model ContagemPaginas {
+  id         String   @id @default(cuid())
+  pastaId    String?  @unique
+  cliente    String
+  versao     String?
+  paginas    Int
+  documentos String
+  contadaEm  DateTime @default(now())
+
+  @@index([contadaEm])
+}
