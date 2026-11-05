@@ -175,3 +175,15 @@ model Legislacao {
   chaveReferencia String? @unique
   ativo          Boolean @default(true)
 }
+
+model ContagemPaginas {
+  id         String   @id @default(cuid())
+  pastaId    String?  @unique
+  cliente    String
+  versao     String?
+  paginas    Int
+  documentos String
+  contadaEm  DateTime @default(now())
+
+  @@index([contadaEm])
+}
