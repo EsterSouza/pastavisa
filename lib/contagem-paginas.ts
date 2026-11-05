@@ -59,6 +59,22 @@ export function custoDaPasta(
   return { preco, itens, custo, sobra: preco - custo };
 }
 
+/** Colunas de custo da planilha, na ordem de custoDaPasta. */
+export const ITENS_DE_CUSTO = ["Imposto (6%)", "Pix (Cakto)", "Kevin", "IA (estimada)", "Impressora", "Papel", "Pasta catálogo", "Envio"];
+
+/**
+ * Planilha para o Excel em português: separador ";", vírgula decimal e BOM para os
+ * acentos. Texto que começa com = + - @ ganha apóstrofo para o Excel não rodar fórmula.
+ */
+export function planilhaCsv(linhas: Array<Array<string | number>>): string {
+  const celula = (valor: string | number) => {
+    if (typeof valor === "number") return Number.isInteger(valor) ? String(valor) : valor.toFixed(2).replace(".", ",");
+    const texto = /^[=+\-@]/.test(valor) ? `'${valor}` : valor;
+    return /[";\r\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto;
+  };
+  return "\uFEFF" + linhas.map((linha) => linha.map(celula).join(";")).join("\r\n");
+}
+
 export const reais = (valor: number) => valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 /** Tipo do documento pelo nome do PDF, para a média de páginas por tipo. */

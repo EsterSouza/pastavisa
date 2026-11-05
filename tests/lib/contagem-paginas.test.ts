@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { custoDaPasta, lerDocumentos, pastaImpressa, tipoDoDocumento } from "@/lib/contagem-paginas";
+import { custoDaPasta, lerDocumentos, pastaImpressa, planilhaCsv, tipoDoDocumento } from "@/lib/contagem-paginas";
 
 describe("contagem de páginas", () => {
   it("classifica os PDFs reais da Pasta Personalizada", () => {
@@ -42,5 +42,15 @@ describe("contagem de páginas", () => {
     const digital = custoDaPasta({ versao: "Digital", paginas: 311 }, mes);
     expect(digital.custo).toBeCloseTo(101.76, 2);
     expect(digital.itens.map(([rotulo]) => rotulo)).not.toContain("Papel");
+  });
+
+  it("monta a planilha no formato do Excel em português", () => {
+    const csv = planilhaCsv([
+      ["Cliente", "Custo"],
+      ['Clínica "Bela"; Estética', 101.756],
+      ["=SOMA(A1)", 597],
+    ]);
+    expect(csv.charCodeAt(0)).toBe(0xfeff);
+    expect(csv.slice(1).split("\r\n")).toEqual(["Cliente;Custo", '"Clínica ""Bela""; Estética";101,76', "'=SOMA(A1);597"]);
   });
 });

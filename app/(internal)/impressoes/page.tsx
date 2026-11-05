@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/Button";
 import { Card, EmptyState, PageHeader } from "@/components/ui/Surface";
 import {
   CUSTOS,
   custoDaPasta,
   FRANQUIA_PAGINAS,
+  ITENS_DE_CUSTO,
   pastaImpressa,
+  planilhaCsv,
   reais,
   tipoDoDocumento,
   type DocumentoContado,
@@ -78,9 +81,46 @@ export default function Impressoes() {
   const ultimas = impressas.slice(0, 3);
   const mediaUltimas = media(ultimas.reduce((s, c) => s + c.paginas, 0), ultimas.length);
 
+  /** Uma linha por pasta contada, com cada item do custo; o resumo por mês sai de uma tabela dinâmica. */
+  const exportar = () => {
+    const linhas: Array<Array<string | number>> = [
+      ["Data", "Mês", "Cliente", "Versão", "PDFs", "Páginas", "Preço", ...ITENS_DE_CUSTO, "Custo", "Sobra"],
+    ];
+    for (const c of contagens) {
+      const custo = custos.get(c.id)!;
+      const itens = new Map(custo.itens);
+      linhas.push([
+        new Date(c.contadaEm).toLocaleDateString("pt-BR"),
+        nomeDoMes(mesDe(c.contadaEm)),
+        c.cliente,
+        c.versao || "",
+        (JSON.parse(c.documentos) as DocumentoContado[]).length,
+        c.paginas,
+        custo.preco,
+        ...ITENS_DE_CUSTO.map((rotulo) => itens.get(rotulo) || 0),
+        custo.custo,
+        custo.sobra,
+      ]);
+    }
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([planilhaCsv(linhas)], { type: "text/csv;charset=utf-8" }));
+    link.download = `impressoes-pastavisa-${new Date().toLocaleDateString("sv-SE")}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
   return (
     <div>
-      <PageHeader title="Impressões" />
+      <PageHeader
+        title="Impressões"
+        actions={
+          contagens.length > 0 && (
+            <Button variant="secondary" onClick={exportar}>
+              Exportar planilha
+            </Button>
+          )
+        }
+      />
       {contagens.length === 0 ? (
         <EmptyState
           title="Nenhuma pasta contada ainda"
