@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { custoDaPasta, lerDocumentos, pastaImpressa, planilhaCsv, tipoDoDocumento } from "@/lib/contagem-paginas";
+import { cicloDe, custoDaPasta, lerDocumentos, nomeDoCiclo, pastaImpressa, planilhaCsv, tipoDoDocumento } from "@/lib/contagem-paginas";
 
 describe("contagem de páginas", () => {
   it("classifica os PDFs reais da Pasta Personalizada", () => {
@@ -42,6 +42,14 @@ describe("contagem de páginas", () => {
     const digital = custoDaPasta({ versao: "Digital", paginas: 311 }, mes);
     expect(digital.custo).toBeCloseTo(101.76, 2);
     expect(digital.itens.map(([rotulo]) => rotulo)).not.toContain("Papel");
+  });
+
+  it("conta a franquia do dia 21 ao dia 20 do mês seguinte", () => {
+    expect(cicloDe("2026-11-20T23:00:00")).toBe("2026-10");
+    expect(cicloDe("2026-11-21T00:30:00")).toBe("2026-11");
+    expect(cicloDe("2026-01-05T12:00:00")).toBe("2025-12");
+    expect(nomeDoCiclo("2025-12")).toBe("21/12 a 20/01/2026");
+    expect(nomeDoCiclo("2026-10")).toBe("21/10 a 20/11/2026");
   });
 
   it("monta a planilha no formato do Excel em português", () => {

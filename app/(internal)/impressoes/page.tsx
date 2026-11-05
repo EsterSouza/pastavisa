@@ -5,10 +5,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card, EmptyState, PageHeader } from "@/components/ui/Surface";
 import {
+  cicloDe,
   CUSTOS,
   custoDaPasta,
   FRANQUIA_PAGINAS,
   ITENS_DE_CUSTO,
+  nomeDoCiclo,
   pastaImpressa,
   planilhaCsv,
   reais,
@@ -26,15 +28,6 @@ type Contagem = {
   contadaEm: string;
 };
 
-/** Mês no fuso do navegador: uma contagem às 22h do dia 31 não pode cair no mês seguinte. */
-const mesDe = (data: string) => {
-  const d = new Date(data);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-};
-const nomeDoMes = (mes: string) => {
-  const nome = new Date(`${mes}-15T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-  return nome.charAt(0).toUpperCase() + nome.slice(1);
-};
 const media = (soma: number, n: number) => (n ? Math.round(soma / n) : 0);
 
 export default function Impressoes() {
@@ -52,17 +45,18 @@ export default function Impressoes() {
   if (!contagens) return <p className="text-sm text-ink-muted">Carregando…</p>;
 
   const impressas = contagens.filter((c) => pastaImpressa(c.versao));
-  const doMesDe = (mes: string) => contagens.filter((c) => mesDe(c.contadaEm) === mes);
-  const custos = new Map(contagens.map((c) => [c.id, custoDaPasta(c, doMesDe(mesDe(c.contadaEm)))]));
-  const meses = Array.from(new Set(contagens.map((c) => mesDe(c.contadaEm)))).map((mes) => {
-    const todas = doMesDe(mes);
-    const doMes = todas.filter((c) => pastaImpressa(c.versao));
+  // Tudo é agrupado pelo ciclo da franquia (dia 21 a 20), inclusive o rateio do Kevin.
+  const doCicloDe = (ciclo: string) => contagens.filter((c) => cicloDe(c.contadaEm) === ciclo);
+  const custos = new Map(contagens.map((c) => [c.id, custoDaPasta(c, doCicloDe(cicloDe(c.contadaEm)))]));
+  const ciclos = Array.from(new Set(contagens.map((c) => cicloDe(c.contadaEm)))).map((ciclo) => {
+    const todas = doCicloDe(ciclo);
+    const doCiclo = todas.filter((c) => pastaImpressa(c.versao));
     const soma = (campo: "preco" | "custo" | "sobra") => todas.reduce((s, c) => s + (custos.get(c.id)?.[campo] || 0), 0);
     return {
-      mes,
-      pastas: doMes.length,
-      digitais: todas.length - doMes.length,
-      paginas: doMes.reduce((s, c) => s + c.paginas, 0),
+      ciclo,
+      pastas: doCiclo.length,
+      digitais: todas.length - doCiclo.length,
+      paginas: doCiclo.reduce((s, c) => s + c.paginas, 0),
       faturamento: soma("preco"),
       custo: soma("custo"),
       sobra: soma("sobra"),
@@ -80,18 +74,23 @@ export default function Impressoes() {
   const tipos = Array.from(porTipo.entries()).sort((a, b) => b[1].paginas - a[1].paginas);
   const ultimas = impressas.slice(0, 3);
   const mediaUltimas = media(ultimas.reduce((s, c) => s + c.paginas, 0), ultimas.length);
+  const cicloAtual = cicloDe(new Date());
+  const usadas = doCicloDe(cicloAtual)
+    .filter((c) => pastaImpressa(c.versao))
+    .reduce((s, c) => s + c.paginas, 0);
+  const restam = FRANQUIA_PAGINAS - usadas;
 
-  /** Uma linha por pasta contada, com cada item do custo; o resumo por mês sai de uma tabela dinâmica. */
+  /** Uma linha por pasta contada, com cada item do custo; o resumo por ciclo sai de uma tabela dinâmica. */
   const exportar = () => {
     const linhas: Array<Array<string | number>> = [
-      ["Data", "Mês", "Cliente", "Versão", "PDFs", "Páginas", "Preço", ...ITENS_DE_CUSTO, "Custo", "Sobra"],
+      ["Data", "Ciclo da franquia", "Cliente", "Versão", "PDFs", "Páginas", "Preço", ...ITENS_DE_CUSTO, "Custo", "Sobra"],
     ];
     for (const c of contagens) {
       const custo = custos.get(c.id)!;
       const itens = new Map(custo.itens);
       linhas.push([
         new Date(c.contadaEm).toLocaleDateString("pt-BR"),
-        nomeDoMes(mesDe(c.contadaEm)),
+        nomeDoCiclo(cicloDe(c.contadaEm)),
         c.cliente,
         c.versao || "",
         (JSON.parse(c.documentos) as DocumentoContado[]).length,
@@ -138,19 +137,25 @@ export default function Impressoes() {
               <p className="font-display text-2xl text-ink">{media(impressas.reduce((s, c) => s + c.paginas, 0), impressas.length)} páginas</p>
             </Card>
             <Card className="p-4">
-              <p className="text-sm text-ink-muted">Pastas impressas que cabem na franquia</p>
-              <p className="font-display text-2xl text-ink">
-                {Math.floor(FRANQUIA_PAGINAS / (mediaUltimas || 1))} por mês
+              <p className="text-sm text-ink-muted">Franquia do ciclo {nomeDoCiclo(cicloAtual)}</p>
+              <p className={`font-display text-2xl ${restam < 0 ? "text-status-danger" : "text-ink"}`}>
+                {restam < 0
+                  ? `${(-restam).toLocaleString("pt-BR")} páginas além`
+                  : `Restam ${restam.toLocaleString("pt-BR")} páginas`}
+              </p>
+              <p className="mt-1 text-sm text-ink-muted">
+                {usadas.toLocaleString("pt-BR")} de {FRANQUIA_PAGINAS.toLocaleString("pt-BR")} usadas
+                {restam > 0 && mediaUltimas > 0 ? `, cabem mais ${Math.floor(restam / mediaUltimas)} pastas impressas` : ""}
               </p>
             </Card>
           </div>
 
           <Card className="p-4">
-            <h2 className="font-display text-base text-ink">Por mês</h2>
+            <h2 className="font-display text-base text-ink">Por ciclo da franquia (dia 21 a 20)</h2>
             <table className="mt-3 w-full text-sm">
               <thead className="text-left text-ink-muted">
                 <tr>
-                  <th className="py-1.5 font-normal">Mês</th>
+                  <th className="py-1.5 font-normal">Ciclo</th>
                   <th className="py-1.5 font-normal">Impressas</th>
                   <th className="py-1.5 font-normal">Só digitais</th>
                   <th className="py-1.5 font-normal">Páginas impressas</th>
@@ -161,11 +166,11 @@ export default function Impressoes() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 border-t border-gray-200">
-                {meses.map((m) => {
+                {ciclos.map((m) => {
                   const uso = Math.round((m.paginas / FRANQUIA_PAGINAS) * 100);
                   return (
-                    <tr key={m.mes}>
-                      <td className="py-1.5 text-ink">{nomeDoMes(m.mes)}</td>
+                    <tr key={m.ciclo}>
+                      <td className="py-1.5 text-ink">{nomeDoCiclo(m.ciclo)}</td>
                       <td className="py-1.5 text-ink">{m.pastas}</td>
                       <td className="py-1.5 text-ink">{m.digitais}</td>
                       <td className="py-1.5 font-semibold text-ink">{m.paginas.toLocaleString("pt-BR")}</td>
@@ -182,7 +187,7 @@ export default function Impressoes() {
             </table>
             <p className="mt-3 text-sm text-ink-muted">
               Custo com imposto de {CUSTOS.imposto * 100}%, Pix, IA estimada em {reais(CUSTOS.iaPorPasta)} por pasta, e nas impressas papel, pasta catálogo e
-              envio. O Kevin ({reais(CUSTOS.kevinMes)}) é dividido pelas pastas contadas no mês e a impressora ({reais(CUSTOS.impressoraMes)}) pelas
+              envio. O Kevin ({reais(CUSTOS.kevinMes)}) é dividido pelas pastas contadas no ciclo e a impressora ({reais(CUSTOS.impressoraMes)}) pelas
               impressas, então conte também as pastas só digitais.
             </p>
           </Card>

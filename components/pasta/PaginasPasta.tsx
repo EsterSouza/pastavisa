@@ -4,14 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Surface";
-import { custoDaPasta, reais, type CustoPasta, type DocumentoContado } from "@/lib/contagem-paginas";
+import { cicloDe, custoDaPasta, reais, type CustoPasta, type DocumentoContado } from "@/lib/contagem-paginas";
 
 type Contagem = { id: string; versao: string | null; paginas: number; documentos: string; contadaEm: string };
-
-const mesDe = (data: string) => {
-  const d = new Date(data);
-  return d.getFullYear() * 12 + d.getMonth();
-};
 
 /**
  * Páginas dos PDFs da pasta. Ela escolhe a pasta "PDF" da cliente; o navegador
@@ -33,14 +28,14 @@ export function PaginasPasta({ pastaId }: { pastaId: string }) {
       .catch(() => setErro("Não deu para ler a contagem guardada."));
   }, [pastaId]);
 
-  // O Kevin e a impressora são divididos pelas pastas contadas no mesmo mês.
+  // O Kevin e a impressora são divididos pelas pastas contadas no mesmo ciclo da franquia (21 a 20).
   useEffect(() => {
     if (!contagem) return;
     fetch("/api/impressoes")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d: { contagens: Contagem[] }) => {
-        const doMes = d.contagens.filter((c) => mesDe(c.contadaEm) === mesDe(contagem.contadaEm));
-        setCusto(custoDaPasta(contagem, doMes));
+        const doCiclo = d.contagens.filter((c) => cicloDe(c.contadaEm) === cicloDe(contagem.contadaEm));
+        setCusto(custoDaPasta(contagem, doCiclo));
       })
       .catch(() => setCusto(null));
   }, [contagem]);
@@ -152,7 +147,7 @@ export function PaginasPasta({ pastaId }: { pastaId: string }) {
         </dl>
       )}
       <Link href="/impressoes" className="mt-3 inline-block text-sm font-semibold text-brand-accent underline-offset-4 hover:underline">
-        Ver impressões do mês ›
+        Ver impressões do ciclo ›
       </Link>
     </Card>
   );

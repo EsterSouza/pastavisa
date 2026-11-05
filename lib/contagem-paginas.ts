@@ -3,6 +3,27 @@ export type DocumentoContado = { nome: string; paginas: number };
 /** Franquia mensal da impressora da Ester (R$ 245 até 2.500 páginas). */
 export const FRANQUIA_PAGINAS = 2500;
 
+/** Dia em que a franquia da impressora recomeça. */
+export const DIA_DA_FRANQUIA = 21;
+
+/**
+ * Ciclo da franquia (dia 21 até o dia 20 do mês seguinte), no fuso do navegador.
+ * A chave é o ano-mês em que o ciclo começa: 20/11 cai em "2026-10", 21/11 em "2026-11".
+ */
+export function cicloDe(data: string | Date): string {
+  const d = new Date(data);
+  const inicio = new Date(d.getFullYear(), d.getMonth() - (d.getDate() < DIA_DA_FRANQUIA ? 1 : 0), 1);
+  return `${inicio.getFullYear()}-${String(inicio.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** "21/10 a 20/11/2026" */
+export function nomeDoCiclo(ciclo: string): string {
+  const [ano, mes] = ciclo.split("-").map(Number);
+  const fim = new Date(ano, mes, DIA_DA_FRANQUIA - 1);
+  const dd = (d: Date) => `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return `${dd(new Date(ano, mes - 1, DIA_DA_FRANQUIA))} a ${dd(fim)}/${fim.getFullYear()}`;
+}
+
 /** Pasta que vai para a gráfica: a versão do planejamento cita colorida ou preto e branco. */
 export function pastaImpressa(versao: string | null | undefined): boolean {
   return /colorid|preto/i.test(versao || "");
