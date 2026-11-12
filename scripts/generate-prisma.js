@@ -5,7 +5,7 @@ require("dotenv").config({ path: ".env.local", override: true });
 
 const databaseUrl = process.env.DATABASE_URL || "";
 const schema = databaseUrl.startsWith("postgres")
-  ? "prisma/schema.supabase.prisma"
+  ? "prisma/schema.postgres.prisma"
   : "prisma/schema.prisma";
 const prismaBin = process.platform === "win32"
   ? path.join(process.cwd(), "node_modules", ".bin", "prisma.cmd")

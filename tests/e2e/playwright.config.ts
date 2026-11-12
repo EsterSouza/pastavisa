@@ -27,13 +27,11 @@ function fallback(name: string, value: string): void {
 // um segredo publicado.
 fallback("PLANNER_SIGNING_SECRET", randomBytes(32).toString("hex"));
 
-// Sem Supabase configurado, o middleware devolve 503 em vez de mandar para o
-// login — e a fronteira anônima passaria a ser testada contra um comportamento
-// que produção não tem. Estes valores não autenticam ninguém: apontam para uma
-// porta fechada, então `getUser()` nunca acha sessão e o anônimo é barrado como
-// em produção.
-fallback("NEXT_PUBLIC_SUPABASE_URL", "http://127.0.0.1:9");
-fallback("NEXT_PUBLIC_SUPABASE_ANON_KEY", "e2e-placeholder-sem-valor-de-credencial");
+// Sem SESSION_SECRET o middleware devolve 503 em vez de mandar para o login, e
+// a fronteira anônima passaria a ser testada contra um comportamento que
+// produção não tem. Efêmero, como o de cima: nenhuma sessão assinada com ele
+// existe fora desta execução, então o anônimo é barrado como em produção.
+fallback("SESSION_SECRET", randomBytes(32).toString("hex"));
 
 const port = Number(new URL(BASE_URL).port || 3100);
 

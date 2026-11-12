@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
 import { DocumentPreviewModal, type DocumentPreviewState } from "@/components/DocumentPreviewModal";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import { PastaHeader, usePastaCabecalho } from "@/components/pasta/PastaHeader";
@@ -82,16 +81,6 @@ interface AnalisePlano {
 }
 
 type AnaliseEntrada = { ok: true; plano: AnalisePlano } | { ok: false; erro: string };
-
-type UploadSignPlan =
-  | { mode: "multipart" }
-  | {
-      mode: "direct";
-      supabaseUrl: string;
-      supabaseAnonKey: string;
-      bucket: string;
-      uploads: Array<{ nomeArquivo: string; path: string; token: string; ref: string }>;
-    };
 
 interface Confirmacao {
   title: string;
@@ -365,42 +354,13 @@ export default function CorrigirLotePasta() {
     setUploadErro(false);
     setUploadMessage(`Enviando ${fileArray.length} arquivo(s)...`);
     try {
-      const planRes = await fetch(`/api/pastas/${id}/uploads-corrigidos/sign`, {
+      const formData = new FormData();
+      fileArray.forEach((file) => formData.append("arquivos", file));
+      const uploadRes = await fetch(`/api/pastas/${id}/uploads-corrigidos`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileNames: fileArray.map((f) => f.name) }),
+        body: formData,
       });
-      const plan = await readApiResponse<UploadSignPlan>(planRes, "Erro ao preparar o upload dos arquivos");
-
-      if (plan.mode === "direct") {
-        const supabase = createClient(plan.supabaseUrl, plan.supabaseAnonKey, {
-          auth: { persistSession: false, autoRefreshToken: false },
-        });
-        for (let i = 0; i < fileArray.length; i++) {
-          const file = fileArray[i];
-          const target = plan.uploads[i];
-          const { error } = await supabase.storage
-            .from(plan.bucket)
-            .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type || undefined });
-          if (error) throw new Error(`Erro no upload de ${file.name}: ${error.message}`);
-        }
-        const registerRes = await fetch(`/api/pastas/${id}/uploads-corrigidos`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            arquivos: plan.uploads.map((u) => ({ nomeArquivo: u.nomeArquivo, uploadPath: u.ref })),
-          }),
-        });
-        await readApiResponse(registerRes, "O banco recusou o registro dos arquivos enviados");
-      } else {
-        const formData = new FormData();
-        fileArray.forEach((file) => formData.append("arquivos", file));
-        const uploadRes = await fetch(`/api/pastas/${id}/uploads-corrigidos`, {
-          method: "POST",
-          body: formData,
-        });
-        await readApiResponse(uploadRes, "Erro no upload dos arquivos");
-      }
+      await readApiResponse(uploadRes, "Erro no upload dos arquivos");
 
       await carregarDocs();
       setUploadMessage(`${fileArray.length} arquivo(s) enviado(s).`);

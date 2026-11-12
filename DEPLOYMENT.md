@@ -1,105 +1,44 @@
-# Deploy Vercel + Supabase
+# Deploy — infra da Treinavisa
 
-## Readiness check
+Desde 11/11/2026 o pastavisa sai do Supabase e da Vercel e roda nas caixas da
+Treinavisa. A infra (compose, DNS, banco, segredos) é do repo `infra_treinavisa`,
+stack `pastavisa/`; este repo só entrega a imagem.
 
-Antes de publicar, rode:
+| peça | onde |
+|---|---|
+| App | Container `ghcr.io/estersouza/pastavisa:<sha>` atrás do Traefik, em `pasta.treinavisa.com.br` |
+| Banco | Postgres 17, banco `pastavisa`, role `pastavisa_app` (caixa `data`) |
+| Arquivos | Garage (S3), bucket `pastavisa`; referências gravadas como `s3://pastavisa/storage/<pasta>/<arquivo>` |
+| Login | Keycloak `login.treinavisa.com.br`, realm `treinavisa`, client `pastavisa`, papéis `admin` e `operador` |
+| Cron | Timer na caixa chama `GET /api/cron/retencao-pastas` com `Authorization: Bearer $CRON_SECRET`, todo dia às 09:00 UTC |
+| Limite do planner | 10 POST a cada 5 min por IP em `/api/planejamento-comercial/{analisar,pdf}`, no Traefik (era a regra de firewall da Vercel, `scripts/planner-firewall-rules.json`) |
+| Segredos | Cofre da infra, item `env_pastavisa`; nomes em `.env.example` |
 
-```powershell
-npm.cmd run check:deploy
-npm.cmd run build
-```
+## Publicar
 
-Depois do deploy, confira:
+1. Merge na `main`. O workflow `.github/workflows/imagem.yml` roda lint e
+   typecheck, monta a imagem e publica no GHCR com a tag do SHA.
+2. A infra troca a tag na stack `pastavisa/` e faz `docker compose pull && docker compose up -d`.
+3. Conferir `https://pasta.treinavisa.com.br/api/health`: 200 com `ok: true`.
+   Responde 503 e diz qual peça falta (banco, storage, login), sem mostrar valor.
 
-```text
-https://your-domain.vercel.app/api/health
-```
+## Mudança de modelo
 
-Esse endpoint valida banco, storage e variaveis sem expor segredos.
+`prisma/schema.prisma` (SQLite, desenvolvimento local) e `prisma/schema.postgres.prisma`
+(produção) andam juntos. Para produção, gerar o SQL com
+`npx prisma migrate diff --from-schema <antes> --to-schema prisma/schema.postgres.prisma --script`
+e gravar um arquivo novo em `db/migrations/`. Quem aplica no banco é a infra,
+antes de subir a imagem que depende dele.
+
+## Desenvolvimento local
+
+Sem `DATABASE_URL` o app usa SQLite em `prisma/dev.db`; sem `S3_ENDPOINT`, a pasta
+`storage/`. O login exige o Keycloak (ou um client de teste nele) e o `SESSION_SECRET`.
 
 ## Backup local
 
-Antes de qualquer migracao:
-
-```powershell
-npm.cmd run backup:local
+```bash
+npm run backup:local
 ```
 
-O backup copia `prisma/dev.db`, `storage/` e um `export.json` para `backups/`.
-
-## Supabase
-
-Usaremos Supabase para:
-
-- Postgres: dados das pastas, templates, documentos e legislacao.
-- Storage: logos, PDFs, templates e DOCX gerados.
-- Auth/RLS: proxima etapa, quando sairmos do Basic Auth temporario.
-
-Variaveis necessarias:
-
-```env
-DATABASE_URL=
-FILE_STORAGE_DRIVER=supabase
-NEXT_PUBLIC_SUPABASE_URL=
-SUPABASE_URL=
-SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-SUPABASE_STORAGE_BUCKET=pasta-visa
-```
-
-`SUPABASE_SERVICE_ROLE_KEY` nunca deve ir para codigo de cliente nem receber prefixo `NEXT_PUBLIC_`.
-
-## Migracao de dados
-
-1. Rode backup local.
-2. Preencha as variaveis Supabase em `.env.local`.
-3. Migre as tabelas do SQLite local para o Postgres:
-
-```powershell
-npm.cmd run migrate:local-to-supabase
-```
-
-4. Migre arquivos locais para o Supabase Storage e atualize as referencias no Postgres:
-
-```powershell
-npm.cmd run migrate:storage-to-supabase
-```
-
-Os scripts sao idempotentes por `id`, entao podem ser reexecutados se uma etapa falhar.
-
-## Vercel env checklist
-
-Configure em Production e Preview:
-
-```env
-ANTHROPIC_API_KEY=
-DATABASE_URL=
-FILE_STORAGE_DRIVER=supabase
-NEXT_PUBLIC_SUPABASE_URL=
-SUPABASE_URL=
-SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-SUPABASE_STORAGE_BUCKET=pasta-visa
-APP_BASIC_AUTH_USER=
-APP_BASIC_AUTH_PASSWORD=
-```
-
-## Ordem de publicacao
-
-1. `npm.cmd run backup:local`
-2. Criar projeto Supabase e bucket `pasta-visa`.
-3. Preencher `.env.local` com as variaveis Supabase.
-4. `npm.cmd run migrate:local-to-supabase`
-5. `npm.cmd run migrate:storage-to-supabase`
-6. Trocar o Prisma ativo de SQLite para Postgres quando `DATABASE_URL` estiver validada.
-7. `npm.cmd run check:deploy`
-8. `npm.cmd run build`
-9. Deploy na Vercel.
-10. Abrir `/api/health`.
-
-## Estado atual
-
-- Projeto Vercel localmente vinculado: `pasta-visa`.
-- Storage Supabase: arquitetura pronta no codigo, aguardando credenciais.
-- Banco Supabase/Postgres: scripts de criacao/migracao prontos, aguardando `DATABASE_URL`.
-- Basic Auth: continua como protecao temporaria ate implementarmos login completo.
+Copia `prisma/dev.db`, `storage/` e um `export.json` para `backups/`.

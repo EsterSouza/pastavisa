@@ -30,7 +30,7 @@ const APIS_INTERNAS = [
 const MARCADORES_DE_SEGREDO: Array<[RegExp, string]> = [
   [/sk-ant-[A-Za-z0-9-]{8}/, "chave da Anthropic"],
   [/postgres(?:ql)?:\/\/[^\s"']+/, "connection string do Postgres"],
-  [/service_role/, "chave service role do Supabase"],
+  [/GK[0-9a-f]{24}/, "chave de acesso do Garage"],
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, "chave privada"],
 ];
 

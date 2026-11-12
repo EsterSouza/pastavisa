@@ -21,10 +21,19 @@ import { ADMIN, BASE_URL, OPERADOR, QA_PREFIX, SKIP_MESSAGES, qaLabel } from "./
 const TEXTO_ANTIGO = "NOME ANTIGO DA CLINICA";
 const TEXTO_NOVO = `${QA_PREFIX} NOME NOVO`;
 
+// O login é o do Keycloak: o app manda para a tela de login dele, a conta QA
+// preenche o formulário e o Keycloak devolve ao callback, que grava a sessão.
 async function entrar(conta: { email: string; password: string }): Promise<APIRequestContext> {
   const contexto = await playwrightRequest.newContext({ baseURL: BASE_URL });
-  const resposta = await contexto.post("/api/auth/login", { data: conta });
-  expect(resposta.status(), "login da conta QA recusado").toBe(200);
+  const tela = await contexto.get("/api/auth/login?next=/");
+  expect(tela.status(), "tela de login do Keycloak não abriu").toBe(200);
+  const acao = (await tela.text()).match(/<form[^>]*id="kc-form-login"[^>]*action="([^"]+)"/)?.[1];
+  expect(acao, "formulário de login do Keycloak não encontrado").toBeTruthy();
+  const resposta = await contexto.post(acao!.replace(/&amp;/g, "&"), {
+    form: { username: conta.email, password: conta.password, credentialId: "" },
+  });
+  expect(resposta.ok(), "login da conta QA recusado").toBe(true);
+  expect((await contexto.get("/api/pastas")).status(), "sessão não ficou gravada").not.toBe(401);
   return contexto;
 }
 

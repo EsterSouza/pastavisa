@@ -1,35 +1,38 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { createClient } from "@supabase/supabase-js";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { resolveProjectPath } from "./storage-paths";
 
-type StorageFolder = "uploads" | "templates" | "logos" | "output";
-type StorageDriver = "local" | "supabase";
+/**
+ * Armazenamento de arquivos do app.
+ *   - `s3`    produção: Garage da infra (https://storage.treinavisa.com.br), bucket `pastavisa`.
+ *             Referências gravadas no banco como `s3://<bucket>/storage/<pasta>/<arquivo>`.
+ *   - `local` desenvolvimento: `./storage/<pasta>/<arquivo>` no disco.
+ * Envs do s3: S3_ENDPOINT, S3_REGION (garage), S3_BUCKET (pastavisa), S3_ACCESS_KEY_ID,
+ * S3_SECRET_ACCESS_KEY. Os arquivos sempre passam pelo servidor (upload multipart); não há
+ * upload direto do navegador para o bucket.
+ */
 
-export interface SignedStorageUpload {
-  bucket: string;
-  path: string;
-  token: string;
-  ref: string;
-}
+type StorageFolder = "uploads" | "templates" | "logos" | "output";
+type StorageDriver = "local" | "s3";
 
 export function storageDriver(): StorageDriver {
   const configured = (process.env.FILE_STORAGE_DRIVER || "").toLowerCase();
-  if (configured === "supabase") return "supabase";
-
-  const hasSupabaseStorage =
-    !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-    !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (process.env.VERCEL && hasSupabaseStorage) return "supabase";
-
-  return "local";
+  if (configured === "s3") return "s3";
+  if (configured === "local") return "local";
+  return process.env.S3_ENDPOINT ? "s3" : "local";
 }
 
-export function isSupabaseReference(ref?: string | null): boolean {
+export function isRemoteReference(ref?: string | null): boolean {
   if (!ref) return false;
-  return /^supabase:\/\//i.test(ref);
+  return /^s3:\/\//i.test(ref);
 }
 
 export function safeStorageFileName(fileName: string): string {
@@ -48,31 +51,27 @@ function localStoragePath(folder: StorageFolder, fileName: string): string {
   return path.join(process.cwd(), "storage", folder, fileName);
 }
 
-function storagePath(folder: StorageFolder, fileName: string): string {
+function storageKey(folder: StorageFolder, fileName: string): string {
   return `storage/${folder}/${fileName}`.replace(/\\/g, "/");
 }
 
-function supabaseBucket(): string {
-  return process.env.SUPABASE_STORAGE_BUCKET || "pasta-visa";
+function storageBucket(): string {
+  return process.env.S3_BUCKET || "pastavisa";
 }
 
-function supabasePath(folder: StorageFolder, fileName: string): string {
-  return storagePath(folder, fileName);
+function remoteRef(bucket: string, key: string): string {
+  return `s3://${bucket}/${key}`;
 }
 
-function supabaseRef(bucket: string, filePath: string): string {
-  return `supabase://${bucket}/${filePath}`;
-}
-
-function parseSupabaseRef(ref: string): { bucket: string; filePath: string } {
-  const withoutScheme = ref.replace(/^supabase:\/\//i, "");
+function parseRemoteRef(ref: string): { bucket: string; key: string } {
+  const withoutScheme = ref.replace(/^s3:\/\//i, "");
   const slashIndex = withoutScheme.indexOf("/");
   if (slashIndex < 0) {
-    throw new Error("Referencia Supabase invalida");
+    throw new Error("Referencia de arquivo invalida");
   }
   return {
     bucket: withoutScheme.slice(0, slashIndex),
-    filePath: withoutScheme.slice(slashIndex + 1),
+    key: withoutScheme.slice(slashIndex + 1),
   };
 }
 
@@ -80,51 +79,38 @@ export function isManagedStorageReference(
   ref: string | null | undefined,
   folder: StorageFolder
 ): boolean {
-  if (!ref || !isSupabaseReference(ref)) return false;
+  if (!ref || !isRemoteReference(ref)) return false;
 
   try {
-    const { bucket, filePath } = parseSupabaseRef(ref);
-    return bucket === supabaseBucket() && filePath.startsWith(storagePath(folder, ""));
+    const { bucket, key } = parseRemoteRef(ref);
+    return bucket === storageBucket() && key.startsWith(storageKey(folder, ""));
   } catch {
     return false;
   }
 }
 
-function supabaseAdminClient() {
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let s3ClientCache: S3Client | null = null;
 
-  if (!url || !key) {
-    throw new Error("Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY para usar Supabase Storage");
+function s3Client(): S3Client {
+  if (s3ClientCache) return s3ClientCache;
+  const endpoint = process.env.S3_ENDPOINT;
+  const accessKeyId = process.env.S3_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
+  if (!endpoint || !accessKeyId || !secretAccessKey) {
+    throw new Error("Configure S3_ENDPOINT, S3_ACCESS_KEY_ID e S3_SECRET_ACCESS_KEY para usar o storage S3");
   }
-
-  return createClient(url, key, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
+  s3ClientCache = new S3Client({
+    endpoint,
+    region: process.env.S3_REGION || "garage",
+    forcePathStyle: true,
+    credentials: { accessKeyId, secretAccessKey },
   });
+  return s3ClientCache;
 }
 
-function supabaseStorageErrorMessage(prefix: string, error: unknown): string {
-  if (!error || typeof error !== "object") return prefix;
-
-  const details = error as {
-    message?: string;
-    statusCode?: string | number;
-    status?: string | number;
-    code?: string;
-    name?: string;
-    error?: string;
-  };
-  const extras = [
-    details.statusCode || details.status ? `status ${details.statusCode || details.status}` : "",
-    details.code ? `code ${details.code}` : "",
-    details.error && details.error !== details.message ? details.error : "",
-  ].filter(Boolean);
-  const suffix = extras.length > 0 ? ` (${extras.join(", ")})` : "";
-
-  return `${prefix}: ${details.message || details.name || "erro desconhecido"}${suffix}`;
+function isS3NotFound(error: unknown): boolean {
+  const e = error as { name?: string; $metadata?: { httpStatusCode?: number } };
+  return e?.name === "NotFound" || e?.name === "NoSuchKey" || e?.$metadata?.httpStatusCode === 404;
 }
 
 /**
@@ -159,16 +145,15 @@ export async function saveStorageBuffer(
 ): Promise<string> {
   const cleanFileName = safeStoragePathName(fileName);
 
-  if (storageDriver() === "supabase") {
-    const bucket = supabaseBucket();
-    const filePath = supabasePath(folder, cleanFileName);
-    const supabase = supabaseAdminClient();
-    const { error } = await supabase.storage.from(bucket).upload(filePath, buffer, {
-      contentType,
-      upsert: true,
-    });
-    if (error) throw new Error(supabaseStorageErrorMessage("Falha ao enviar arquivo ao Supabase Storage", error));
-    return supabaseRef(bucket, filePath);
+  if (storageDriver() === "s3") {
+    const bucket = storageBucket();
+    const key = storageKey(folder, cleanFileName);
+    try {
+      await s3Client().send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: buffer, ContentType: contentType }));
+    } catch (error) {
+      throw new Error(`Falha ao enviar arquivo ao storage: ${(error as Error).message}`);
+    }
+    return remoteRef(bucket, key);
   }
 
   const filePath = localStoragePath(folder, cleanFileName);
@@ -177,74 +162,36 @@ export async function saveStorageBuffer(
   return filePath;
 }
 
-export async function createSignedStorageUpload(
-  folder: StorageFolder,
-  fileName: string
-): Promise<SignedStorageUpload> {
-  if (storageDriver() !== "supabase") {
-    throw new Error("Upload direto disponivel apenas com Supabase Storage");
-  }
-
-  const cleanFileName = safeStoragePathName(fileName);
-  const bucket = supabaseBucket();
-  const filePath = supabasePath(folder, cleanFileName);
-  const supabase = supabaseAdminClient();
-  const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(filePath);
-
-  if (error || !data?.token) {
-    throw new Error(
-      error
-        ? supabaseStorageErrorMessage("Falha ao preparar upload no Supabase Storage", error)
-        : "Falha ao preparar upload no Supabase Storage: token ausente"
-    );
-  }
-
-  return {
-    bucket,
-    path: filePath,
-    token: data.token,
-    ref: supabaseRef(bucket, filePath),
-  };
-}
-
 export async function readStorageBuffer(ref?: string | null): Promise<Buffer> {
   if (!ref) throw new Error("Referencia de arquivo ausente");
 
-  const localPath = resolveProjectPath(ref);
-  if (!isSupabaseReference(ref) && fs.existsSync(localPath)) {
-    return fs.readFileSync(localPath);
+  if (isRemoteReference(ref)) {
+    const { bucket, key } = parseRemoteRef(ref);
+    try {
+      const out = await s3Client().send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+      return Buffer.from(await out.Body!.transformToByteArray());
+    } catch (error) {
+      throw new Error(`Arquivo nao encontrado no storage: ${(error as Error).message}`);
+    }
   }
 
-  if (isSupabaseReference(ref)) {
-    const { bucket, filePath } = parseSupabaseRef(ref);
-    const supabase = supabaseAdminClient();
-    const { data, error } = await supabase.storage.from(bucket).download(filePath);
-    if (error) throw new Error(`Arquivo nao encontrado no Supabase Storage: ${error.message}`);
-    return Buffer.from(await data.arrayBuffer());
-  }
-
-  return fs.readFileSync(localPath);
+  return fs.readFileSync(resolveProjectPath(ref));
 }
 
 export async function storageFileExists(ref?: string | null): Promise<boolean> {
   if (!ref) return false;
   try {
-    const localPath = resolveProjectPath(ref);
-    if (!isSupabaseReference(ref) && fs.existsSync(localPath)) {
-      return true;
+    if (isRemoteReference(ref)) {
+      const { bucket, key } = parseRemoteRef(ref);
+      try {
+        await s3Client().send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+        return true;
+      } catch (error) {
+        if (isS3NotFound(error)) return false;
+        throw error;
+      }
     }
-
-    if (isSupabaseReference(ref)) {
-      const { bucket, filePath } = parseSupabaseRef(ref);
-      const supabase = supabaseAdminClient();
-      const { data, error } = await supabase.storage.from(bucket).list(path.dirname(filePath), {
-        search: path.basename(filePath),
-        limit: 1,
-      });
-      return !error && !!data?.some((item) => item.name === path.basename(filePath));
-    }
-
-    return false;
+    return fs.existsSync(resolveProjectPath(ref));
   } catch {
     return false;
   }
@@ -260,14 +207,12 @@ export async function storageFileExists(ref?: string | null): Promise<boolean> {
 async function deleteManagedStorageFile(ref: string | null | undefined, folder: StorageFolder): Promise<void> {
   if (!ref) return;
 
-  if (isSupabaseReference(ref)) {
+  if (isRemoteReference(ref)) {
     if (!isManagedStorageReference(ref, folder)) {
       throw new Error(`Referência de arquivo fora do armazenamento permitido (${folder})`);
     }
-    const { bucket, filePath } = parseSupabaseRef(ref);
-    const supabase = supabaseAdminClient();
-    const { error } = await supabase.storage.from(bucket).remove([filePath]);
-    if (error) throw new Error(supabaseStorageErrorMessage("Falha ao remover arquivo do Supabase Storage", error));
+    const { bucket, key } = parseRemoteRef(ref);
+    await s3Client().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     return;
   }
 
@@ -305,7 +250,7 @@ export async function deleteLogoFile(ref?: string | null): Promise<void> {
 export async function materializeStorageFile(ref?: string | null): Promise<string> {
   if (!ref) return "";
   const localPath = resolveProjectPath(ref);
-  if (!isSupabaseReference(ref) && fs.existsSync(localPath)) {
+  if (!isRemoteReference(ref) && fs.existsSync(localPath)) {
     return localPath;
   }
 
@@ -328,7 +273,7 @@ export async function saveGeneratedDocx(
     ? `${path.basename(fileName, ext)}_${safeStorageFileName(versionId)}${ext}`
     : fileName;
 
-  if (storageDriver() === "supabase") {
+  if (storageDriver() === "s3") {
     const pastaId = path.basename(outputDir);
     return saveStorageBuffer("output", `${pastaId}/${fileNameForStorage}`, buffer, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
   }
