@@ -1,4 +1,5 @@
 import { storageDriver } from "./file-storage";
+import { isOidcConfigured } from "./auth/oidc";
 
 export interface ReadinessCheck {
   name: string;
@@ -10,24 +11,12 @@ function hasEnv(name: string): boolean {
   return !!process.env[name]?.trim();
 }
 
-function hasSupabaseStorageEnv(): boolean {
-  return (
-    (hasEnv("SUPABASE_URL") || hasEnv("NEXT_PUBLIC_SUPABASE_URL")) &&
-    hasEnv("SUPABASE_SERVICE_ROLE_KEY")
-  );
-}
-
-function hasSupabaseAuthEnv(): boolean {
-  return (
-    (hasEnv("NEXT_PUBLIC_SUPABASE_URL") || hasEnv("SUPABASE_URL")) &&
-    (hasEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") ||
-      hasEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY") ||
-      hasEnv("SUPABASE_ANON_KEY"))
-  );
+function hasS3Env(): boolean {
+  return hasEnv("S3_ENDPOINT") && hasEnv("S3_ACCESS_KEY_ID") && hasEnv("S3_SECRET_ACCESS_KEY");
 }
 
 function isProductionRuntime(): boolean {
-  return process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+  return process.env.NODE_ENV === "production";
 }
 
 export function getReadinessChecks(): ReadinessCheck[] {
@@ -42,24 +31,22 @@ export function getReadinessChecks(): ReadinessCheck[] {
       name: "database",
       ok: hasEnv("DATABASE_URL") || process.env.NODE_ENV !== "production",
       message: hasEnv("DATABASE_URL") && process.env.DATABASE_URL?.startsWith("postgres")
-        ? "Banco Supabase/Postgres configurado"
-        : "Usando banco local; configure DATABASE_URL do Supabase para producao",
+        ? "Banco Postgres configurado"
+        : "Usando banco local; configure DATABASE_URL (Postgres da infra) para producao",
     },
     {
       name: "storage",
-      ok:
-        (driver === "supabase" && hasSupabaseStorageEnv()) ||
-        (driver === "local" && !isProductionRuntime()),
-      message: driver === "supabase"
-        ? "Supabase Storage configurado"
+      ok: (driver === "s3" && hasS3Env()) || (driver === "local" && !isProductionRuntime()),
+      message: driver === "s3"
+        ? "Storage S3 (Garage) configurado"
         : isProductionRuntime()
-        ? "Storage local nao atende uploads grandes em producao; configure Supabase Storage"
-        : "Usando storage local; configure FILE_STORAGE_DRIVER=supabase para producao",
+        ? "Storage local nao serve em producao; configure S3_ENDPOINT e as chaves do Garage"
+        : "Usando storage local; configure FILE_STORAGE_DRIVER=s3 para producao",
     },
     {
       name: "authentication",
-      ok: hasSupabaseAuthEnv(),
-      message: "Supabase Auth configurado com chave publicavel ou anon legada",
+      ok: isOidcConfigured(),
+      message: "Login pelo Keycloak (OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET, APP_URL, SESSION_SECRET)",
     },
     {
       name: "planner-signing",

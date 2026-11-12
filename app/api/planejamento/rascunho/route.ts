@@ -1,6 +1,7 @@
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isManagedStorageReference, readStorageBuffer, storageDriver } from "@/lib/file-storage";
+import { safeStorageFileName, saveStorageBuffer } from "@/lib/file-storage";
 import { blocosDosAnexos, type Anexo } from "@/lib/planejamento/anexos";
 import { lerFormulario, type TemplateCatalogo } from "@/lib/planejamento/ia";
 import { montarPlanejamento, type OpcoesPlanejamento } from "@/lib/planejamento/montar";
@@ -25,34 +26,19 @@ function opcoesDe(bruto: Record<string, unknown>): OpcoesPlanejamento | null {
 
 /**
  * Lê o que a cliente mandou (formulário, outros PDFs, fotos, Word) com a IA e
- * devolve o rascunho do planejamento. Nada é gravado no banco.
+ * devolve o rascunho do planejamento. Nada é gravado no banco; os PDFs vão
+ * para o storage, para o Forms seguir com a pasta quando ela for criada.
  */
 export async function POST(req: NextRequest) {
   try {
     const anexos: Anexo[] = [];
-    let bruto: Record<string, unknown>;
 
-    if (req.headers.get("content-type")?.includes("application/json")) {
-      bruto = await req.json();
-      const lista = Array.isArray(bruto.arquivos) ? (bruto.arquivos as Array<{ ref?: unknown; nome?: unknown }>) : [];
-      if (storageDriver() !== "supabase") {
-        return NextResponse.json({ error: "Envio direto indisponível neste servidor." }, { status: 400 });
-      }
-      for (const item of lista) {
-        const ref = typeof item.ref === "string" ? item.ref : "";
-        if (!isManagedStorageReference(ref, "uploads")) {
-          return NextResponse.json({ error: "Referência de arquivo inválida." }, { status: 400 });
-        }
-        anexos.push({ nome: typeof item.nome === "string" ? item.nome : ref, conteudo: await readStorageBuffer(ref) });
-      }
-    } else {
-      const form = await req.formData();
-      for (const valor of form.getAll("arquivos")) {
-        if (typeof valor === "string") continue;
-        anexos.push({ nome: valor.name, conteudo: Buffer.from(await valor.arrayBuffer()) });
-      }
-      bruto = Object.fromEntries(Array.from(form.entries()).filter(([, v]) => typeof v === "string"));
+    const form = await req.formData();
+    for (const valor of form.getAll("arquivos")) {
+      if (typeof valor === "string") continue;
+      anexos.push({ nome: valor.name, conteudo: Buffer.from(await valor.arrayBuffer()) });
     }
+    const bruto: Record<string, unknown> = Object.fromEntries(Array.from(form.entries()).filter(([, v]) => typeof v === "string"));
 
     const observacoes = typeof bruto.observacoes === "string" ? bruto.observacoes : "";
     if (anexos.length === 0 && !observacoes.trim()) {
@@ -62,6 +48,14 @@ export async function POST(req: NextRequest) {
     if (!opcoes) return NextResponse.json({ error: "Data do planejamento inválida." }, { status: 400 });
 
     const { blocos, ignorados } = await blocosDosAnexos(anexos);
+
+    const enviados: Array<{ nome: string; ref: string }> = [];
+    for (const anexo of anexos) {
+      if (!/\.pdf$/i.test(anexo.nome)) continue;
+      const nomeArquivo = `${randomUUID()}_${safeStorageFileName(anexo.nome)}`;
+      const ref = await saveStorageBuffer("uploads", nomeArquivo, anexo.conteudo, "application/pdf");
+      enviados.push({ nome: anexo.nome, ref });
+    }
 
     const doBanco = await prisma.template.findMany({
       where: { ativo: true },
@@ -83,7 +77,7 @@ export async function POST(req: NextRequest) {
         para: "ester",
       });
     }
-    return NextResponse.json({ ...resultado, cidade: rascunho.cidade, uf: rascunho.uf, tokens });
+    return NextResponse.json({ ...resultado, cidade: rascunho.cidade, uf: rascunho.uf, tokens, enviados });
   } catch (error) {
     console.error("[planejamento] rascunho falhou:", error);
     return NextResponse.json(

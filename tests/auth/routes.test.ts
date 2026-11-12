@@ -1,58 +1,67 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { GET as login, POST as loginPost } from "@/app/api/auth/login/route";
+import { GET as callback } from "@/app/api/auth/callback/route";
+import { GET as logoutGet, POST as logout } from "@/app/api/auth/logout/route";
+import { OIDC_FLOW_COOKIE, SESSION_COOKIE, signFlow } from "@/lib/auth/session";
 
-const mocks = vi.hoisted(() => ({
-  signInWithPassword: vi.fn(),
-  signOut: vi.fn(),
-}));
-
-vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({
-    auth: {
-      signInWithPassword: mocks.signInWithPassword,
-      signOut: mocks.signOut,
-    },
-  })),
-}));
-
-import { POST as login } from "@/app/api/auth/login/route";
-import { POST as logout } from "@/app/api/auth/logout/route";
-
-function loginRequest(body: unknown) {
-  return new NextRequest("https://pastavisa.test/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
+beforeEach(() => {
+  vi.stubEnv("SESSION_SECRET", "segredo-de-teste-com-mais-de-32-caracteres");
+  vi.stubEnv("OIDC_ISSUER", "https://login.example.test/realms/treinavisa");
+  vi.stubEnv("OIDC_CLIENT_ID", "pastavisa");
+  vi.stubEnv("OIDC_CLIENT_SECRET", "segredo-do-client");
+  vi.stubEnv("APP_URL", "https://pasta.example.test");
+});
+afterEach(() => vi.unstubAllEnvs());
 
 describe("auth routes", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("faz login com email e senha para papel valido", async () => {
-    mocks.signInWithPassword.mockResolvedValue({
-      data: { user: { app_metadata: { role: "admin" } } },
-      error: null,
-    });
-
-    const response = await login(loginRequest({ email: "admin@example.test", password: "secret" }));
-    expect(response.status).toBe(200);
-    expect(mocks.signInWithPassword).toHaveBeenCalledWith({
-      email: "admin@example.test",
-      password: "secret",
-    });
+  it("login manda para o Keycloak com PKCE e guarda o fluxo", async () => {
+    const response = await login(new NextRequest("https://pasta.example.test/api/auth/login?next=%2Fpasta%2F1"));
+    expect(response.status).toBe(307);
+    const location = new URL(response.headers.get("location")!);
+    expect(location.origin + location.pathname).toBe(
+      "https://login.example.test/realms/treinavisa/protocol/openid-connect/auth"
+    );
+    expect(location.searchParams.get("client_id")).toBe("pastavisa");
+    expect(location.searchParams.get("redirect_uri")).toBe("https://pasta.example.test/api/auth/callback");
+    expect(location.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(location.searchParams.get("state")).toBeTruthy();
+    expect(response.cookies.get(OIDC_FLOW_COOKIE)?.value).toBeTruthy();
   });
 
-  it("retorna 401 para credenciais invalidas", async () => {
-    mocks.signInWithPassword.mockResolvedValue({ data: { user: null }, error: new Error("invalid") });
-    expect((await login(loginRequest({ email: "qa@example.test", password: "invalid" }))).status).toBe(401);
+  it("login indisponivel sem configuracao", async () => {
+    vi.stubEnv("OIDC_CLIENT_SECRET", "");
+    expect((await login(new NextRequest("https://pasta.example.test/api/auth/login"))).status).toBe(503);
   });
 
-  it("encerra sessao sem expor estado", async () => {
-    mocks.signOut.mockResolvedValue({ error: null });
-    const response = await logout();
-    expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toBe("private, no-store");
-    expect(mocks.signOut).toHaveBeenCalledOnce();
+  it("login por senha foi desligado", async () => {
+    expect((await loginPost()).status).toBe(410);
+  });
+
+  it("callback recusa state diferente sem abrir sessao", async () => {
+    const req = new NextRequest("https://pasta.example.test/api/auth/callback?code=abc&state=outro");
+    req.cookies.set(OIDC_FLOW_COOKIE, await signFlow({ state: "certo", verifier: "v", next: "/" }));
+    const response = await callback(req);
+    expect(response.headers.get("location")).toContain("/login?erro=expirado");
+    expect(response.cookies.get(SESSION_COOKIE)?.value).toBeFalsy();
+  });
+
+  it("callback trata cancelamento no Keycloak", async () => {
+    const response = await callback(
+      new NextRequest("https://pasta.example.test/api/auth/callback?error=access_denied&state=x")
+    );
+    expect(response.headers.get("location")).toContain("/login?erro=cancelado");
+  });
+
+  it("logout limpa a sessao e sai do Keycloak", async () => {
+    const req = new NextRequest("https://pasta.example.test/api/auth/logout");
+    const response = await logoutGet(req);
+    expect(response.headers.get("location")).toContain("/protocol/openid-connect/logout");
+    expect(response.headers.get("location")).toContain(
+      "post_logout_redirect_uri=https%3A%2F%2Fpasta.example.test%2Flogin"
+    );
+    const post = await logout(new NextRequest("https://pasta.example.test/api/auth/logout", { method: "POST" }));
+    expect(post.status).toBe(200);
+    expect(post.headers.get("cache-control")).toBe("private, no-store");
   });
 });

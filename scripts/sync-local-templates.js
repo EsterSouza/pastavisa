@@ -1,9 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 const { Pool } = require("pg");
-const { createClient } = require("@supabase/supabase-js");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 require("dotenv").config({ path: ".env" });
-// Keep the pooler DATABASE_URL from .env when present; direct database hosts may be IPv6-only.
 require("dotenv").config({ path: ".env.local" });
 
 const root = process.cwd();
@@ -16,7 +15,7 @@ const defaultSourceDir = path.join(
   "TODOS_OS_TEMPLATES_PastaVISA"
 );
 const legacySourceDir = path.join(root, "TODOS_OS_TEMPLATES_PastaVISA");
-const bucket = process.env.SUPABASE_STORAGE_BUCKET || "pasta-visa";
+const bucket = process.env.S3_BUCKET || "pastavisa";
 const templatePrefix = "storage/templates";
 
 function required(name) {
@@ -64,21 +63,20 @@ function storageBaseName(ref) {
 }
 
 function storagePathFromRef(ref) {
-  if (!ref || !String(ref).startsWith("supabase://")) return "";
-  const withoutProtocol = String(ref).replace(/^supabase:\/\//, "");
+  if (!ref || !String(ref).startsWith("s3://")) return "";
+  const withoutProtocol = String(ref).replace(/^s3:\/\//, "");
   const slash = withoutProtocol.indexOf("/");
   return slash === -1 ? "" : withoutProtocol.slice(slash + 1);
 }
 
-function storageErrorMessage(action, error) {
-  if (!error || typeof error !== "object") return action;
-  const details = [
-    error.statusCode || error.status ? `status ${error.statusCode || error.status}` : "",
-    error.code ? `code ${error.code}` : "",
-    error.error && error.error !== error.message ? error.error : "",
-  ].filter(Boolean);
-  const suffix = details.length > 0 ? ` (${details.join(", ")})` : "";
-  return `${action}: ${error.message || error.name || "erro desconhecido"}${suffix}`;
+const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+async function putObject(s3, key, buffer, action) {
+  try {
+    await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: buffer, ContentType: DOCX }));
+  } catch (error) {
+    throw new Error(`${action}: ${error?.name || "erro"} ${error?.message || ""}`.trim());
+  }
 }
 
 function storagePathForTemplateFile(currentRef, file) {
@@ -134,10 +132,13 @@ async function main() {
   if (!fs.existsSync(sourceDir)) throw new Error(`Pasta local nao encontrada: ${sourceDir}`);
 
   const databaseUrl = required("DATABASE_URL");
-  const supabaseUrl = process.env.SUPABASE_URL || required("NEXT_PUBLIC_SUPABASE_URL");
-  const serviceRoleKey = required("SUPABASE_SERVICE_ROLE_KEY");
-  const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const pool = new Pool({ connectionString: databaseUrl, ssl: databaseUrl.includes("localhost") ? false : { rejectUnauthorized: false } });
+  const s3 = new S3Client({
+    endpoint: required("S3_ENDPOINT"),
+    region: process.env.S3_REGION || "garage",
+    forcePathStyle: true,
+    credentials: { accessKeyId: required("S3_ACCESS_KEY_ID"), secretAccessKey: required("S3_SECRET_ACCESS_KEY") },
+  });
+  const pool = new Pool({ connectionString: databaseUrl });
 
   const files = fs.readdirSync(sourceDir).filter((file) => file.toLowerCase().endsWith(".docx")).sort();
   const existingRows = await pool.query('select "id", "nome", "arquivoPath" from "Template"');
@@ -153,18 +154,14 @@ async function main() {
     const buffer = fs.readFileSync(sourcePath);
     const storagePath = storagePathForTemplateFile(row.arquivoPath, file);
 
-    if (row.arquivoPath !== `supabase://${bucket}/${storagePath}`) {
+    if (row.arquivoPath !== `s3://${bucket}/${storagePath}`) {
       await pool.query(
         'update "Template" set "arquivoPath"=$1 where "id"=$2',
-        [`supabase://${bucket}/${storagePath}`, row.id]
+        [`s3://${bucket}/${storagePath}`, row.id]
       );
     }
 
-    const upload = await supabase.storage.from(bucket).upload(storagePath, buffer, {
-      contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      upsert: true,
-    });
-    if (upload.error) throw new Error(storageErrorMessage(`Falha ao atualizar ${file}`, upload.error));
+    await putObject(s3, storagePath, buffer, `Falha ao atualizar ${file}`);
     updated.push(row.nome);
   }
 
@@ -231,17 +228,13 @@ async function main() {
     const storageName = `bulk_${Date.now()}_${safeFile}`;
     const storagePath = `${templatePrefix}/${storageName}`;
     const buffer = fs.readFileSync(path.join(sourceDir, file));
-    const upload = await supabase.storage.from(bucket).upload(storagePath, buffer, {
-      contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      upsert: true,
-    });
-    if (upload.error) throw new Error(storageErrorMessage(`Falha ao subir ${file}`, upload.error));
+    await putObject(s3, storagePath, buffer, `Falha ao subir ${file}`);
 
     const { tipo, padraoHeader } = inferMeta(file);
     const processingType = detectProcessingType(file);
     await pool.query(
       'insert into "Template" ("id", "nome", "tipo", "padraoHeader", "processingType", "arquivoPath", "ativo", "criadoEm") values ($1,$2,$3,$4,$5,$6,true,now())',
-      [crypto.randomUUID(), nome, tipo, padraoHeader, processingType, `supabase://${bucket}/${storagePath}`]
+      [crypto.randomUUID(), nome, tipo, padraoHeader, processingType, `s3://${bucket}/${storagePath}`]
     );
     existing.add(key);
     synced.push(nome);
