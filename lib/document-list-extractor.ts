@@ -12,6 +12,7 @@ const DOCUMENT_PREFIXES = [
   "PLANO",
   "PLANILHA",
   "FICHA",
+  "FOLHA",
   "FORMULARIO",
   "FORMULÁRIO",
   "TERMO",
@@ -55,7 +56,7 @@ const EXCLUDED_LINE_PATTERNS = [
 // Lá dentro "Procedimento" é cabeçalho de coluna e "Controle da Glicemia" é o
 // nome de um procedimento, e nenhum dos dois é documento a gerar.
 const SECOES_SEM_DOCUMENTO =
-  /^(RELACAO GERAL DE (SERVICOS E )?PROCEDIMENTOS|RELACAO DE EQUIPAMENTO|TABELA\b|MATRIZ\b|LEGISLACAO|LEGISLACOES|REFERENCIA|BASE LEGAL|IDENTIDADE VISUAL|ESTRUTURA FISICA|INFRAESTRUTURA)/;
+  /^(RELACAO GERAL DE (SERVICOS E )?PROCEDIMENTOS|RELACAO DE EQUIPAMENTO|TABELA\b|MATRIZ\b|LEGISLACAO|LEGISLACOES|REFERENCIA|BASE LEGAL|IDENTIDADE VISUAL|ESTRUTURA FISICA|INFRAESTRUTURA|SERVICOS TERCEIRIZADOS)/;
 
 // Nomes que só existem como título de seção ou cabeçalho de tabela.
 const NOMES_GENERICOS =
@@ -133,7 +134,7 @@ export function inferirTipoDocumento(nome: string): string {
   if (normalized.startsWith("PGRSS") || normalized.includes("GERENCIAMENTO DE RESIDUOS")) return "PGRSS";
   if (normalized.startsWith("TCLE")) return "TCLE";
   if (normalized.startsWith("PLANILHA")) return "PLANILHA";
-  if (normalized.startsWith("FICHA")) return "FICHA";
+  if (normalized.startsWith("FICHA") || normalized.startsWith("FOLHA")) return "FICHA";
   if (normalized.startsWith("TERMO")) return "TERMO";
   if (normalized.startsWith("GUIA")) return "GUIA";
   if (normalized.startsWith("RECEITUARIO")) return "RECEITUARIO";

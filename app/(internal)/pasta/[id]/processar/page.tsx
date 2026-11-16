@@ -296,6 +296,10 @@ export default function ProcessarPasta() {
   const [documentActionErro, setDocumentActionErro] = useState(false);
   const [changingDocuments, setChangingDocuments] = useState(false);
   const [associandoLegislacoes, setAssociandoLegislacoes] = useState(false);
+  // Troca do "Documentos em elaboração" pela versão final; `recarga` refaz a carga da tela.
+  const [recarga, setRecarga] = useState(0);
+  const [trocandoElaboracao, setTrocandoElaboracao] = useState(false);
+  const [elaboracaoMsg, setElaboracaoMsg] = useState<{ tom: "sucesso" | "erro"; texto: string } | null>(null);
   const [legislacaoMessage, setLegislacaoMessage] = useState("");
   const [legislacaoErro, setLegislacaoErro] = useState(false);
   const [referenciasNovas, setReferenciasNovas] = useState<ReferenciaNaoCadastrada[]>([]);
@@ -406,7 +410,31 @@ export default function ProcessarPasta() {
         setTemplates(ts.filter((t: Template & { ativo?: boolean }) => t.ativo !== false));
       })
       .catch(() => setLoadError("Não foi possível carregar o catálogo de templates."));
-  }, [id, regenerarAposEdicao]);
+  }, [id, regenerarAposEdicao, recarga]);
+
+  async function trocarElaboracao(arquivo: File) {
+    setTrocandoElaboracao(true);
+    setElaboracaoMsg(null);
+    try {
+      const corpo = new FormData();
+      corpo.append("documentosElaboracao", arquivo);
+      const res = await fetch(`/api/pastas/${id}/elaboracao`, { method: "POST", body: corpo });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Não deu para atualizar o Documentos em elaboração.");
+      const partes = [`${data.documentos} documentos na lista`];
+      if (data.acrescentados.length) partes.push(`entraram: ${data.acrescentados.join("; ")}`);
+      if (data.retirados.length) partes.push(`saíram: ${data.retirados.join("; ")}`);
+      if (data.jaGerados.length) partes.push(`já gerados e fora da lista nova (ficaram, apague à mão se for o caso): ${data.jaGerados.join("; ")}`);
+      partes.push(`${data.legislacoes} legislações reconhecidas; prazos e versão relidos`);
+      setElaboracaoMsg({ tom: "sucesso", texto: partes.join(". ") + "." });
+      autoAssigned.current = false;
+      setRecarga((n) => n + 1);
+    } catch (error) {
+      setElaboracaoMsg({ tom: "erro", texto: error instanceof Error ? error.message : "Não deu para atualizar." });
+    } finally {
+      setTrocandoElaboracao(false);
+    }
+  }
 
   useEffect(() => {
     if (!processing) return;
@@ -1577,6 +1605,35 @@ export default function ProcessarPasta() {
         </section>
 
         <aside aria-label="Conferência da pasta" className="flex flex-col gap-4">
+          <Card className="p-4">
+            <h2 className="font-display text-base text-ink">Documentos em elaboração</h2>
+            <p className="mt-2 text-sm text-ink-muted">
+              Fechou o planejamento no Cowork? Envie o DOCX final: a lista de documentos, os prazos, a versão e as
+              legislações são relidos dele. Os dados da cliente não mudam.
+            </p>
+            <label
+              className={`${buttonClass("secondary")} mt-3 w-full cursor-pointer ${trocandoElaboracao || processing ? "pointer-events-none opacity-60" : ""}`}
+            >
+              {trocandoElaboracao ? "Atualizando..." : "Atualizar com o DOCX final"}
+              <input
+                type="file"
+                accept=".docx"
+                className="sr-only"
+                disabled={trocandoElaboracao || processing}
+                onChange={(e) => {
+                  const arquivo = e.target.files?.[0];
+                  e.target.value = "";
+                  if (arquivo) void trocarElaboracao(arquivo);
+                }}
+              />
+            </label>
+            {elaboracaoMsg && (
+              <p role="status" className={`mt-3 text-sm ${elaboracaoMsg.tom === "erro" ? "text-status-danger" : "text-ink"}`}>
+                {elaboracaoMsg.texto}
+              </p>
+            )}
+          </Card>
+
           <Card className="p-4">
             <div className="flex items-center justify-between gap-2">
               <h2 className="font-display text-base text-ink">Legislações</h2>

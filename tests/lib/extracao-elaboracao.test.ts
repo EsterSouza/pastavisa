@@ -128,6 +128,23 @@ describe("lista de documentos lida do docx", () => {
     expect(docs.map((d) => d.nome)).toEqual(["POP — Limpeza de Pele"]);
   });
 
+  it("lê a Folha de Evolução e não lê a tabela de terceirizados (DOCX do planejamento do app)", () => {
+    const docs = extrairDocumentosDoTextoElaboracao(
+      [
+        "SERVIÇOS TERCEIRIZADOS INFORMADOS",
+        "Controle integrado de vetores e pragas urbanas:",
+        "Limpeza do reservatório de água: Vigor Detetizadora",
+        "IX. FICHAS DE ANAMNESE E AVALIAÇÃO",
+        "Ficha de Perimetria e Evolução Corporal",
+        "Folha de Evolução Facial",
+      ].join("\n")
+    );
+    expect(docs).toEqual([
+      { nome: "Ficha de Perimetria e Evolução Corporal", tipo: "FICHA" },
+      { nome: "Folha de Evolução Facial", tipo: "FICHA" },
+    ]);
+  });
+
   it("fica só com o que tem o tipo quando o mesmo documento vem com e sem ele", () => {
     const docs = mesclarDocumentosExtraidos(
       [],
