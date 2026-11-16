@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getUserRole,
-  isAdminOnlyPath,
-  isPublicPath,
-  isSupabaseAuthConfigured,
-} from "./lib/auth/authorization";
-import { updateSession } from "./lib/supabase/middleware";
+import { isAdminOnlyPath, isPublicPath } from "./lib/auth/public-paths";
+import { SESSION_COOKIE, readSession } from "./lib/auth/session";
 
-function unauthorized(req: NextRequest, sessionResponse?: NextResponse) {
+function unauthorized(req: NextRequest) {
   let response: NextResponse;
   if (req.nextUrl.pathname.startsWith("/api/")) {
     response = NextResponse.json({ error: "Authentication required" }, { status: 401 });
@@ -19,7 +14,6 @@ function unauthorized(req: NextRequest, sessionResponse?: NextResponse) {
     response = NextResponse.redirect(loginUrl);
   }
 
-  sessionResponse?.cookies.getAll().forEach((cookie) => response.cookies.set(cookie));
   return response;
 }
 
@@ -33,22 +27,22 @@ export async function middleware(req: NextRequest) {
     return response;
   }
 
-  if (!isSupabaseAuthConfigured()) {
+  // Middleware roda no Edge: confere só o segredo da sessão (o resto do OIDC é das rotas Node).
+  if ((process.env.SESSION_SECRET || "").length < 32) {
     if (req.nextUrl.pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Application authentication is not configured" }, { status: 503 });
     }
     return new NextResponse("Aplicacao temporariamente indisponivel.", { status: 503 });
   }
 
-  const { response, user } = await updateSession(req);
-  if (!user) return unauthorized(req, response);
+  const session = await readSession(req.cookies.get(SESSION_COOKIE)?.value);
+  if (!session) return unauthorized(req);
 
-  const role = getUserRole(user);
-  if (!role || (isAdminOnlyPath(path) && role !== "admin")) {
+  if (isAdminOnlyPath(path) && session.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

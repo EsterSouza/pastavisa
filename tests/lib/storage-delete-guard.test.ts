@@ -83,11 +83,11 @@ describe("remoção só apaga dentro da própria área", () => {
     expect(fs.existsSync(path.resolve(process.cwd(), "package.json"))).toBe(true);
   });
 
-  it("recusa referência do Supabase de outra área antes de falar com a rede", async () => {
-    await expect(deleteUploadedFile("supabase://pasta-visa/storage/output/x.docx")).rejects.toThrow(
+  it("recusa referência do storage S3 de outra área antes de falar com a rede", async () => {
+    await expect(deleteUploadedFile("s3://pastavisa/storage/output/x.docx")).rejects.toThrow(
       /fora do armazenamento permitido \(uploads\)/
     );
-    await expect(deleteLogoFile("supabase://pasta-visa/storage/templates/x.docx")).rejects.toThrow(
+    await expect(deleteLogoFile("s3://pastavisa/storage/templates/x.docx")).rejects.toThrow(
       /fora do armazenamento permitido \(logos\)/
     );
   });

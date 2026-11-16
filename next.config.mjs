@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Imagem Docker enxuta: o build gera .next/standalone com o server.js e só as
+  // dependências que o app usa (ver Dockerfile).
+  output: "standalone",
   experimental: {
     serverComponentsExternalPackages: ["pdf-parse", "mammoth", "better-sqlite3"],
     // A rota de PDF lê a logo e as fontes da marca em disco; sem isto elas não

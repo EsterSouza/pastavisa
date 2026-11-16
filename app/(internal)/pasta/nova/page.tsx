@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, FormSection, PageHeader } from "@/components/ui/Surface";
 import { describeErrorOrigin, Feedback } from "@/components/ui/Status";
@@ -52,23 +51,6 @@ interface ExtrairResult {
   referenciasNaoCadastradas?: ReferenciaNaoCadastrada[];
   elaboracaoTextPreview: string | null;
 }
-
-interface DirectUploadFile {
-  path: string;
-  token: string;
-  ref: string;
-}
-
-type UploadPlan =
-  | { mode: "multipart" }
-  | {
-      mode: "direct";
-      supabaseUrl: string;
-      supabaseAnonKey: string;
-      bucket: string;
-      pdf: DirectUploadFile;
-      docx: DirectUploadFile;
-    };
 
 type Fase = "upload" | "revisao";
 
@@ -128,46 +110,11 @@ export default function NovaPasta() {
     setProgresso("Enviando arquivos para análise…");
 
     try {
-      const planRes = await fetch("/api/uploads/sign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pdfName: pdfFile.name, docxName: docxFile.name }),
-      });
-      const plan = await readApiResponse<UploadPlan>(planRes, "Erro ao preparar o upload dos arquivos");
-
-      let res: Response;
-      if (plan.mode === "direct") {
-        setProgresso("Enviando arquivos para armazenamento seguro…");
-        const supabase = createClient(plan.supabaseUrl, plan.supabaseAnonKey, {
-          auth: { persistSession: false, autoRefreshToken: false },
-        });
-        const uploads: Array<[DirectUploadFile, File]> = [
-          [plan.pdf, pdfFile],
-          [plan.docx, docxFile],
-        ];
-
-        for (const [target, file] of uploads) {
-          const { error: uploadError } = await supabase.storage
-            .from(plan.bucket)
-            .uploadToSignedUrl(target.path, target.token, file, {
-              contentType: file.type || undefined,
-            });
-          if (uploadError) throw new Error(`Erro no upload de ${file.name}: ${uploadError.message}`);
-        }
-
-        setProgresso("Lendo PDF e identificando dados do cliente com IA…");
-        res = await fetch("/api/extrair", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pdfPath: plan.pdf.ref, docxPath: plan.docx.ref }),
-        });
-      } else {
-        const formData = new FormData();
-        formData.append("formsPdf", pdfFile);
-        formData.append("documentosElaboracao", docxFile);
-        setProgresso("Lendo PDF e identificando dados do cliente com IA…");
-        res = await fetch("/api/extrair", { method: "POST", body: formData });
-      }
+      const formData = new FormData();
+      formData.append("formsPdf", pdfFile);
+      formData.append("documentosElaboracao", docxFile);
+      setProgresso("Lendo PDF e identificando dados do cliente com IA…");
+      const res = await fetch("/api/extrair", { method: "POST", body: formData });
 
       const json = await readApiResponse<ExtrairResult>(res, "Erro na extração dos dados");
 

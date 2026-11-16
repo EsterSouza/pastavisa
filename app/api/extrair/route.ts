@@ -10,20 +10,12 @@ import {
 import { complementarClienteComTextoElaboracao } from "@/lib/client-data-fallback";
 import { prisma } from "@/lib/prisma";
 import {
-  isManagedStorageReference,
-  readStorageBuffer,
   saveStorageBuffer,
-  storageDriver,
 } from "@/lib/file-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
-
-interface StoredUploadRequest {
-  pdfPath?: string;
-  docxPath?: string;
-}
 
 function isBlankScalar(value: unknown): boolean {
   return typeof value !== "string" || value.trim() === "" || /^(sim|não|nao|yes|no)$/i.test(value.trim());
@@ -95,48 +87,26 @@ function mergeClienteData(primary: ClienteData, fallback: ClienteData): ClienteD
 export async function POST(req: NextRequest) {
   try {
     const sessionId = Date.now().toString();
-    let pdfBuffer: Buffer;
-    let docxBuffer: Buffer;
-    let pdfPath: string;
-    let docxPath: string;
 
-    if (req.headers.get("content-type")?.includes("application/json")) {
-      const body = (await req.json()) as StoredUploadRequest;
-      if (
-        storageDriver() !== "supabase" ||
-        !isManagedStorageReference(body.pdfPath, "uploads") ||
-        !isManagedStorageReference(body.docxPath, "uploads")
-      ) {
-        return NextResponse.json({ error: "Referencias de upload invalidas" }, { status: 400 });
-      }
+    const formData = await req.formData();
+    const pdfFile = formData.get("formsPdf") as File | null;
+    const docxFile = formData.get("documentosElaboracao") as File | null;
 
-      pdfPath = body.pdfPath!;
-      docxPath = body.docxPath!;
-      [pdfBuffer, docxBuffer] = await Promise.all([
-        readStorageBuffer(pdfPath),
-        readStorageBuffer(docxPath),
-      ]);
-    } else {
-      const formData = await req.formData();
-      const pdfFile = formData.get("formsPdf") as File | null;
-      const docxFile = formData.get("documentosElaboracao") as File | null;
-
-      if (!pdfFile || !docxFile) {
-        return NextResponse.json({ error: "Arquivos obrigatórios ausentes" }, { status: 400 });
-      }
-
-      const pdfFileName = `${sessionId}_forms.pdf`;
-      const docxFileName = `${sessionId}_elaboracao.docx`;
-      pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
-      docxBuffer = Buffer.from(await docxFile.arrayBuffer());
-      pdfPath = await saveStorageBuffer("uploads", pdfFileName, pdfBuffer, "application/pdf");
-      docxPath = await saveStorageBuffer(
-        "uploads",
-        docxFileName,
-        docxBuffer,
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      );
+    if (!pdfFile || !docxFile) {
+      return NextResponse.json({ error: "Arquivos obrigatórios ausentes" }, { status: 400 });
     }
+
+    const pdfFileName = `${sessionId}_forms.pdf`;
+    const docxFileName = `${sessionId}_elaboracao.docx`;
+    const pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
+    const docxBuffer = Buffer.from(await docxFile.arrayBuffer());
+    const pdfPath = await saveStorageBuffer("uploads", pdfFileName, pdfBuffer, "application/pdf");
+    const docxPath = await saveStorageBuffer(
+      "uploads",
+      docxFileName,
+      docxBuffer,
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
 
     const elaboracaoText = await extractDocxTextFromBuffer(docxBuffer);
 

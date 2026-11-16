@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { DateField, fieldClass, SelectField, TextField } from "@/components/ui/Field";
 import { Feedback } from "@/components/ui/Status";
@@ -39,6 +38,7 @@ interface Rascunho {
   avisoFormulario: string;
   cidade: string;
   uf: string;
+  enviados?: ArquivoEnviado[];
 }
 
 interface ArquivoEnviado {
@@ -50,7 +50,7 @@ interface Salvo {
   rascunho: Rascunho;
   plano: Planejamento;
   resolvidas: number[];
-  /** Referências no storage dos arquivos lidos (só no envio direto ao Supabase). */
+  /** Referências no storage dos PDFs lidos, para o Forms seguir com a pasta. */
   enviados?: ArquivoEnviado[];
 }
 
@@ -259,61 +259,16 @@ export function PlanejamentoEditor() {
     const opcoes = { dataPlanejamento, versaoPasta, plataforma, corLogo, observacoes };
 
     try {
-      let res: Response;
-      const planoUpload =
-        arquivos.length > 0
-          ? await lerResposta<
-              | { mode: "multipart" }
-              | {
-                  mode: "direct";
-                  supabaseUrl: string;
-                  supabaseAnonKey: string;
-                  bucket: string;
-                  arquivos: Array<{ path: string; token: string; ref: string }>;
-                }
-            >(
-              await fetch("/api/uploads/sign", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ arquivos: arquivos.map((a) => a.name) }),
-              }),
-              "Não deu para preparar o envio dos arquivos."
-            )
-          : null;
-
-      if (planoUpload?.mode === "direct") {
-        const supabase = createClient(planoUpload.supabaseUrl, planoUpload.supabaseAnonKey, {
-          auth: { persistSession: false, autoRefreshToken: false },
-        });
-        for (let i = 0; i < arquivos.length; i++) {
-          setEtapa(`Enviando ${i + 1} de ${arquivos.length}: ${arquivos[i].name}`);
-          const alvo = planoUpload.arquivos[i];
-          const { error } = await supabase.storage
-            .from(planoUpload.bucket)
-            .uploadToSignedUrl(alvo.path, alvo.token, arquivos[i], { contentType: arquivos[i].type || undefined });
-          if (error) throw new Error(`Erro no envio de ${arquivos[i].name}: ${error.message}`);
-        }
-        setEnviados(planoUpload.arquivos.map((a, i) => ({ nome: arquivos[i].name, ref: a.ref })));
-        iniciarRelogio("Lendo os arquivos e montando o planejamento (leva de 1 a 4 minutos)…");
-        res = await fetch("/api/planejamento/rascunho", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...opcoes,
-            arquivos: planoUpload.arquivos.map((a, i) => ({ ref: a.ref, nome: arquivos[i].name })),
-          }),
-        });
-      } else {
-        setEnviados([]);
-        const form = new FormData();
-        for (const arquivo of arquivos) form.append("arquivos", arquivo);
-        for (const [chave, valor] of Object.entries(opcoes)) form.append(chave, valor);
-        iniciarRelogio("Lendo os arquivos e montando o planejamento (leva de 1 a 4 minutos)…");
-        res = await fetch("/api/planejamento/rascunho", { method: "POST", body: form });
-      }
+      setEnviados([]);
+      const form = new FormData();
+      for (const arquivo of arquivos) form.append("arquivos", arquivo);
+      for (const [chave, valor] of Object.entries(opcoes)) form.append(chave, valor);
+      iniciarRelogio("Lendo os arquivos e montando o planejamento (leva de 1 a 4 minutos)…");
+      const res = await fetch("/api/planejamento/rascunho", { method: "POST", body: form });
 
       const dados = await lerResposta<Rascunho>(res, "Não deu para ler os arquivos.");
       setRascunho(dados);
+      setEnviados(dados.enviados || []);
       setPlano(dados.planejamento);
       setResolvidas([]);
       setRefsPendencias([]);

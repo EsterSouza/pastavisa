@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // depois de a pasta ser concluída. Excluir antes continua sendo pelo botão.
 const DIAS_RETENCAO = 30;
 
-/** Chamada todo dia pelo cron da Vercel (vercel.json). */
+/** Chamada todo dia por um timer na caixa do servidor, com `Authorization: Bearer $CRON_SECRET`. */
 export async function GET(req: NextRequest) {
   const segredo = process.env.CRON_SECRET;
   // Sem segredo configurado a rota fica fechada: ela apaga pasta de cliente.

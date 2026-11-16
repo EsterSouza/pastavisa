@@ -8,6 +8,15 @@
 Este é o único handoff operacional do PASTAVISA. Substitui o antigo `PASTAVISA_CONTEXT.md`; o
 histórico anterior permanece recuperável pelo git.
 
+> **11/11/2026 — mudança de casa.** O app saiu do Supabase e da Vercel: banco
+> Postgres e arquivos no Garage (S3) da Treinavisa, login pelo Keycloak
+> (`login.treinavisa.com.br`), imagem Docker publicada pelo GitHub Actions e
+> cron num timer da caixa. Como publicar e onde fica cada peça: `DEPLOYMENT.md`.
+> O que este handoff diz sobre Supabase, Vercel, `lib/supabase/*`,
+> `app_metadata.role`, `vercel-ignore-build.js` e `supabase/migrations` é
+> histórico. O esquema Postgres agora é `prisma/schema.postgres.prisma`, e as
+> migrations de produção ficam em `db/migrations/`.
+
 ---
 
 ## 1. Como usar este documento
@@ -337,7 +346,7 @@ Preservar: PDF como documento base64; fallback determinístico da lista; referê
 - `Template`/`TemplateVersao`: catálogo interno e histórico.
 - `Legislacao`: referências federal, estadual e municipal.
 
-Schemas SQLite/Postgres: `prisma/schema.prisma` e `prisma/schema.supabase.prisma`. Mudança de modelo
+Schemas SQLite/Postgres: `prisma/schema.prisma` e `prisma/schema.postgres.prisma` (SQL de produção em `db/migrations/`). Mudança de modelo
 deve manter os dois e migrations quando o card exigir.
 
 ### 3.3 Regras sanitárias do planner

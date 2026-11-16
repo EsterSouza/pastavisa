@@ -49,30 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json(created, { status: 201 });
     }
 
-    const body = await req.json();
-    const arquivos: Array<{ nomeArquivo?: string; uploadPath?: string }> = Array.isArray(body.arquivos)
-      ? body.arquivos
-      : [];
-    if (arquivos.length === 0) {
-      return NextResponse.json({ error: "Nenhum arquivo informado" }, { status: 400 });
-    }
-    if (arquivos.some((a) => !a.nomeArquivo || !a.uploadPath)) {
-      return NextResponse.json({ error: "nomeArquivo e uploadPath sao obrigatorios" }, { status: 400 });
-    }
-
-    const created = await Promise.all(
-      arquivos.map((arquivo) =>
-        prisma.documentoUpload.create({
-          data: {
-            pastaId: params.id,
-            nomeArquivo: arquivo.nomeArquivo!,
-            uploadPath: arquivo.uploadPath!,
-            status: "pendente",
-          },
-        })
-      )
-    );
-    return NextResponse.json(created, { status: 201 });
+    return NextResponse.json({ error: "Envie os arquivos como multipart/form-data" }, { status: 415 });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erro ao registrar upload" },

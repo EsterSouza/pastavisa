@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { safeNextPath } from "@/lib/supabase/browser";
+import { safeNextPath } from "@/lib/auth/next-path";
 
 function routeFiles(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

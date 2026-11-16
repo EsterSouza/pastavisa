@@ -174,7 +174,7 @@ function checkPublicVocabulary() {
  * 5. Nome de variável pública que carrega cara de segredo
  * ------------------------------------------------------------------ */
 
-const SECRET_SHAPED = /NEXT_PUBLIC_\w*(SERVICE_ROLE|SECRET|PASSWORD|PRIVATE|ANTHROPIC|DATABASE)\w*/;
+const SECRET_SHAPED = /NEXT_PUBLIC_\w*(SERVICE_ROLE|SECRET|PASSWORD|PRIVATE|ANTHROPIC|DATABASE|ACCESS_KEY)\w*/;
 
 // Os próprios auditores citam o nome proibido para poder recusá-lo. São a única
 // exceção legítima, e ficam nomeados um a um para que a lista não vire escape.
@@ -209,27 +209,9 @@ function checkPublicEnvNames() {
 const BUNDLE_MARKERS = [
   [/sk-ant-[A-Za-z0-9-]{8}/, "chave da Anthropic"],
   [/postgres(?:ql)?:\/\/[^\s"']+/, "connection string do Postgres"],
-  [/sb_secret_[A-Za-z0-9_-]{8}/, "chave secreta do Supabase"],
+  [/GK[0-9a-f]{24}/, "chave de acesso do Garage"],
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, "chave privada"],
 ];
-
-// JWT literal dentro do bundle. A chave service role do Supabase é um JWT cujo
-// payload diz `"role":"service_role"` — procurar a palavra solta não serve, ela
-// aparece em comentário de documentação do próprio SDK.
-const JWT = /eyJ[A-Za-z0-9_-]{8,}\.([A-Za-z0-9_-]{8,})\.[A-Za-z0-9_-]{8,}/g;
-
-function jwtDeServiceRole(conteudo) {
-  for (const match of conteudo.matchAll(JWT)) {
-    let payload;
-    try {
-      payload = Buffer.from(match[1], "base64url").toString("utf8");
-    } catch {
-      continue;
-    }
-    if (/"role"\s*:\s*"service_role"/.test(payload)) return true;
-  }
-  return false;
-}
 
 function checkClientBundle() {
   const chunks = walk(path.join(".next", "static"), (name) => name.endsWith(".js"));
@@ -251,7 +233,6 @@ function checkClientBundle() {
     for (const [pattern, label] of BUNDLE_MARKERS) {
       if (pattern.test(source)) offenders.push(`${chunk}: ${label}`);
     }
-    if (jwtDeServiceRole(source)) offenders.push(`${chunk}: chave service role do Supabase`);
   }
   if (offenders.length) fail("segredo embutido no bundle do cliente", offenders.join("; "));
   else ok(`bundle do cliente limpo em ${chunks.length} arquivos`);

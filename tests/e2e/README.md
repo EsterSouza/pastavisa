@@ -55,11 +55,13 @@ Duas coisas a saber antes:
 
 ## Contas QA
 
-As contas são criadas e rotacionadas **por uma pessoa**, no painel do Supabase, e
-a senha entra na suíte por variável de ambiente na sessão do terminal — nunca em
-arquivo, commit, log ou captura de tela (regra 6 do handoff). O papel vai em
-`app_metadata.role`, com valor `admin` ou `operador`; sem papel válido o login
-responde 403 mesmo com senha certa.
+As contas são criadas e rotacionadas **por uma pessoa**, no Keycloak
+(`login.treinavisa.com.br`, realm `treinavisa`), e a senha entra na suíte por
+variável de ambiente na sessão do terminal — nunca em arquivo, commit, log ou
+captura de tela (regra 6 do handoff). O papel é um papel do client `pastavisa`,
+`admin` ou `operador`; sem papel válido o login volta para `/login?erro=sem-acesso`
+mesmo com senha certa. A conta QA não pode ter 2FA obrigatório, senão o
+formulário de senha não basta.
 
 ## Limpeza
 

@@ -1,66 +1,62 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { NextRequest, NextResponse } from "next/server";
-
-const mocks = vi.hoisted(() => ({ updateSession: vi.fn() }));
-
-vi.mock("@/lib/supabase/middleware", () => ({ updateSession: mocks.updateSession }));
-
+import { NextRequest } from "next/server";
+import { SESSION_COOKIE, signSession, type UserRole } from "@/lib/auth/session";
 import { middleware } from "@/middleware";
 
-function request(path: string) {
-  return new NextRequest(`https://pastavisa.test${path}`);
-}
+const SECRET = "segredo-de-teste-com-mais-de-32-caracteres";
 
-function session(role?: "admin" | "operador") {
-  return {
-    response: NextResponse.next(),
-    user: role ? { app_metadata: { role } } : null,
-  };
+async function request(path: string, role?: UserRole) {
+  const req = new NextRequest(`https://pastavisa.test${path}`);
+  if (role) req.cookies.set(SESSION_COOKIE, await signSession({ sub: "u1", role }));
+  return req;
 }
 
 describe("auth middleware", () => {
-  beforeEach(() => {
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "public-key");
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    mocks.updateSession.mockReset();
-  });
+  beforeEach(() => vi.stubEnv("SESSION_SECRET", SECRET));
+  afterEach(() => vi.unstubAllEnvs());
 
   it("retorna 401 para API sem sessao", async () => {
-    mocks.updateSession.mockResolvedValue(session());
-    expect((await middleware(request("/api/pastas"))).status).toBe(401);
+    expect((await middleware(await request("/api/pastas"))).status).toBe(401);
   });
 
-  it("trata sessao expirada como nao autenticada", async () => {
-    mocks.updateSession.mockResolvedValue(session());
-    const response = await middleware(request("/pasta/123?tab=documentos"));
+  it("manda para o login guardando o destino", async () => {
+    const response = await middleware(await request("/pasta/123?tab=documentos"));
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toContain("/login?next=%2Fpasta%2F123%3Ftab%3Ddocumentos");
   });
 
+  it("recusa sessao forjada com outro segredo", async () => {
+    const req = await request("/api/pastas", "admin");
+    vi.stubEnv("SESSION_SECRET", "outro-segredo-qualquer-com-mais-de-32-chars");
+    expect((await middleware(req)).status).toBe(401);
+  });
+
   it("retorna 403 para operador em rota administrativa", async () => {
-    mocks.updateSession.mockResolvedValue(session("operador"));
-    expect((await middleware(request("/api/templates"))).status).toBe(403);
+    expect((await middleware(await request("/api/templates", "operador"))).status).toBe(403);
   });
 
   it("permite pastas e correcao ao operador", async () => {
-    mocks.updateSession.mockResolvedValue(session("operador"));
-    expect((await middleware(request("/api/pastas/123/uploads-corrigidos"))).status).toBe(200);
+    expect((await middleware(await request("/api/pastas/123/uploads-corrigidos", "operador"))).status).toBe(200);
   });
 
-  it("mantem o planner publico sem consultar sessao", async () => {
-    const page = await middleware(request("/planner"));
-    const analysis = await middleware(request("/api/planejamento-comercial/analisar"));
+  it("permite administracao ao admin", async () => {
+    expect((await middleware(await request("/api/templates", "admin"))).status).toBe(200);
+  });
+
+  it("mantem o planner publico sem sessao", async () => {
+    const page = await middleware(await request("/planner"));
+    const analysis = await middleware(await request("/api/planejamento-comercial/analisar"));
     expect(page.status).toBe(200);
     expect(page.headers.get("cache-control")).toBe("no-store");
     expect(analysis.status).toBe(200);
     expect(analysis.headers.get("cache-control")).toBe("no-store");
-    expect(mocks.updateSession).not.toHaveBeenCalled();
+  });
+
+  it("indisponivel sem SESSION_SECRET", async () => {
+    vi.stubEnv("SESSION_SECRET", "");
+    expect((await middleware(await request("/api/pastas"))).status).toBe(503);
   });
 
   it("mantem os ativos de marca fora do middleware", () => {
