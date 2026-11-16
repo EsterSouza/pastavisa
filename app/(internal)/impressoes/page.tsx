@@ -137,7 +137,7 @@ export default function Impressoes() {
           <h2 className="font-display text-base text-ink">
             {faltam.length === 1 ? "1 pasta impressa sem as páginas contadas" : `${faltam.length} pastas impressas sem as páginas contadas`}
           </h2>
-          <p className="mt-1 text-sm text-ink-muted">A franquia e o custo abaixo só ficam certos depois de contar. Abra a pasta e use "Contar páginas".</p>
+          <p className="mt-1 text-sm text-ink-muted">A franquia e o custo abaixo só ficam certos depois de contar. Abra a pasta e use “Contar páginas”.</p>
           <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
             {faltam.map((p) => (
               <li key={p.id}>
