@@ -170,7 +170,7 @@ export async function respostaCompleta(id: string): Promise<{
         }
         pagina.drawText(linha, { x: M, y, size: tam, font: f, color: rgb(cinza, cinza, cinza + 0.05) });
         y -= tam * 1.35;
-        linha = tenta ?? "";
+        linha = i < palavras.length ? palavras[i] : "";
       }
     }
     y -= depois;

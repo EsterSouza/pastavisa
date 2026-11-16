@@ -1,8 +1,7 @@
 import type { SecaoDocumentos } from "./tipos";
 
-// Regras fixas do planejamento, tiradas dos três planejamentos mais recentes da
-// Ester (Aline Lima 12/10, Guerra Guirra 08/10 e Camila Cavalli 05/10/2026) e da
-// skill dela. Ficam em código, e não na IA, porque não mudam de cliente para cliente.
+// Regras fixas do planejamento, tiradas dos planejamentos da Ester e da skill dela.
+// Ficam em código, e não na IA, porque não mudam de cliente para cliente.
 
 export const SECAO_INSTITUCIONAL = "DOCUMENTOS INSTITUCIONAIS, GERENCIAIS E DE SEGURANÇA";
 export const SECAO_ROTINAS = "POPs - ROTINAS GERAIS DE BIOSSEGURANÇA, LIMPEZA, ESTRUTURA E CONTROLE";
@@ -11,11 +10,19 @@ export const SECAO_FICHAS = "FICHAS DE ANAMNESE E AVALIAÇÃO";
 export const SECAO_TCLES = "TERMOS DE CONSENTIMENTO LIVRE E ESCLARECIDO E TERMOS CORRELATOS";
 export const SECAO_PLANILHAS = "PLANILHAS, FORMULÁRIOS E REGISTROS DE CONTROLE";
 
-/** Títulos já usados para os grupos de POPs de procedimento; a IA escolhe entre eles. */
+/**
+ * Títulos já usados para os grupos de POPs de procedimento. A IA prefere estes, mas
+ * cria outro "POPs - <FAMÍLIA>" quando a família da cliente não cabe em nenhum.
+ */
 export const SECOES_DE_PROCEDIMENTO = [
-  "POPs - PROCEDIMENTOS ESTÉTICOS E TECNOLOGIAS",
-  "POPs - PROCEDIMENTOS FACIAIS, CORPORAIS E CAPILARES",
+  "POPs - SAÚDE DA MULHER E SAÚDE REPRODUTIVA",
+  "POPs - PROCEDIMENTOS ASSISTENCIAIS DE ENFERMAGEM",
+  "POPs - TRATAMENTO DE FERIDAS E PROCEDIMENTOS ASSISTENCIAIS",
   "POPs - PROCEDIMENTOS ESTÉTICOS INJETÁVEIS",
+  "POPs - PROCEDIMENTOS ESTÉTICOS E TECNOLOGIAS",
+  "POPs - TECNOLOGIAS ESTÉTICAS, FOTOBIOMODULAÇÃO E OZONIOTERAPIA",
+  "POPs - PROCEDIMENTOS FACIAIS, CORPORAIS E CAPILARES",
+  "POPs - PROCEDIMENTOS ESTÉTICOS MANUAIS E EPIDÉRMICOS",
   "POPs - RECURSOS TERAPÊUTICOS MANUAIS, ELETROTERAPIA E REABILITAÇÃO",
   "POPs - PRÁTICAS INTEGRATIVAS E COMPLEMENTARES",
 ];
@@ -36,11 +43,19 @@ const NUNCA = [
   /\bPOP\b.*acompanhamento pr[eé] e p[oó]s/i,
 ];
 
+/** Nome do item como vai para o documento: hífen simples e sem anotação "[...]" dos exemplos. */
+export function limparNome(nome: string): string {
+  return nome
+    .trim()
+    .replace(/\s*\[[^\]]*\]\s*$/, "")
+    .replace(/^(POP|TCLE)\s+—\s+/, "$1 - ");
+}
+
 export function nuncaEntra(nome: string): boolean {
   return NUNCA.some((re) => re.test(nome));
 }
 
-const PSP = "Plano de Segurança do Paciente";
+const PSP = "Plano de Segurança do Paciente (PSP)";
 const POP_INTERCORRENCIAS = "POP - Intercorrências Assistenciais e Encaminhamento de Urgência";
 
 function normalizar(texto: string): string {
@@ -68,8 +83,9 @@ const ORDEM_FINAL = [SECAO_FICHAS, SECAO_TCLES, SECAO_PLANILHAS];
 
 /**
  * Aplica as regras que não dependem da IA: tira o que nunca entra e os repetidos,
- * garante PSP e POP de intercorrências em serviço de saúde, e põe as seções na
- * ordem dos planejamentos dela (as de procedimento ficam entre as assistenciais e as fichas).
+ * garante o PSP em serviço de saúde e o POP de intercorrências em toda pasta, e põe as seções na
+ * ordem dos planejamentos dela. As de procedimento ficam entre as assistenciais e as
+ * fichas, na ordem em que a IA as montou.
  */
 export function aplicarRegras(secoesIa: SecaoDocumentos[], servicoDeSaude: boolean): {
   secoes: SecaoDocumentos[];
@@ -83,7 +99,7 @@ export function aplicarRegras(secoesIa: SecaoDocumentos[], servicoDeSaude: boole
     const titulo = secao.titulo.trim().replace(/\s+—\s+/g, " - ");
     const itens: string[] = [];
     for (const bruto of secao.itens) {
-      const item = bruto.trim().replace(/^(POP|TCLE)\s+—\s+/, "$1 - ");
+      const item = limparNome(bruto);
       if (!item) continue;
       if (nuncaEntra(item)) {
         removidos.push(item);
@@ -99,18 +115,16 @@ export function aplicarRegras(secoesIa: SecaoDocumentos[], servicoDeSaude: boole
     else secoes.push({ titulo, itens });
   }
 
-  if (servicoDeSaude) {
-    garantir(secoes, SECAO_INSTITUCIONAL, PSP, /seguran[cç]a do paciente|\bPSP\b/i, 3);
-    garantir(secoes, SECAO_ASSISTENCIAL, POP_INTERCORRENCIAS, /^POP\b.*intercorr[eê]ncia/i);
-  }
+  if (servicoDeSaude) garantir(secoes, SECAO_INSTITUCIONAL, PSP, /seguran[cç]a do paciente|\bPSP\b/i, 3);
+  // Decisão de 16/11/2026: o POP de intercorrências entra em toda pasta.
+  garantir(secoes, SECAO_ASSISTENCIAL, POP_INTERCORRENCIAS, /^POP\b.*intercorr[eê]ncia/i);
 
   const peso = (titulo: string) => {
     const fixa = ORDEM_FIXA.indexOf(titulo);
     if (fixa >= 0) return fixa;
     const final = ORDEM_FINAL.indexOf(titulo);
     if (final >= 0) return 100 + final;
-    const procedimento = SECOES_DE_PROCEDIMENTO.indexOf(titulo);
-    return 10 + (procedimento >= 0 ? procedimento : SECOES_DE_PROCEDIMENTO.length);
+    return 10; // grupo de procedimento: a ordenação é estável e mantém a ordem da IA
   };
   secoes.sort((a, b) => peso(a.titulo) - peso(b.titulo));
 

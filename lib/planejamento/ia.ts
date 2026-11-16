@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
 import type { Tool } from "@anthropic-ai/sdk/resources/messages/messages";
+import { DECISOES_RECENTES } from "./decisoes";
 import { EXEMPLOS_PLANEJAMENTOS, ROTULOS_IDENTIFICACAO, ROTULOS_TERCEIRIZADOS } from "./exemplos";
 import { REGRAS_SKILL } from "./regras-skill";
 import { GRUPOS_REFERENCIAS, SECAO_ASSISTENCIAL, SECAO_FICHAS, SECAO_INSTITUCIONAL, SECAO_PLANILHAS, SECAO_ROTINAS, SECAO_TCLES, SECOES_DE_PROCEDIMENTO } from "./regras";
@@ -270,7 +271,7 @@ Seções de documentos, nesta ordem, só as que tiverem itens:
 1. "${SECAO_INSTITUCIONAL}"
 2. "${SECAO_ROTINAS}"
 3. "${SECAO_ASSISTENCIAL}"
-4. Grupos de POPs de procedimento, com um destes títulos: ${SECOES_DE_PROCEDIMENTO.map((t) => `"${t}"`).join(", ")}
+4. Grupos de POPs de procedimento, um por família técnica real da cliente, na ordem que fizer sentido para a rotina dela. Prefira estes títulos: ${SECOES_DE_PROCEDIMENTO.map((t) => `"${t}"`).join(", ")}. Se a família não couber em nenhum (ex.: podologia, terapia capilar, estética íntima), crie "POPs - <FAMÍLIA EM MAIÚSCULAS>". Não force técnica de outra área num título que não é dela.
 5. "${SECAO_FICHAS}"
 6. "${SECAO_TCLES}"
 7. "${SECAO_PLANILHAS}"
@@ -283,7 +284,12 @@ CNAEs só quando o formulário trouxer cartão CNPJ ou lista de atividades.
 
 Introdução: use a fórmula estável da skill, citando só os elementos que existem (formulário, fotografias, dados do CNPJ).
 
+Pense como a consultora, não como um formulário: para cada técnica, confira se o template cobre o que a cliente faz, que dependências ela traz (produto termolábil, ácido hialurônico, autoclave, equipe) e que pergunta objetiva à cliente ou decisão da Ester resolve a dúvida. Cada pendência diz o que foi visto, por que importa e o que fazer, em uma ou duas frases.
+
+=== DECISÕES DA ESTER DEPOIS DA SKILL (prevalecem sobre a skill e sobre os exemplos) ===
+${DECISOES_RECENTES}
 === PLANEJAMENTOS RECENTES (estrutura e grafia a seguir; os documentos variam com a cliente) ===
+Os nomes dos documentos gerais (institucionais, rotinas, planilhas e termos) são os destes exemplos; quando um exemplo e o acervo divergirem, vale o acervo. As anotações entre colchetes explicam a escolha e não fazem parte do documento.
 ${EXEMPLOS_PLANEJAMENTOS}
 
 === SKILL DA ESTER ===

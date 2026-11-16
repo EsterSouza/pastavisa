@@ -1,5 +1,5 @@
 import { calcularPrazos, dataBr } from "./prazos";
-import { aplicarRegras } from "./regras";
+import { aplicarRegras, limparNome } from "./regras";
 import type { Pendencia, RascunhoIa, TemplateCatalogo } from "./ia";
 import type { Planejamento } from "./tipos";
 
@@ -45,7 +45,7 @@ export function montarPlanejamento(
       if (item.template && !template) {
         pendencias.push({ assunto: item.nome, detalhe: "A IA citou um template que não existe no acervo.", para: "ester" });
       }
-      itens.push({ secao: secao.titulo, nome: item.nome, template: template?.nome || "" });
+      itens.push({ secao: secao.titulo, nome: limparNome(item.nome), template: template?.nome || "" });
     }
   }
 

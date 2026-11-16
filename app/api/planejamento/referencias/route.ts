@@ -22,17 +22,28 @@ export async function POST(req: NextRequest) {
     const { escolha, tokens } = await escolherReferencias({ perfil, estado, municipio, candidatas: lista });
 
     const usados = new Set<string>();
+    const semAbnt: string[] = [];
     const grupos: GrupoReferencias[] = [];
     for (const grupo of escolha.grupos || []) {
       const itens = (grupo.ids || [])
         .filter((id) => mapa.has(id) && !usados.has(id))
         .map((id) => {
           usados.add(id);
-          return referenciaDoBanco(mapa.get(id)!);
+          const ato = mapa.get(id)!;
+          if (!ato.abnt?.trim()) semAbnt.push(ato.name);
+          return referenciaDoBanco(ato);
         });
       if (itens.length) grupos.push({ titulo: grupo.titulo.trim(), itens });
     }
-    return NextResponse.json({ grupos, pendencias: escolha.pendencias || [], tokens, candidatas: lista.length });
+    const pendencias = [...(escolha.pendencias || [])];
+    if (semAbnt.length) {
+      pendencias.unshift({
+        assunto: `${semAbnt.length} referência${semAbnt.length > 1 ? "s" : ""} sem citação ABNT no banco`,
+        detalhe: `Saem só com órgão, número e ementa, sem data completa nem título em negrito: ${semAbnt.join("; ")}. Ajuste no Word ou complete no VISA Legislação.`,
+        para: "ester" as const,
+      });
+    }
+    return NextResponse.json({ grupos, pendencias, tokens, candidatas: lista.length });
   } catch (error) {
     console.error("[planejamento] referências falharam:", error);
     return NextResponse.json(

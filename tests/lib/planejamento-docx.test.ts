@@ -31,14 +31,38 @@ describe("regras fixas do planejamento", () => {
       SECAO_ASSISTENCIAL,
       "POPs - PROCEDIMENTOS ESTÉTICOS INJETÁVEIS",
     ]);
-    expect(secoes[0].itens).toContain("Plano de Segurança do Paciente");
+    expect(secoes[0].itens).toContain("Plano de Segurança do Paciente (PSP)");
     expect(secoes[1].itens).toEqual(["POP - Higienização das Mãos"]);
     expect(secoes[2].itens).toEqual(["POP - Intercorrências Assistenciais e Encaminhamento de Urgência"]);
   });
 
-  it("não acrescenta PSP fora de serviço de saúde", () => {
+  it("fora de serviço de saúde não acrescenta PSP, mas mantém o POP de intercorrências", () => {
     const { secoes } = aplicarRegras([{ titulo: SECAO_INSTITUCIONAL, itens: ["PGRSS"] }], false);
     expect(secoes[0].itens).toEqual(["PGRSS"]);
+    expect(secoes[1]).toEqual({
+      titulo: SECAO_ASSISTENCIAL,
+      itens: ["POP - Intercorrências Assistenciais e Encaminhamento de Urgência"],
+    });
+  });
+
+  it("aceita grupo de procedimento novo, mantém a ordem da IA e tira as anotações dos exemplos", () => {
+    const { secoes } = aplicarRegras(
+      [
+        { titulo: "FICHAS DE ANAMNESE E AVALIAÇÃO", itens: ["Ficha de Cadastro, Anamnese e Avaliação Estética"] },
+        { titulo: "POPs - SAÚDE DA MULHER E SAÚDE REPRODUTIVA", itens: ["POP - Inserção de Dispositivo Intrauterino (DIU)"] },
+        { titulo: "POPs - PODOLOGIA", itens: ["POP — Podologia [sem template: pendência]"] },
+        { titulo: "POPs - PROCEDIMENTOS ESTÉTICOS INJETÁVEIS", itens: ["POP - Toxina Botulínica Tipo A"] },
+      ],
+      false
+    );
+    expect(secoes.map((s) => s.titulo)).toEqual([
+      SECAO_ASSISTENCIAL,
+      "POPs - SAÚDE DA MULHER E SAÚDE REPRODUTIVA",
+      "POPs - PODOLOGIA",
+      "POPs - PROCEDIMENTOS ESTÉTICOS INJETÁVEIS",
+      "FICHAS DE ANAMNESE E AVALIAÇÃO",
+    ]);
+    expect(secoes[2].itens).toEqual(["POP - Podologia"]);
   });
 });
 
