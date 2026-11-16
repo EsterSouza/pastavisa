@@ -9,6 +9,7 @@ import { EmptyState, PageHeader } from "@/components/ui/Surface";
 import { fieldClass } from "@/components/ui/Field";
 import { describeErrorOrigin, Feedback, StatusBadge, type Tone } from "@/components/ui/Status";
 import { normalizeForMatch } from "@/components/ui/text";
+import { pastaImpressa } from "@/lib/contagem-paginas";
 
 // Mesmo prazo de app/api/cron/retencao-pastas: concluída, a pasta some em 30 dias.
 const DIAS_RETENCAO = 30;
@@ -27,6 +28,8 @@ interface Pasta {
   apreciacaoFim: string | null;
   entregaFinal: string | null;
   prazosLidosEm: string | null;
+  versaoPasta: string | null;
+  paginasContadas: boolean;
   documentos: Array<{ id: string; status: string }>;
 }
 
@@ -437,6 +440,9 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <StatusBadge tone={situacao.tone}>{situacao.label}</StatusBadge>
+                      {concluida && pastaImpressa(pasta.versaoPasta) && !pasta.paginasContadas && (
+                        <span className="mt-1 block text-sm font-semibold text-status-warning">Falta contar as páginas</span>
+                      )}
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <span className="text-sm text-ink-muted">

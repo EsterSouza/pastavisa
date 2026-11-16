@@ -33,12 +33,24 @@ const media = (soma: number, n: number) => (n ? Math.round(soma / n) : 0);
 export default function Impressoes() {
   const [contagens, setContagens] = useState<Contagem[] | null>(null);
   const [erro, setErro] = useState("");
+  const [faltam, setFaltam] = useState<Array<{ id: string; nome: string }>>([]);
 
   useEffect(() => {
     fetch("/api/impressoes")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => setContagens(d.contagens))
       .catch(() => setErro("Não deu para carregar as contagens."));
+    // A pasta conclui sozinha ao fim da geração, antes dos PDFs: o aviso fica até alguém contar.
+    fetch("/api/pastas")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((pastas: Array<{ id: string; status: string; versaoPasta: string | null; paginasContadas: boolean; clienteNomeFantasia: string | null }>) =>
+        setFaltam(
+          pastas
+            .filter((p) => p.status === "concluida" && pastaImpressa(p.versaoPasta) && !p.paginasContadas)
+            .map((p) => ({ id: p.id, nome: p.clienteNomeFantasia || "Pasta sem nome" }))
+        )
+      )
+      .catch(() => setFaltam([]));
   }, []);
 
   if (erro) return <p className="text-sm text-status-danger">{erro}</p>;
@@ -120,6 +132,23 @@ export default function Impressoes() {
           )
         }
       />
+      {faltam.length > 0 && (
+        <Card className="mb-4 border-status-warning p-4">
+          <h2 className="font-display text-base text-ink">
+            {faltam.length === 1 ? "1 pasta impressa sem as páginas contadas" : `${faltam.length} pastas impressas sem as páginas contadas`}
+          </h2>
+          <p className="mt-1 text-sm text-ink-muted">A franquia e o custo abaixo só ficam certos depois de contar. Abra a pasta e use "Contar páginas".</p>
+          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            {faltam.map((p) => (
+              <li key={p.id}>
+                <Link href={`/pasta/${p.id}`} className="text-brand-accent underline-offset-4 hover:underline">
+                  {p.nome}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
       {contagens.length === 0 ? (
         <EmptyState
           title="Nenhuma pasta contada ainda"

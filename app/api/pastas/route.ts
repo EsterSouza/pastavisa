@@ -13,5 +13,9 @@ export async function GET() {
       },
     },
   });
-  return NextResponse.json(pastas);
+  // A lista avisa quando uma pasta impressa ainda não teve as páginas contadas.
+  const contadas = new Set(
+    (await prisma.contagemPaginas.findMany({ select: { pastaId: true } })).map((c: { pastaId: string | null }) => c.pastaId)
+  );
+  return NextResponse.json(pastas.map((p: { id: string }) => ({ ...p, paginasContadas: contadas.has(p.id) })));
 }
