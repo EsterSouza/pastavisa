@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { DateField } from "@/components/ui/Field";
 import { Card } from "@/components/ui/Surface";
-import { cicloDe, custoDaPasta, reais, type CustoPasta, type DocumentoContado } from "@/lib/contagem-paginas";
+import { cicloDe, custoDaPasta, nomeDoCiclo, reais, type CustoPasta, type DocumentoContado } from "@/lib/contagem-paginas";
 
 type Contagem = { id: string; versao: string | null; paginas: number; documentos: string; contadaEm: string };
 
@@ -13,6 +14,12 @@ type Contagem = { id: string; versao: string | null; paginas: number; documentos
  * conta as páginas com o pdf-lib, sem enviar os arquivos, e só o resultado vai
  * para o app.
  */
+/** AAAA-MM-DD no fuso de quem está vendo, para o campo de data. */
+function diaLocal(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function PaginasPasta({ pastaId, emImpressao = false }: { pastaId: string; emImpressao?: boolean }) {
   const entrada = useRef<HTMLInputElement>(null);
   const [contagem, setContagem] = useState<Contagem | null>(null);
@@ -39,6 +46,23 @@ export function PaginasPasta({ pastaId, emImpressao = false }: { pastaId: string
       })
       .catch(() => setCusto(null));
   }, [contagem]);
+
+  async function marcarImpressao(dia: string) {
+    if (!dia) return;
+    setErro("");
+    try {
+      const r = await fetch(`/api/pastas/${pastaId}/paginas`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ impressaEm: dia }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      setContagem(d.contagem);
+    } catch (e) {
+      setErro(`A data não foi guardada: ${e instanceof Error ? e.message : "erro desconhecido"}.`);
+    }
+  }
 
   async function contar(arquivos: FileList | null) {
     const pdfs = Array.from(arquivos || []).filter((a) => /\.pdf$/i.test(a.name));
@@ -91,10 +115,19 @@ export function PaginasPasta({ pastaId, emImpressao = false }: { pastaId: string
     <Card className={`p-4 ${pedirContagem ? "!border-status-warning" : ""}`}>
       <h2 className="font-display text-base text-ink">Páginas e custo da pasta</h2>
       {contagem ? (
-        <p className="mt-2 text-sm text-ink-muted">
-          <span className="font-display text-2xl text-ink">{contagem.paginas}</span> páginas em {documentos.length} PDFs,
-          contadas em {new Date(contagem.contadaEm).toLocaleDateString("pt-BR")}.
-        </p>
+        <>
+          <p className="mt-2 text-sm text-ink-muted">
+            <span className="font-display text-2xl text-ink">{contagem.paginas}</span> páginas em {documentos.length} PDFs.
+          </p>
+          <div className="mt-3">
+            <DateField
+              label="Impressa em"
+              value={diaLocal(contagem.contadaEm)}
+              onChange={(dia) => void marcarImpressao(dia)}
+              hint={`Decide o ciclo da franquia: ${nomeDoCiclo(cicloDe(contagem.contadaEm))}.`}
+            />
+          </div>
+        </>
       ) : (
         <p className={`mt-2 text-sm ${pedirContagem ? "font-semibold text-status-warning" : "text-ink-muted"}`}>
           {pedirContagem

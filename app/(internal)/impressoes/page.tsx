@@ -95,7 +95,7 @@ export default function Impressoes() {
   /** Uma linha por pasta contada, com cada item do custo; o resumo por ciclo sai de uma tabela dinâmica. */
   const exportar = () => {
     const linhas: Array<Array<string | number>> = [
-      ["Data", "Ciclo da franquia", "Cliente", "Versão", "PDFs", "Páginas", "Preço", ...ITENS_DE_CUSTO, "Custo", "Sobra"],
+      ["Impressa em", "Ciclo da franquia", "Cliente", "Versão", "PDFs", "Páginas", "Preço", ...ITENS_DE_CUSTO, "Custo", "Sobra"],
     ];
     for (const c of contagens) {
       const custo = custos.get(c.id)!;
@@ -248,7 +248,7 @@ export default function Impressoes() {
             <table className="mt-3 w-full text-sm">
               <thead className="text-left text-ink-muted">
                 <tr>
-                  <th className="py-1.5 font-normal">Data</th>
+                  <th className="py-1.5 font-normal">Impressa em</th>
                   <th className="py-1.5 font-normal">Cliente</th>
                   <th className="py-1.5 font-normal">Versão</th>
                   <th className="py-1.5 font-normal">PDFs</th>
