@@ -79,5 +79,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const enviado = await prisma.emailEnviado.create({
     data: { pastaId: pasta.id, tipo: definicao.tipo, para: para.join(", "), assunto },
   });
+
+  // O e-mail move a etapa (lib/etapas.ts): o da apreciação abre o período, sem
+  // puxar de volta quem já está em impressão; o da entrega conclui a pasta, e a
+  // retenção de 30 dias conta a partir dele.
+  if (definicao.tipo === "apreciacao") {
+    await prisma.pasta.updateMany({
+      where: { id: pasta.id, status: { not: "concluida" }, OR: [{ etapa: null }, { etapa: "revisao" }] },
+      data: { etapa: "apreciacao" },
+    });
+  }
+  if (definicao.tipo === "entrega-fisica" || definicao.tipo === "entrega-digital") {
+    await prisma.pasta.updateMany({
+      where: { id: pasta.id, status: { not: "concluida" } },
+      data: { status: "concluida", concluidaEm: new Date() },
+    });
+  }
   return NextResponse.json({ enviado, copiaEmEnviados });
 }

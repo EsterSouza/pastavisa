@@ -40,13 +40,13 @@ export default function Impressoes() {
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => setContagens(d.contagens))
       .catch(() => setErro("Não deu para carregar as contagens."));
-    // A pasta conclui sozinha ao fim da geração, antes dos PDFs: o aviso fica até alguém contar.
+    // Pasta impressa em impressão ou já entregue sem contagem: o aviso fica até alguém contar.
     fetch("/api/pastas")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((pastas: Array<{ id: string; status: string; versaoPasta: string | null; paginasContadas: boolean; clienteNomeFantasia: string | null }>) =>
+      .then((pastas: Array<{ id: string; status: string; etapa: string | null; versaoPasta: string | null; paginasContadas: boolean; clienteNomeFantasia: string | null }>) =>
         setFaltam(
           pastas
-            .filter((p) => p.status === "concluida" && pastaImpressa(p.versaoPasta) && !p.paginasContadas)
+            .filter((p) => (p.status === "concluida" || p.etapa === "impressao") && pastaImpressa(p.versaoPasta) && !p.paginasContadas)
             .map((p) => ({ id: p.id, nome: p.clienteNomeFantasia || "Pasta sem nome" }))
         )
       )
@@ -133,7 +133,7 @@ export default function Impressoes() {
         }
       />
       {faltam.length > 0 && (
-        <Card className="mb-4 border-status-warning p-4">
+        <Card className="mb-4 !border-status-warning p-4">
           <h2 className="font-display text-base text-ink">
             {faltam.length === 1 ? "1 pasta impressa sem as páginas contadas" : `${faltam.length} pastas impressas sem as páginas contadas`}
           </h2>

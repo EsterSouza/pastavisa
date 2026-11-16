@@ -235,16 +235,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const allDone = await prisma.documentoGerado.findMany({ where: { pastaId } });
-  const allGerado = allDone.every((d: { status: string }) => d.status === "gerado" || d.status === "erro");
-  if (allGerado) {
-    // Só a passagem para concluída marca a data: regerar um documento de pasta
-    // já concluída não adia a exclusão dos 30 dias.
-    await prisma.pasta.updateMany({
-      where: { id: pastaId, status: { not: "concluida" } },
-      data: { status: "concluida", concluidaEm: new Date() },
-    });
-  }
+  // Terminar a geração não conclui mais a pasta: ela segue para apreciação,
+  // revisão e impressão, e só o e-mail de entrega (ou a etapa "Entregue") conclui.
 
   return NextResponse.json({ results });
 }

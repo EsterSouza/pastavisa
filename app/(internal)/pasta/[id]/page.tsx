@@ -12,6 +12,8 @@ import { ActionMenu } from "@/components/ui/ActionMenu";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Card } from "@/components/ui/Surface";
+import { pastaImpressa } from "@/lib/contagem-paginas";
+import { ETAPA_INFO, ETAPAS, etapaDa, type Etapa } from "@/lib/etapas";
 import {
   DOCUMENTO_STATUS,
   describeErrorOrigin,
@@ -41,6 +43,7 @@ interface Pasta {
   clienteEmail: string | null;
   inicioProjeto: string | null;
   versaoPasta: string | null;
+  etapa: string | null;
   linkDrive: string | null;
   linkOneDrive: string | null;
   senhaOneDrive: string | null;
@@ -144,6 +147,8 @@ export default function PastaDetalhe() {
   ].filter(Boolean) as string[];
   const total = pasta.documentos.length;
   const concluida = pasta.status === "concluida";
+  const etapaAtual = etapaDa(pasta);
+  const etapasVisiveis = ETAPAS.filter((e) => e !== "impressao" || pastaImpressa(pasta.versaoPasta) || etapaAtual === "impressao");
   const legislacoesAssociadas = contarIds(pasta.legislacaoIds);
   const semLogo = docsGerados.filter((d) => !d.logoSubstituida);
   const citamRt = docsGerados.filter((d) => d.avisoRtNoCorpo);
@@ -294,6 +299,34 @@ export default function PastaDetalhe() {
     }
   }
 
+  async function mudarEtapa(etapa: Etapa) {
+    if (!pasta) return;
+    if (etapa === "entregue") {
+      setConfirmarConclusao(true);
+      return;
+    }
+    setUpdatingStatus(true);
+    setActionError("");
+    try {
+      const res = await fetch(`/api/pastas/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ etapa }),
+      });
+      if (!res.ok) throw new Error(`O banco recusou a mudança de etapa (HTTP ${res.status}).`);
+      const updated = await res.json();
+      setPasta((current) =>
+        current
+          ? { ...current, status: updated.status, etapa: updated.etapa ?? null, concluidaEm: updated.concluidaEm ?? null }
+          : current
+      );
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Não foi possível gravar a etapa no banco.");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  }
+
   async function duplicarPasta() {
     setDuplicating(true);
     setActionError("");
@@ -329,7 +362,7 @@ export default function PastaDetalhe() {
       <PastaHeader
         id={id}
         nome={pasta.clienteNomeFantasia}
-        status={pasta.status}
+        status={etapaAtual}
         meta={[
           [pasta.clienteCidade, pasta.clienteEstado].filter(Boolean).join(" / "),
           pasta.clienteRtNome ? `RT: ${pasta.clienteRtNome}` : "",
@@ -362,7 +395,7 @@ export default function PastaDetalhe() {
                 },
                 concluida
                   ? { label: "Reabrir pasta", disabled: updatingStatus, onSelect: () => { void atualizarStatus("rascunho"); } }
-                  : { label: "Marcar como concluída…", disabled: updatingStatus, onSelect: () => setConfirmarConclusao(true) },
+                  : { label: "Marcar como entregue…", disabled: updatingStatus, onSelect: () => setConfirmarConclusao(true) },
                 { label: "Excluir pasta…", destrutiva: true, onSelect: () => setConfirmarExclusao(true) },
               ]}
             />
@@ -379,7 +412,7 @@ export default function PastaDetalhe() {
       </div>
 
       {exclusaoEm && (
-        <Feedback tone="atencao" title="Pasta concluída" className="mb-5">
+        <Feedback tone="atencao" title="Pasta entregue" className="mb-5">
           Ela e os arquivos gerados serão excluídos em <strong>{dataCurta(exclusaoEm)}</strong>. Baixe o ZIP
           final antes disso. Para manter, use <strong>Reabrir pasta</strong> no menu ⋯.
         </Feedback>
@@ -534,6 +567,35 @@ export default function PastaDetalhe() {
 
         <aside aria-label="Resumo da pasta" className="flex flex-col gap-4">
           <Card className="p-4">
+            <h2 className="font-display text-base text-ink">Etapa</h2>
+            <ol className="mt-3 flex flex-col gap-1.5">
+              {etapasVisiveis.map((etapa) => {
+                const atual = etapa === etapaAtual;
+                return (
+                  <li key={etapa}>
+                    <button
+                      type="button"
+                      aria-pressed={atual}
+                      disabled={updatingStatus || atual}
+                      onClick={() => void mudarEtapa(etapa)}
+                      className={`flex min-h-11 w-full items-center rounded-md border px-3 text-left text-sm font-semibold disabled:cursor-default ${
+                        atual
+                          ? "border-brand-action bg-brand-action text-brand-on-dark"
+                          : "border-gray-300 bg-surface-card text-ink hover:bg-surface-subtle disabled:text-ink-muted"
+                      }`}
+                    >
+                      {ETAPA_INFO[etapa].label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+            <p className="mt-2 text-sm text-ink-muted">
+              O e-mail de apreciação leva para “Em apreciação”, e o de entrega marca como entregue.
+            </p>
+          </Card>
+
+          <Card className="p-4">
             <h2 className="font-display text-base text-ink">Documentos</h2>
             <div
               className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-surface-subtle"
@@ -571,7 +633,7 @@ export default function PastaDetalhe() {
 
           <EmailsCliente pastaId={id} pasta={pasta} documentosGerados={gerados} />
 
-          <PaginasPasta pastaId={id} />
+          <PaginasPasta pastaId={id} emImpressao={etapaAtual === "impressao"} />
 
           <Card className="p-4">
             <h2 className="font-display text-base text-ink">Dados da cliente</h2>
@@ -598,12 +660,12 @@ export default function PastaDetalhe() {
 
       {confirmarConclusao && (
         <ConfirmDialog
-          title="Marcar a pasta como concluída?"
+          title="Marcar a pasta como entregue?"
           confirmLabel="Sim, concluir"
           busy={updatingStatus}
           description={
             <>
-              Concluída, a pasta e os arquivos gerados são excluídos automaticamente{" "}
+              Entregue, a pasta e os arquivos gerados são excluídos automaticamente{" "}
               <strong>{DIAS_RETENCAO} dias depois</strong>. Baixe o ZIP final antes. Até lá, dá para reabrir.
             </>
           }

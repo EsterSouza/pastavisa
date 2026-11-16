@@ -154,7 +154,7 @@ describe("dashboard de pastas", () => {
 
     const filtros = screen.getByRole("group", { name: "Filtrar por situação" });
     expect(within(filtros).getByRole("button", { name: /^Em produção\s*2$/ })).toBeInTheDocument();
-    const concluidas = within(filtros).getByRole("button", { name: /^Concluídas\s*1$/ });
+    const concluidas = within(filtros).getByRole("button", { name: /^Entregues\s*1$/ });
     expect(concluidas).toHaveAttribute("aria-pressed", "false");
 
     fireEvent.click(concluidas);

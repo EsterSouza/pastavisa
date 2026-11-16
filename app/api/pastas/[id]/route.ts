@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth/authorization";
 import { excluirPasta } from "@/lib/pasta-exclusao";
 import { dataDoBanco } from "@/lib/elaboracao-prazos";
+import { ehEtapa, gravacaoDaEtapa } from "@/lib/etapas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -85,10 +86,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       if (Object.prototype.hasOwnProperty.call(body, field)) data[field] = dataDoBanco(body[field]);
     }
 
+    const atual =
+      "status" in data || "etapa" in body
+        ? await prisma.pasta.findUnique({ where: { id: params.id }, select: { status: true } })
+        : null;
+
+    // A etapa vira status e etapa gravados: "entregue" conclui, as outras reabrem.
+    if ("etapa" in body) {
+      if (!ehEtapa(body.etapa)) return NextResponse.json({ error: "Etapa invalida" }, { status: 400 });
+      Object.assign(data, gravacaoDaEtapa(body.etapa, atual?.status || ""));
+    }
+
     // A retenção conta 30 dias a partir da conclusão. Só a troca de status mexe
     // na data: salvar de novo uma pasta já concluída não pode adiar a exclusão.
     if ("status" in data) {
-      const atual = await prisma.pasta.findUnique({ where: { id: params.id }, select: { status: true } });
       if (atual && atual.status !== data.status) {
         data.concluidaEm = data.status === "concluida" ? new Date() : null;
       }

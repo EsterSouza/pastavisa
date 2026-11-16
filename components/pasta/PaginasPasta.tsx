@@ -13,7 +13,7 @@ type Contagem = { id: string; versao: string | null; paginas: number; documentos
  * conta as páginas com o pdf-lib, sem enviar os arquivos, e só o resultado vai
  * para o app.
  */
-export function PaginasPasta({ pastaId }: { pastaId: string }) {
+export function PaginasPasta({ pastaId, emImpressao = false }: { pastaId: string; emImpressao?: boolean }) {
   const entrada = useRef<HTMLInputElement>(null);
   const [contagem, setContagem] = useState<Contagem | null>(null);
   const [contando, setContando] = useState("");
@@ -84,9 +84,11 @@ export function PaginasPasta({ pastaId }: { pastaId: string }) {
   }
 
   const documentos: DocumentoContado[] = contagem ? JSON.parse(contagem.documentos) : [];
+  // Na etapa de impressão a contagem é o passo da vez: sem ela a franquia e o custo ficam errados.
+  const pedirContagem = emImpressao && !contagem;
 
   return (
-    <Card className="p-4">
+    <Card className={`p-4 ${pedirContagem ? "!border-status-warning" : ""}`}>
       <h2 className="font-display text-base text-ink">Páginas e custo da pasta</h2>
       {contagem ? (
         <p className="mt-2 text-sm text-ink-muted">
@@ -94,7 +96,11 @@ export function PaginasPasta({ pastaId }: { pastaId: string }) {
           contadas em {new Date(contagem.contadaEm).toLocaleDateString("pt-BR")}.
         </p>
       ) : (
-        <p className="mt-2 text-sm text-ink-muted">Ainda não contadas. Escolha a pasta &quot;PDF&quot; da cliente quando ela estiver pronta.</p>
+        <p className={`mt-2 text-sm ${pedirContagem ? "font-semibold text-status-warning" : "text-ink-muted"}`}>
+          {pedirContagem
+            ? "A pasta está em impressão: conte as páginas da pasta “PDF” antes de imprimir."
+            : "Ainda não contadas. Escolha a pasta “PDF” da cliente quando ela estiver pronta."}
+        </p>
       )}
 
       <input
@@ -106,7 +112,7 @@ export function PaginasPasta({ pastaId }: { pastaId: string }) {
         onChange={(e) => void contar(e.target.files)}
       />
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Button variant="secondary" disabled={Boolean(contando)} onClick={() => entrada.current?.click()}>
+        <Button variant={pedirContagem ? "primary" : "secondary"} disabled={Boolean(contando)} onClick={() => entrada.current?.click()}>
           {contagem ? "Contar de novo" : "Contar páginas"}
         </Button>
         {documentos.length > 0 && (

@@ -10,6 +10,7 @@ import { fieldClass } from "@/components/ui/Field";
 import { describeErrorOrigin, Feedback, StatusBadge, type Tone } from "@/components/ui/Status";
 import { normalizeForMatch } from "@/components/ui/text";
 import { pastaImpressa } from "@/lib/contagem-paginas";
+import { ETAPA_INFO } from "@/lib/etapas";
 
 // Mesmo prazo de app/api/cron/retencao-pastas: concluída, a pasta some em 30 dias.
 const DIAS_RETENCAO = 30;
@@ -29,22 +30,26 @@ interface Pasta {
   entregaFinal: string | null;
   prazosLidosEm: string | null;
   versaoPasta: string | null;
+  etapa: string | null;
   paginasContadas: boolean;
   documentos: Array<{ id: string; status: string }>;
 }
 
 type Ordem = "prazo" | "recentes";
 
-// Situação de trabalho, derivada dos documentos: diz o que a pasta pede agora,
-// não só o status gravado no banco.
-type Situacao = "producao" | "erro" | "pronta" | "concluida";
+// Situação de trabalho: a etapa gravada (lib/etapas.ts) depois da geração e,
+// antes dela, o que os documentos pedem agora.
+type Situacao = "producao" | "erro" | "pronta" | "apreciacao" | "revisao" | "impressao" | "concluida";
 
 const FILTROS: Array<{ id: "todas" | Situacao; label: string }> = [
   { id: "todas", label: "Todas" },
   { id: "producao", label: "Em produção" },
   { id: "erro", label: "Com erro" },
   { id: "pronta", label: "Prontas" },
-  { id: "concluida", label: "Concluídas" },
+  { id: "apreciacao", label: "Em apreciação" },
+  { id: "revisao", label: "Em revisão" },
+  { id: "impressao", label: "Em impressão" },
+  { id: "concluida", label: "Entregues" },
 ];
 
 type FiltroId = (typeof FILTROS)[number]["id"];
@@ -111,7 +116,10 @@ function prazoDa(pasta: Pasta, hoje: string): { periodo: string; aviso: string; 
 function situacaoDa(pasta: Pasta): { id: Situacao; label: string; tone: Tone } {
   if (pasta.status === "concluida") {
     const exclui = exclusaoEm(pasta);
-    return { id: "concluida", label: exclui ? `Concluída · exclui em ${dataCurta(exclui).slice(0, 5)}` : "Concluída", tone: "neutro" };
+    return { id: "concluida", label: exclui ? `Entregue · exclui em ${dataCurta(exclui).slice(0, 5)}` : "Entregue", tone: "neutro" };
+  }
+  if (pasta.etapa === "apreciacao" || pasta.etapa === "revisao" || pasta.etapa === "impressao") {
+    return { id: pasta.etapa, ...ETAPA_INFO[pasta.etapa] };
   }
   const total = pasta.documentos.length;
   const gerados = pasta.documentos.filter((d) => d.status === "gerado").length;
@@ -225,7 +233,16 @@ export default function Dashboard() {
   }, [pastas]);
 
   const contagens = useMemo(() => {
-    const base: Record<FiltroId, number> = { todas: pastas.length, producao: 0, erro: 0, pronta: 0, concluida: 0 };
+    const base: Record<FiltroId, number> = {
+      todas: pastas.length,
+      producao: 0,
+      erro: 0,
+      pronta: 0,
+      apreciacao: 0,
+      revisao: 0,
+      impressao: 0,
+      concluida: 0,
+    };
     comSituacao.forEach(({ situacao }) => {
       base[situacao.id] += 1;
     });
@@ -264,9 +281,12 @@ export default function Dashboard() {
 
   const resumo: Array<{ id: Situacao; rotulo: string; cor: string }> = [
     { id: "producao", rotulo: "Em produção", cor: "text-ink" },
-    { id: "erro", rotulo: "Com erro na geração", cor: contagens.erro > 0 ? "text-status-warning" : "text-ink" },
-    { id: "pronta", rotulo: "Prontas para entregar", cor: contagens.pronta > 0 ? "text-status-success" : "text-ink" },
-    { id: "concluida", rotulo: `Concluídas · somem em ${DIAS_RETENCAO} dias`, cor: "text-ink" },
+    ...(contagens.erro > 0 ? [{ id: "erro" as const, rotulo: "Com erro na geração", cor: "text-status-warning" }] : []),
+    { id: "pronta", rotulo: "Prontas para apreciação", cor: contagens.pronta > 0 ? "text-status-success" : "text-ink" },
+    { id: "apreciacao", rotulo: "Em apreciação", cor: "text-ink" },
+    { id: "revisao", rotulo: "Em revisão", cor: contagens.revisao > 0 ? "text-status-warning" : "text-ink" },
+    { id: "impressao", rotulo: "Em impressão", cor: contagens.impressao > 0 ? "text-status-warning" : "text-ink" },
+    { id: "concluida", rotulo: `Entregues · somem em ${DIAS_RETENCAO} dias`, cor: "text-ink" },
   ];
 
   return (
@@ -287,7 +307,7 @@ export default function Dashboard() {
       />
 
       {!loading && !loadError && pastas.length > 0 && (
-        <div className="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="mb-5 flex flex-wrap gap-4">
           {resumo.map((item) => {
             const ativo = filtro === item.id;
             return (
@@ -296,7 +316,7 @@ export default function Dashboard() {
                 type="button"
                 aria-pressed={ativo}
                 onClick={() => setFiltro(ativo ? "todas" : item.id)}
-                className={`flex flex-col gap-1 rounded-lg border bg-surface-card px-4 py-3 text-left hover:bg-surface-subtle ${
+                className={`flex min-w-[9rem] flex-1 flex-col gap-1 rounded-lg border bg-surface-card px-4 py-3 text-left hover:bg-surface-subtle ${
                   ativo ? "border-brand-action ring-1 ring-brand-action" : "border-gray-200"
                 }`}
               >
@@ -440,7 +460,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <StatusBadge tone={situacao.tone}>{situacao.label}</StatusBadge>
-                      {concluida && pastaImpressa(pasta.versaoPasta) && !pasta.paginasContadas && (
+                      {(concluida || pasta.etapa === "impressao") && pastaImpressa(pasta.versaoPasta) && !pasta.paginasContadas && (
                         <span className="mt-1 block text-sm font-semibold text-status-warning">Falta contar as páginas</span>
                       )}
                     </div>
@@ -475,7 +495,7 @@ export default function Dashboard() {
                         items={[
                           concluida
                             ? { label: "Reabrir pasta", onSelect: () => { void atualizarStatusPasta(pasta.id, "rascunho"); } }
-                            : { label: "Marcar como concluída…", onSelect: () => setConfirmConcluir(pasta) },
+                            : { label: "Marcar como entregue…", onSelect: () => setConfirmConcluir(pasta) },
                           {
                             label: "Excluir pasta…",
                             destrutiva: true,
@@ -513,7 +533,7 @@ export default function Dashboard() {
 
       {confirmConcluir && (
         <ConfirmDialog
-          title="Marcar a pasta como concluída?"
+          title="Marcar a pasta como entregue?"
           confirmLabel="Sim, concluir"
           description={
             <>
@@ -521,7 +541,7 @@ export default function Dashboard() {
                 {confirmConcluir.clienteNomeFantasia || "Pasta sem nome"}
               </span>
               <br />
-              Concluída, a pasta e os arquivos gerados são excluídos automaticamente{" "}
+              Entregue, a pasta e os arquivos gerados são excluídos automaticamente{" "}
               <strong>{DIAS_RETENCAO} dias depois</strong>. Baixe o ZIP final antes. Até lá, dá para reabrir.
             </>
           }

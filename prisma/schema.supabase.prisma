@@ -57,6 +57,8 @@ model Pasta {
   apreciacaoFim            DateTime?
   entregaFinal             DateTime?
   versaoPasta              String?
+  // Depois da geração: apreciacao, revisao ou impressao (lib/etapas.ts). Entregue = status concluida.
+  etapa                    String?
   prazosLidosEm            DateTime?
 
   // Vão nos e-mails para a cliente (lib/emails): pasta digital no Drive e PDFs da apreciação no OneDrive.

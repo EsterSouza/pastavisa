@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/Status";
 import { normalizeForMatch } from "@/components/ui/text";
 import { findBestTemplateMatch } from "@/lib/template-matcher";
+import { etapaDa } from "@/lib/etapas";
 
 interface Documento {
   id: string;
@@ -324,7 +325,7 @@ export default function ProcessarPasta() {
         const estado = pasta.clienteEstado || "";
         setPastaInfo({
           nome: pasta.clienteNomeFantasia ?? null,
-          status: pasta.status || "rascunho",
+          status: etapaDa(pasta),
           cidade: pasta.clienteCidade ?? null,
         });
         setEstadoCliente(estado);

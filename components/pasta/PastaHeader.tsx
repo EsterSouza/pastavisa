@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { PASTA_STATUS, StatusBadge, statusInfo } from "@/components/ui/Status";
+import { StatusBadge } from "@/components/ui/Status";
+import { ETAPA_INFO, etapaDa, type Etapa } from "@/lib/etapas";
 
 const ABAS = [
   { sufixo: "", label: "Resumo" },
@@ -15,6 +16,7 @@ const ABAS = [
 
 export interface PastaCabecalho {
   nome: string | null;
+  /** Etapa da pasta (lib/etapas.ts), mostrada no selo ao lado do nome. */
   status: string;
   /** "Cidade / UF", vazio se a pasta ainda não tem endereço. */
   local: string;
@@ -35,12 +37,12 @@ export function usePastaCabecalho(id: string): PastaCabecalho | null {
         if (!ativo) return;
         setCabecalho({
           nome: pasta?.clienteNomeFantasia ?? null,
-          status: pasta?.status || "rascunho",
+          status: pasta ? etapaDa(pasta) : "producao",
           local: [pasta?.clienteCidade, pasta?.clienteEstado].filter(Boolean).join(" / "),
         });
       })
       .catch(() => {
-        if (ativo) setCabecalho({ nome: null, status: "rascunho", local: "" });
+        if (ativo) setCabecalho({ nome: null, status: "producao", local: "" });
       });
     return () => {
       ativo = false;
@@ -70,7 +72,7 @@ export function PastaHeader({
 }) {
   const pathname = usePathname();
   const base = `/pasta/${id}`;
-  const situacao = status ? statusInfo(PASTA_STATUS, status, PASTA_STATUS.rascunho) : null;
+  const situacao = status ? ETAPA_INFO[status as Etapa] || ETAPA_INFO.producao : null;
   const titulo = nome === undefined ? "Carregando..." : nome || "Pasta sem nome";
 
   return (
