@@ -31,6 +31,15 @@ describe("auth middleware", () => {
     mocks.updateSession.mockReset();
   });
 
+  it("o endereço da Vercel redireciona para o domínio novo, menos o cron", async () => {
+    const antigo = await middleware(new NextRequest("https://pastavisa.vercel.app/pasta/abc?x=1"));
+    expect(antigo.status).toBe(308);
+    expect(antigo.headers.get("location")).toBe("https://pastavisa.treinavisa.com.br/pasta/abc?x=1");
+    mocks.updateSession.mockResolvedValue(session());
+    const cron = await middleware(new NextRequest("https://pastavisa.vercel.app/api/cron/retencao-pastas"));
+    expect(cron.status).not.toBe(308);
+  });
+
   it("retorna 401 para API sem sessao", async () => {
     mocks.updateSession.mockResolvedValue(session());
     expect((await middleware(request("/api/pastas"))).status).toBe(401);

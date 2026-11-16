@@ -23,8 +23,16 @@ function unauthorized(req: NextRequest, sessionResponse?: NextResponse) {
   return response;
 }
 
+// Desde 16/11/2026 o app atende em pastavisa.treinavisa.com.br; o endereço da
+// Vercel só redireciona. O cron fica de fora: a Vercel o chama pelo endereço dela.
+const DOMINIO_ANTIGO = "pastavisa.vercel.app";
+const DOMINIO = "pastavisa.treinavisa.com.br";
+
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
+  if (req.nextUrl.hostname === DOMINIO_ANTIGO && !path.startsWith("/api/cron/")) {
+    return NextResponse.redirect(`https://${DOMINIO}${path}${req.nextUrl.search}`, 308);
+  }
   if (isPublicPath(path)) {
     const response = NextResponse.next();
     if (path === "/planner" || path.startsWith("/planner/") || path.startsWith("/api/planejamento-comercial/")) {

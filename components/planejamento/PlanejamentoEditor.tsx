@@ -60,6 +60,15 @@ const CHAVE_LOCAL = "pastavisa.planejamento.rascunho";
 const ACEITOS = ".pdf,.png,.jpg,.jpeg,.webp,.gif,.heic,.docx,.txt";
 const EXTENSAO_ACEITA = /\.(pdf|png|jpe?g|webp|gif|heic|docx|txt)$/i;
 
+interface RespostaFormsApp {
+  id: string;
+  nome: string;
+  enviadaEm: string;
+  versao: string;
+  plataforma: string;
+  arquivos: number;
+}
+
 /** A logo marcada na tela; sem marcação, a imagem com "logo" no nome. */
 export function logoDosArquivos(arquivos: File[], marcada: string | null): File | undefined {
   const imagens = arquivos.filter((a) => /^image\//.test(a.type));
@@ -192,6 +201,9 @@ export function PlanejamentoEditor() {
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [logoMarcada, setLogoMarcada] = useState<string | null>(null);
   const seletorDePasta = useRef<HTMLInputElement>(null);
+  const [formsLista, setFormsLista] = useState<RespostaFormsApp[] | null>(null);
+  const [formsCarregando, setFormsCarregando] = useState("");
+  const [formsAviso, setFormsAviso] = useState("");
   const [enviados, setEnviados] = useState<ArquivoEnviado[]>([]);
   const [criando, setCriando] = useState(false);
   const [observacoes, setObservacoes] = useState("");
@@ -224,9 +236,70 @@ export function PlanejamentoEditor() {
 
   // A pasta da cliente no Drive (o forms.app cria uma por resposta) traz o PDF
   // do formulário, as fotos e a logo; o que não for desses tipos fica de fora.
-  function adicionarArquivos(lista: FileList | null) {
+  function adicionarArquivos(lista: FileList | File[] | null) {
     const novos = Array.from(lista || []).filter((n) => EXTENSAO_ACEITA.test(n.name));
     setArquivos((atuais) => [...atuais, ...novos.filter((n) => !atuais.some((a) => a.name === n.name && a.size === n.size))]);
+  }
+
+  // Respostas do forms.app: o PDF com as respostas é montado no servidor e as
+  // fotos e a logo descem uma a uma, como se tivessem vindo da pasta do Drive.
+  async function abrirFormsApp() {
+    setFormsAviso("");
+    setFormsCarregando("lista");
+    try {
+      const dados = await lerResposta<{ respostas: RespostaFormsApp[] }>(
+        await fetch("/api/formsapp/respostas"),
+        "Não deu para consultar o forms.app."
+      );
+      setFormsLista(dados.respostas);
+    } catch (error) {
+      setFormsAviso(error instanceof Error ? error.message : "Não deu para consultar o forms.app.");
+    } finally {
+      setFormsCarregando("");
+    }
+  }
+
+  async function trazerResposta(resposta: RespostaFormsApp) {
+    setFormsAviso("");
+    setFormsCarregando(resposta.id);
+    try {
+      const dados = await lerResposta<{ nomePdf: string; pdf: string; arquivos: Array<{ id: string; tipo: string }> }>(
+        await fetch(`/api/formsapp/respostas/${resposta.id}`),
+        "Não deu para ler a resposta do forms.app."
+      );
+      const novos = [
+        new File([Uint8Array.from(atob(dados.pdf), (c) => c.charCodeAt(0))], dados.nomePdf, { type: "application/pdf" }),
+      ];
+      const falhas: string[] = [];
+      for (let i = 0; i < dados.arquivos.length; i++) {
+        const item = dados.arquivos[i];
+        setFormsAviso(`Baixando ${i + 1} de ${dados.arquivos.length} arquivos de ${resposta.nome}…`);
+        const res = await fetch(`/api/formsapp/respostas/${resposta.id}/arquivos/${item.id}`);
+        if (!res.ok) {
+          const corpo = await res.json().catch(() => ({}));
+          falhas.push(corpo.error || `arquivo ${i + 1}`);
+          continue;
+        }
+        let nome = `${item.tipo} - ${decodeURIComponent(res.headers.get("X-Nome-Arquivo") || `arquivo ${i + 1}`)}`;
+        for (let n = 2; novos.some((f) => f.name === nome); n++) nome = nome.replace(/( \(\d+\))?(\.[^.]+)?$/, ` (${n})$2`);
+        novos.push(new File([await res.blob()], nome, { type: res.headers.get("Content-Type") || "" }));
+      }
+      adicionarArquivos(novos);
+      if (/color/i.test(resposta.versao)) setVersaoPasta("Digital + Colorida");
+      else if (/preto|p\s*&\s*b/i.test(resposta.versao)) setVersaoPasta("Digital + Preto e Branco");
+      else if (/digital/i.test(resposta.versao)) setVersaoPasta("Digital");
+      if (resposta.plataforma) setPlataforma(resposta.plataforma);
+      setFormsLista(null);
+      setFormsAviso(
+        falhas.length
+          ? `Vieram ${novos.length} arquivo(s) de ${resposta.nome}. Faltou: ${falhas.join("; ")}`
+          : `Vieram ${novos.length} arquivo(s) de ${resposta.nome}: o formulário em PDF, as fotos e a logo.`
+      );
+    } catch (error) {
+      setFormsAviso(error instanceof Error ? error.message : "Não deu para trazer a resposta do forms.app.");
+    } finally {
+      setFormsCarregando("");
+    }
   }
 
   function iniciarRelogio(texto: string) {
@@ -455,7 +528,7 @@ export function PlanejamentoEditor() {
         <form onSubmit={montar} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <FormSection
             title="O que a cliente mandou"
-            description="Escolha a pasta da cliente no Google Drive (o forms.app cria uma por resposta, com o PDF, as fotos e a logo) ou os arquivos soltos: outros PDFs, fotos, documentos do Word."
+            description="Traga a resposta direto do forms.app (formulário em PDF, fotos e logo), escolha a pasta da cliente no Google Drive ou os arquivos soltos: outros PDFs, fotos, documentos do Word."
           >
             <div className="flex flex-wrap items-center gap-2">
               <Button
@@ -465,6 +538,14 @@ export function PlanejamentoEditor() {
                 onClick={() => seletorDePasta.current?.click()}
               >
                 Escolher a pasta da cliente
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={fase === "lendo" || Boolean(formsCarregando)}
+                onClick={() => void abrirFormsApp()}
+              >
+                {formsCarregando === "lista" ? "Consultando o forms.app…" : "Trazer do forms.app"}
               </Button>
               <input
                 ref={seletorDePasta}
@@ -491,6 +572,47 @@ export function PlanejamentoEditor() {
                 className="block min-w-0 flex-1 rounded-md border border-gray-300 bg-surface-card p-1 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface-subtle file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-accent"
               />
             </div>
+            {formsLista && (
+              <div className="rounded-md border border-gray-200">
+                <div className="flex items-center justify-between gap-2 border-b border-gray-200 px-3 py-2">
+                  <p className="text-sm font-semibold text-ink">Respostas do formulário da Pasta Sanitária</p>
+                  <Button type="button" variant="quiet" onClick={() => setFormsLista(null)}>
+                    Fechar
+                  </Button>
+                </div>
+                {formsLista.length === 0 ? (
+                  <p className="px-3 py-2 text-sm text-ink-muted">Nenhuma resposta no forms.app.</p>
+                ) : (
+                  <ul className="divide-y divide-gray-200 text-sm">
+                    {formsLista.map((r) => (
+                      <li key={r.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                        <span className="min-w-0">
+                          <span className="font-semibold text-ink">{r.nome}</span>
+                          <span className="text-ink-muted">
+                            {" "}
+                            · {new Date(r.enviadaEm).toLocaleDateString("pt-BR")}
+                            {r.versao && ` · ${r.versao}`} · {r.arquivos} arquivo(s)
+                          </span>
+                        </span>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={Boolean(formsCarregando)}
+                          onClick={() => void trazerResposta(r)}
+                        >
+                          {formsCarregando === r.id ? "Trazendo…" : "Trazer"}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+            {formsAviso && (
+              <p className="text-sm text-ink-muted" role="status">
+                {formsAviso}
+              </p>
+            )}
             {arquivos.length > 0 && (
               <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 text-sm">
                 {arquivos.map((arquivo, i) => (
