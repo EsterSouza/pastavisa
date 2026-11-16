@@ -58,6 +58,13 @@ type Fase = "envio" | "lendo" | "revisao";
 
 const CHAVE_LOCAL = "pastavisa.planejamento.rascunho";
 const ACEITOS = ".pdf,.png,.jpg,.jpeg,.webp,.gif,.heic,.docx,.txt";
+const EXTENSAO_ACEITA = /\.(pdf|png|jpe?g|webp|gif|heic|docx|txt)$/i;
+
+/** A logo marcada na tela; sem marcação, a imagem com "logo" no nome. */
+export function logoDosArquivos(arquivos: File[], marcada: string | null): File | undefined {
+  const imagens = arquivos.filter((a) => /^image\//.test(a.type));
+  return imagens.find((a) => a.name === marcada) || imagens.find((a) => /logo/i.test(a.name));
+}
 
 const SECOES_SUGERIDAS = [
   "DOCUMENTOS INSTITUCIONAIS, GERENCIAIS E DE SEGURANÇA",
@@ -183,6 +190,8 @@ export function PlanejamentoEditor() {
   const router = useRouter();
   const [fase, setFase] = useState<Fase>("envio");
   const [arquivos, setArquivos] = useState<File[]>([]);
+  const [logoMarcada, setLogoMarcada] = useState<string | null>(null);
+  const seletorDePasta = useRef<HTMLInputElement>(null);
   const [enviados, setEnviados] = useState<ArquivoEnviado[]>([]);
   const [criando, setCriando] = useState(false);
   const [observacoes, setObservacoes] = useState("");
@@ -212,6 +221,13 @@ export function PlanejamentoEditor() {
   useEffect(() => {
     if (fase === "revisao" && rascunho && plano) gravarLocal({ rascunho, plano, resolvidas, enviados });
   }, [fase, rascunho, plano, resolvidas, enviados]);
+
+  // A pasta da cliente no Drive (o forms.app cria uma por resposta) traz o PDF
+  // do formulário, as fotos e a logo; o que não for desses tipos fica de fora.
+  function adicionarArquivos(lista: FileList | null) {
+    const novos = Array.from(lista || []).filter((n) => EXTENSAO_ACEITA.test(n.name));
+    setArquivos((atuais) => [...atuais, ...novos.filter((n) => !atuais.some((a) => a.name === n.name && a.size === n.size))]);
+  }
 
   function iniciarRelogio(texto: string) {
     setEtapa(texto);
@@ -342,6 +358,7 @@ export function PlanejamentoEditor() {
     setRascunho(null);
     setPlano(null);
     setArquivos([]);
+    setLogoMarcada(null);
     setEnviados([]);
     setObservacoes("");
     setFase("envio");
@@ -393,7 +410,6 @@ export function PlanejamentoEditor() {
       });
       const { pastaId } = await lerResposta<{ pastaId: string }>(res, "Não deu para criar a pasta.");
       // A logo segue se ainda estiver na tela (some ao recarregar a página).
-      const logo = arquivos.find((a) => /logo/i.test(a.name) && /^image\//.test(a.type));
       if (logo) {
         const form = new FormData();
         form.append("logo", logo);
@@ -408,6 +424,7 @@ export function PlanejamentoEditor() {
 
   const pendencias = useMemo(() => [...(rascunho?.pendencias || []), ...refsPendencias], [rascunho, refsPendencias]);
   const semTemplate = (rascunho?.itens || []).filter((i) => !i.template);
+  const logo = logoDosArquivos(arquivos, logoMarcada);
 
   // ── Envio ────────────────────────────────────────────────────────────────
   if (fase !== "revisao" || !plano || !rascunho) {
@@ -438,21 +455,42 @@ export function PlanejamentoEditor() {
         <form onSubmit={montar} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <FormSection
             title="O que a cliente mandou"
-            description="Formulário do Forms, outros PDFs, fotos, documentos do Word. Pode escolher vários de uma vez."
+            description="Escolha a pasta da cliente no Google Drive (o forms.app cria uma por resposta, com o PDF, as fotos e a logo) ou os arquivos soltos: outros PDFs, fotos, documentos do Word."
           >
-            <input
-              type="file"
-              multiple
-              accept={ACEITOS}
-              aria-label="Arquivos da cliente"
-              disabled={fase === "lendo"}
-              onChange={(e) => {
-                const novos = Array.from(e.target.files || []);
-                setArquivos((atuais) => [...atuais, ...novos.filter((n) => !atuais.some((a) => a.name === n.name && a.size === n.size))]);
-                e.target.value = "";
-              }}
-              className="block w-full rounded-md border border-gray-300 bg-surface-card p-1 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface-subtle file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-accent"
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={fase === "lendo"}
+                onClick={() => seletorDePasta.current?.click()}
+              >
+                Escolher a pasta da cliente
+              </Button>
+              <input
+                ref={seletorDePasta}
+                type="file"
+                multiple
+                className="hidden"
+                aria-label="Pasta da cliente"
+                {...{ webkitdirectory: "" }}
+                onChange={(e) => {
+                  adicionarArquivos(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <input
+                type="file"
+                multiple
+                accept={ACEITOS}
+                aria-label="Arquivos da cliente"
+                disabled={fase === "lendo"}
+                onChange={(e) => {
+                  adicionarArquivos(e.target.files);
+                  e.target.value = "";
+                }}
+                className="block min-w-0 flex-1 rounded-md border border-gray-300 bg-surface-card p-1 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface-subtle file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-accent"
+              />
+            </div>
             {arquivos.length > 0 && (
               <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 text-sm">
                 {arquivos.map((arquivo, i) => (
@@ -460,6 +498,17 @@ export function PlanejamentoEditor() {
                     <span className="min-w-0 truncate">{arquivo.name}</span>
                     <span className="flex shrink-0 items-center gap-2 text-ink-muted">
                       {(arquivo.size / 1024 / 1024).toFixed(1)} MB
+                      {/^image\//.test(arquivo.type) && (
+                        <Button
+                          type="button"
+                          variant="quiet"
+                          aria-pressed={logo?.name === arquivo.name}
+                          disabled={fase === "lendo"}
+                          onClick={() => setLogoMarcada(arquivo.name)}
+                        >
+                          {logo?.name === arquivo.name ? "É a logo" : "Usar como logo"}
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant="quiet"
