@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { DateField, fieldClass, SelectField, TextField } from "@/components/ui/Field";
 import { Feedback } from "@/components/ui/Status";
+import { detectarFundoLogo } from "@/components/pasta/detectarFundoLogo";
 import { Card, CardHeader, FormSection, PageHeader } from "@/components/ui/Surface";
 import type {
   AtividadeCnae,
@@ -498,6 +499,23 @@ export function PlanejamentoEditor() {
   const pendencias = useMemo(() => [...(rascunho?.pendencias || []), ...refsPendencias], [rascunho, refsPendencias]);
   const semTemplate = (rascunho?.itens || []).filter((i) => !i.template);
   const logo = logoDosArquivos(arquivos, logoMarcada);
+
+  // Cor de fundo lida da borda da logo, como na edição da pasta. O que a Ester digitar prevalece.
+  const corAutomatica = useRef("");
+  useEffect(() => {
+    if (!logo) return;
+    let vivo = true;
+    detectarFundoLogo(logo)
+      .then((hex) => {
+        if (!vivo || !hex) return;
+        setCorLogo((atual) => (!atual || atual === corAutomatica.current ? hex : atual));
+        corAutomatica.current = hex;
+      })
+      .catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
+  }, [logo]);
 
   // ── Envio ────────────────────────────────────────────────────────────────
   if (fase !== "revisao" || !plano || !rascunho) {
